@@ -2,102 +2,14 @@
 <html lang="ja">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>畑作（仮題）</title>
-    <style>
-      :root { color-scheme: light dark; }
-      body { font-family: sans-serif; margin: 16px; max-width: 960px; line-height: 1.45; }
-      h2, h3 { margin: 0.8em 0 0.3em; }
-      ul { padding-left: 1.2em; }
-      .spec { color: gray; font-size: 0.9em; margin: 0 0 0.2em 0; }
-      .event-harvest { margin: 0.2em 0; }
-      .event-preview { margin: 0.2em 0 0.8em; color: gray; }
-      .muted { color: gray; }
-      .outlook-event { font-size: 0.9em; color: gray; }
-      .outlook-ok { font-size: 0.9em; color: #2e7d32; }
-      .outlook-warn { font-size: 0.9em; color: #c62828; font-weight: 700; }
-      .ev-plus { font-size: 0.9em; color: #2e7d32; }
-      .ev-minus { font-size: 0.9em; color: #c62828; }
-      .plot { margin: 0 0 0.6em 0.4em; }
-      .plot-title { font-weight: 600; }
-      .st-cooldown { color: #c62828; font-weight: 700; }
-      .st-wait { color: #1565c0; }
-      .st-harvest { color: #2e7d32; font-weight: 600; }
-      .st-ready { color: #558b2f; }
-      .st-unowned { color: gray; }
-      .turn { background: #1565c0; color: #fff; font-size: 0.8em; padding: 1px 6px; margin-left: 6px; }
-      .summary { border: 1px solid currentColor; padding: 12px; margin-bottom: 16px; }
-      .summary .table-wrap { overflow-x: auto; margin: 0.3em 0 1em; }
-      .summary table { border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 0.92em; }
-      .summary th, .summary td { padding: 2px 8px; text-align: right; white-space: nowrap; }
-      .summary th:first-child, .summary td:first-child { text-align: left; }
-      .summary tr.winner td { font-weight: 700; }
-      .winner-line { font-weight: 700; }
-      .market-card { margin-bottom: 8px; }
-      .seat { margin-bottom: 16px; }
-      #actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-      button { font: inherit; padding: 10px 14px; min-height: 44px; cursor: pointer; }
-      button.primary { font-weight: 700; }
-      #err { color: tomato; min-height: 1.2em; }
-      #meta { color: gray; margin-bottom: 8px; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>畑作</title>
+    <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
-    <div id="meta">接続中…</div>
-    <div id="err"></div>
-    <div id="board"></div>
-    <div id="actions"></div>
-    <script>
-      const proto = location.protocol === "https:" ? "wss" : "ws";
-      const ws = new WebSocket(proto + "//" + location.host);
-      const board = document.getElementById("board");
-      const actionsEl = document.getElementById("actions");
-      const meta = document.getElementById("meta");
-      const err = document.getElementById("err");
-
-      ws.onmessage = (ev) => {
-        const msg = JSON.parse(ev.data);
-        if (msg.type === "assigned") {
-          meta.textContent = "席" + msg.seat + " " + msg.name;
-          return;
-        }
-        if (msg.type === "error") {
-          err.textContent = msg.message;
-          return;
-        }
-        if (msg.type === "view") {
-          err.textContent = "";
-          board.innerHTML = msg.html;
-          actionsEl.innerHTML = "";
-          if (msg.hold) {
-            const b = document.createElement("button");
-            b.className = "primary";
-            if (msg.acked) {
-              b.textContent = "確認済み（" + msg.ackGot + "/" + msg.ackNeed + "）";
-              b.disabled = true;
-            } else {
-              b.textContent = "次へ（" + msg.ackGot + "/" + msg.ackNeed + "）";
-              b.onclick = () => ws.send(JSON.stringify({ type: "next" }));
-            }
-            actionsEl.appendChild(b);
-            return;
-          }
-          for (const action of msg.actions || []) {
-            const b = document.createElement("button");
-            b.textContent = action.label || label(action);
-            const { label: _ignored, ...payload } = action;
-            b.onclick = () => ws.send(JSON.stringify({ type: "action", action: payload }));
-            actionsEl.appendChild(b);
-          }
-        }
-      };
-
-      function label(action) {
-        if (action.type === "pass") return "パス";
-        if (action.target === "newLand") return "場札" + (action.marketIndex + 1) + " → 新しい農地";
-        return "場札" + (action.marketIndex + 1) + " → 農地" + (action.target.plotIndex + 1);
-      }
-      ws.onclose = () => { meta.textContent = "切断しました"; };
-    </script>
+    <div id="app">
+      <p class="boot">接続中…</p>
+    </div>
+    <script src="/app.js"></script>
   </body>
 </html>

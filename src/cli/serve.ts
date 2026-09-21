@@ -1,14 +1,22 @@
 import http from "node:http";
 import os from "node:os";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { readFileSync, existsSync } from "node:fs";
+import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer, type WebSocket } from "ws";
 import { Table } from "../session/table.js";
 import { IllegalActionError, parseMode, type Action } from "../engine/types.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const html = readFileSync(join(here, "../../src/web/index.html"), "utf8");
+const webRoot = join(here, "../../src/web");
+
+const MIME: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+};
 
 function arg(name: string, fallback: string): string {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -41,9 +49,14 @@ function sendView(ws: WebSocket, seat: number): void {
       seat,
       html: packed.html,
       text: packed.text,
-      actions: packed.hold
-        ? []
-        : packed.actions.map((a) => ({ ...a.action, label: a.label })),
+      view: packed.view,
+      board: packed.board,
+      harvest: packed.harvest,
+      lastPayouts: packed.lastPayouts,
+      scoreSheet: packed.scoreSheet,
+      matchWinnerSeats: packed.matchWinnerSeats,
+      crops: packed.crops,
+      actions: packed.hold ? [] : packed.actions.map((a) => ({ ...a.action, label: a.label })),
       hold: packed.hold,
       acked: packed.acked,
       ackNeed: packed.ackNeed,
@@ -60,13 +73,36 @@ function broadcast(): void {
   }
 }
 
-const server = http.createServer((req, res) => {
-  if (req.url === "/" || req.url === "/index.html") {
-    res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
-    res.end(html);
+function sendFile(res: http.ServerResponse, filePath: string): void {
+  if (!existsSync(filePath)) {
+    res.writeHead(404);
+    res.end("not found");
     return;
   }
-  if (req.url === "/health") {
+  const type = MIME[extname(filePath)] ?? "application/octet-stream";
+  res.writeHead(200, { "content-type": type, "cache-control": "no-store" });
+  res.end(readFileSync(filePath));
+}
+
+const server = http.createServer((req, res) => {
+  const path = (req.url ?? "/").split("?")[0];
+  if (path === "/" || path === "/index.html") {
+    sendFile(res, join(webRoot, "index.html"));
+    return;
+  }
+  if (path === "/text" || path === "/text.html") {
+    sendFile(res, join(webRoot, "text.html"));
+    return;
+  }
+  if (path === "/app.css") {
+    sendFile(res, join(webRoot, "app.css"));
+    return;
+  }
+  if (path === "/app.js") {
+    sendFile(res, join(webRoot, "app.js"));
+    return;
+  }
+  if (path === "/health") {
     res.writeHead(200, { "content-type": "text/plain" });
     res.end("ok");
     return;
@@ -133,4 +169,5 @@ function lanAddress(): string {
 server.listen(port, () => {
   const ip = lanAddress();
   console.log(`畑作  http://${ip}:${port}  (humans=${humans} cpus=${cpus} mode=${mode} seasons=${table.seasonCount} seed=${seed})`);
+  console.log(`テキストUI  http://${ip}:${port}/text`);
 });
