@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>畑作 プレイの様子（UI仕様 v0.6.2 の再現）</title>
+<style>
+  :root { --bg:#f3f2ee; --panel:#ffffff; --ink:#1a1a1a; --sub:#5b5b5b; --line:#d6d4cc; --accent:#b45f06; }
+  * { box-sizing:border-box; }
+  html,body { height:100%; margin:0; }
+  body { font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif; background:var(--bg); color:var(--ink); display:flex; flex-direction:column; }
+  header { padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--line); }
+  header h1 { font-size:16px; margin:0 0 2px; }
+  header p { margin:0; font-size:12px; color:var(--sub); line-height:1.5; }
+  main { flex:1; display:flex; min-height:0; }
+  #stageWrap { flex:1; min-width:0; position:relative; }
+  #stage { width:100%; height:100%; display:block; background:#e9e7df; cursor:grab; touch-action:none; }
+  #stage.gray { filter:grayscale(1); }
+  aside { width:380px; max-width:42vw; overflow:auto; background:var(--panel); border-left:1px solid var(--line); padding:12px 14px 24px; font-size:13px; line-height:1.6; }
+  aside h2 { font-size:14px; margin:14px 0 6px; }
+  .nav { display:flex; gap:6px; margin-bottom:8px; }
+  button, select { font:inherit; font-size:12px; padding:5px 9px; border:1px solid var(--line); background:#fafaf7; color:var(--ink); border-radius:6px; cursor:pointer; }
+  button:hover { background:#f0eee6; }
+  button.primary { background:var(--ink); color:#fff; border-color:var(--ink); }
+  #steps { list-style:none; margin:0; padding:0; }
+  #steps li button { width:100%; text-align:left; margin-bottom:3px; }
+  #steps li button.on { background:#fff3d6; border-color:#e0a63a; font-weight:600; }
+  #caption { background:#fbfaf6; border:1px solid var(--line); border-radius:8px; padding:10px 12px; }
+  #caption h3 { font-size:14px; margin:0 0 6px; }
+  #caption p { margin:0 0 6px; }
+  #caption .rule { font-size:12px; color:var(--sub); }
+  #caption .watch { border-left:3px solid #e0a63a; padding-left:8px; margin:6px 0; }
+  .row { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:4px 0; }
+  label.chk { display:flex; gap:5px; align-items:center; font-size:12px; }
+  .note { font-size:11.5px; color:var(--sub); }
+  .legend span { display:inline-block; margin-right:10px; }
+  @media (max-width: 800px) { main { flex-direction:column; } aside { width:100%; max-width:none; max-height:45%; border-left:0; border-top:1px solid var(--line);} }
+</style>
+</head>
+<body>
+<header>
+  <h1>畑作 プレイの様子（4人卓・第5〜6ラウンド）</h1>
+  <p>UI/UX設計仕様書 v0.6.2 の推奨UI（レーン式トークン、作物パネル、イベントレール、台帳など）を、フィクスチャF1の盤面で再現した画面です。ホイールで拡大、ドラッグで移動できます。手番の内容（P3がジャガイモを購入、他は全員パス）は説明用の仮定です。作物のグリフは仮（頭字）です。</p>
+</header>
+<main>
+  <div id="stageWrap"><svg id="stage" viewBox="0 0 1200 950" preserveAspectRatio="xMidYMid meet"></svg></div>
+  <aside>
+    <div class="nav">
+      <button id="prev">◀ 前へ</button>
+      <button id="next" class="primary">次へ ▶</button>
+      <button id="reset">最初へ</button>
+    </div>
+    <div id="caption"></div>
+
+    <h2>手順（クリックで移動）</h2>
+    <ol id="steps"></ol>
+
+    <h2>見え方の切り替え</h2>
+    <div class="row"><span>視点：</span>
+      <select id="seat">
+        <option value="1">P1（南）</option>
+        <option value="2">P2（西）</option>
+        <option value="3">P3（北）</option>
+        <option value="4">P4（東）</option>
+      </select>
+    </div>
+    <div class="row">
+      <button data-z="all">卓全体</button>
+      <button data-z="shared">共通エリア</button>
+      <button data-z="rail">イベントレール</button>
+      <button data-z="panels">作物パネル</button>
+      <button data-z="mine">自分の板</button>
+      <button data-z="opp">向かいの板</button>
+    </div>
+    <div class="row"><label class="chk"><input type="checkbox" id="gray"> グレースケール（色に頼らず読めるか確認）</label></div>
+    <div class="row"><label class="chk"><input type="checkbox" id="a1" checked> A1：状態ラベル（表示補助）</label></div>
+    <div class="row"><label class="chk"><input type="checkbox" id="a2"> A2：読取値（初収入ラウンドなど。学習モード）</label></div>
+
+    <h2>凡例</h2>
+    <div class="legend note">
+      <span>待：○（白・砂時計）</span><span>収：⬡（緑・穂）中央レーン</span><span>休：◇（朱赤・斜線・月）</span><br>
+      <span>空き＝待・収レーンが空</span><span>同種OK＝休レーンが空</span>
+    </div>
+    <p class="note">前作カード（空き農地）は薄く表示（デジタルのみ。物理では追加のフラグなし：REC-03）。プレイヤー色は、ボード枠・台帳・手番順にだけ使っています。</p>
+  </aside>
+</main>
+
+<script>
+"use strict";
+/* ============ データ（UI仕様 v0.6.2 §7.6 / RULE §12 の値。今回の卓で使う4作物のみ） ============ */
+const C = {
+  radish:{name:"ラディッシュ", ini:"ラ",  type:"immediate", cost:1, W:1, H:1, Cd:0, base:7,  min:3},
+  potato:{name:"ジャガイモ",   ini:"ジャ", type:"balanced",  cost:2, W:2, H:2, Cd:4, base:9,  min:4},
+  negi:  {name:"ネギ",         ini:"ネ",  type:"longrun",   cost:2, W:2, H:4, Cd:0, base:8,  min:3},
+  tomato:{name:"トマト",       ini:"トマ", type:"longrun",   cost:3, W:3, H:4, Cd:4, base:9,  min:4}
+};
+const CROP_ORDER = ["radish","potato","negi","tomato"];
+const TYPE = {
+  immediate:{name:"即金型",     fill:"url(#p-dot)"},
+  lump:     {name:"一括型",     fill:"url(#p-line)"},
+  longrun:  {name:"長期継続型", fill:"url(#p-wave)"},
+  balanced: {name:"中間型",     fill:"#E0E0E0"}
+};
+const PL = {
+  1:{shape:"●", color:"#CC6677", seat:"S"},
+  2:{shape:"■", color:"#DDCC77", seat:"W"},
+  3:{shape:"▲", color:"#88CCEE", seat:"N"},
+  4:{shape:"◆", color:"#AA4499", seat:"E"}
+};
+const SEAT = { S:{tx:410,ty:725,rot:0,bbox:[410,725,380,225]}, W:{tx:225,ty:285,rot:90,bbox:[0,285,225,380]},
+               N:{tx:790,ty:225,rot:180,bbox:[410,0,380,225]}, E:{tx:975,ty:665,rot:-90,bbox:[975,285,225,380]} };
+const SHARED = {x:240,y:255,w:720,h:440};
+const VIEW_ANGLE = {S:0, W:-90, N:180, E:90};
+const CIRC = "①②③④⑤";
+
+/* ============ 状態 ============ */
+function initialState(){
+  const sl=(c,w,g,r)=>({c,w,g,r});
+  return {
+    round:5, phaseIdx:1, sub:0, cur:3, season:"2 / 4",
+    players:{
+      1:{coins:12, slots:[sl("tomato",0,4,0), sl("negi",0,4,0), sl("radish",0,1,0), null, null]},
+      2:{coins:15, slots:[sl("potato",0,0,4), sl("negi",0,3,0), sl("tomato",2,0,0), null, null]},
+      3:{coins:8,  slots:[sl("radish",0,0,0), sl("tomato",0,3,0), sl("tomato",1,0,0), null, null]},
+      4:{coins:11, slots:[sl("potato",0,2,0), sl("negi",0,2,0), null, null, null]}
+    },
+    ledger:{1:12,2:15,3:8,4:11},
+    order:[3,4,1,2],
+    market:["potato","tomato","negi"],
+    deck:23, discard:["radish","radish"],
+    ev:{ discard:[{c:"potato",d:-2},{c:"radish",d:2},{c:"negi",d:4}],
+         active:{c:"negi",d:-2},
+         row:[{c:"tomato",d:2},{c:"radish",d:-4},{c:"potato",d:4}],
+         deck:3, shown:7 },
+    tally:null, income:{}, changed:[], hl:[], incomeN:{}
+  };
+}
+function stateOf(sl){ if(!sl) return "unacquired"; if(sl.w>0) return "waiting"; if(sl.g>0) return "harvesting"; if(sl.r>0) return "idleCooling"; return "idleFree"; }
+const STL = {unacquired:"未取得", waiting:"待機中", harvesting:"収穫中", idleCooling:"空き・休耕中", idleFree:"空き"};
+function isHarvesting(sl){ return !!sl && sl.w===0 && sl.g>0; }
+function modifier(S,crop){
+  let m=0; const list=[S.ev.active, S.ev.row[0]];
+  list.forEach(e=>{ if(e && e.c===crop) m+=e.d; });
+  return m;
+}
+function ladder(c,n){ return Math.max(C[c].min, C[c].base-(n-1)); }
+function tallyCount(S){
+  const t={}; CROP_ORDER.forEach(c=>t[c]=0);
+  for(const pid in S.players) S.players[pid].slots.forEach(sl=>{ if(isHarvesting(sl)) t[sl.c]++; });
+  return t;
+}
+function updateTokens(sl){
+  const c=C[sl.c];
+  if(sl.w>0){ sl.w--; if(sl.w===0) sl.g=c.H; }
+  else if(sl.g>0){ sl.g--; if(sl.g===0) sl.r=c.Cd; }
+  else if(sl.r>0){ sl.r--; }
+}
+
+/* ============ 手順 ============ */
+const steps = [
+  { t:"R5 手番フェーズの開始", phase:1, sub:0,
+    run(S){ S.cur=S.order[0]; S.hl=[]; },
+    cap:`<p>フィクスチャF1（基本モード・4人）の盤面です。<b>手番順は所持コインの少ない順</b>で、P3（8）→ P4（11）→ P1（12）→ P2（15）です。</p>
+    <div class="watch"><b>見どころ</b>：各農地の<b>中央レーン（収）に緑</b>があれば、今ラウンドの終了時に収入が入る農地です。P2の左端（ジャガイモ）は<b>休レーンに赤4</b>なので、別の作物は今すぐ、同じジャガイモは第9ラウンドから植えられます。</div>
+    <p>共通エリアでは、イベントレールの<b>有効ブラケット（継続中＋今）</b>に「ネギ −2」「トマト ＋2」があり、作物パネルの補正欄にも反映されています。「次」「次の次」は予告で、まだ効きません。</p>
+    <p class="rule">RULE §4（手番順）、§6.3（空きと連作）、§9（イベント）／UI仕様 §6.3、REC-01・06・08・09</p>` },
+
+  { t:"手番：P3 がジャガイモを購入して植える", phase:1, sub:0,
+    run(S){
+      const P=S.players[3];
+      P.coins-=2; S.discard.push("radish");
+      P.slots[0]={c:"potato",w:2,g:0,r:0};
+      S.market[0]="radish"; S.deck-=1; S.hl=["3-0"]; S.cur=3;
+    },
+    cap:`<p>P3は、場札のジャガイモ（栽培コスト2）を、<b>空いている左端の農地</b>（前作：ラディッシュ）に植えます。既存の空き農地なので、<b>農地取得コストは不要</b>で、栽培コストのみ支払います（RULE §5）。</p>
+    <div class="watch"><b>処理順</b>：コストを支払う → 前作カードを作物の捨て札へ → カードを置く → 白トークンを W 個（2個）置く → 場札を補充。所持コインは 8 → 6。<br>台帳（共通エリア）は<b>まだ 8 のまま</b>です。台帳の更新はラウンド末（OQ-02）。</div>
+    <p class="rule">RULE §5（処理順）／UI仕様 §10.7、REC-15</p>` },
+
+  { t:"手番：P4・P1・P2 は全員パス", phase:1, sub:0,
+    run(S){ S.hl=[]; S.cur=null; },
+    cap:`<p>この例では、残りの3人（P4 → P1 → P2 の順）は全員パスとします。<b>パスは常に合法</b>です（RULE §5-B）。</p>
+    <p class="rule">RULE §5-B。手番の内容は説明用の仮定です。</p>` },
+
+  { t:"収入① 計数（凍結）", phase:2, sub:1,
+    run(S){ S.tally=tallyCount(S); S.cur=null;
+      S.hl=[]; for(const pid in S.players) S.players[pid].slots.forEach((sl,i)=>{ if(isHarvesting(sl)) S.hl.push(pid+"-"+i); }); },
+    cap:`<p>まず<b>トークンに触らずに</b>、「白がなく緑がある」農地を作物別に数えます。作物パネルの集計トラックに、進行係がペグを置きます。</p>
+    <p>トマト <b>2</b>（P1、P3）／ネギ <b>3</b>（P1、P2、P4）／ラディッシュ <b>1</b>（P1）／ジャガイモ <b>1</b>（P4）</p>
+    <div class="watch"><b>注意</b>：P3が今植えたジャガイモ（白2）と、P3右端のトマト（白1）は<b>収穫中ではない</b>ので数えません。トークンを先に更新すると、緑を置いたばかりの農地を誤って数えてしまうため、<b>集計が先</b>です（REC-07）。</div>
+    <p class="rule">RULE §7（収入フェーズの開始時の状態）／UI仕様 §6.6、REC-06・07</p>` },
+
+  { t:"収入② 受取", phase:2, sub:2,
+    run(S){
+      S.incomeN={}; S.income={}; S.hl=[];
+      const t=S.tally;
+      for(const pid in S.players){
+        S.players[pid].slots.forEach((sl,i)=>{
+          if(isHarvesting(sl)){
+            const v=Math.max(C[sl.c].min, C[sl.c].base-(t[sl.c]-1)+modifier(S,sl.c));
+            S.income[pid+"-"+i]=v; S.players[pid].coins+=v; S.hl.push(pid+"-"+i);
+          }
+        });
+      }
+    },
+    cap:`<p>収入は <b>max(最低保証, 基本収入 −（同種の他の収穫中農地数）＋ イベント補正)</b> です。作物パネルの収入はしご（該当する行が強調）と、補正欄を読みます。</p>
+    <p>トマト：9 − 1 ＋2 ＝ <b>10</b> ×2／ネギ：8 − 2 −2 ＝ <b>4</b> ×3／ラディッシュ：<b>7</b>／ジャガイモ：<b>9</b></p>
+    <p>所持コイン：P1 12→33、P2 15→19、P3 6→16、P4 11→24。台帳は、まだ更新しません。</p>
+    <p class="rule">RULE §7／UI仕様 REC-06（IncomeLadder、HarvestTally、ModifierWell）</p>` },
+
+  { t:"収入③ 更新（トークン）", phase:2, sub:3,
+    run(S){
+      S.changed=[]; S.income={}; S.hl=[];
+      for(const pid in S.players) S.players[pid].slots.forEach((sl,i)=>{
+        if(!sl) return; const before=JSON.stringify(sl); updateTokens(sl);
+        if(JSON.stringify(sl)!==before) S.changed.push(pid+"-"+i);
+      });
+    },
+    cap:`<p>各農地のトークンを、左のスロットから順に更新します（破線の枠が変化した農地）。</p>
+    <div class="watch"><b>見どころ</b><br>・P1のラディッシュ（C=0）：緑がなくなり、<b>赤は置かず</b>、トークンなしの「空き」になります。<br>・P3右端のトマト：白がなくなり、<b>緑を4個置きます（このラウンドは収入なし）</b>。<br>・P2左端のジャガイモ：赤4 → 3。</div>
+    <p class="rule">RULE §6.2（トークンの状態機械）／UI仕様 REC-01・02（形状ロック付きレーン）</p>` },
+
+  { t:"収入④ 台帳と手番順", phase:2, sub:4,
+    run(S){
+      for(const pid in S.players) S.ledger[pid]=S.players[pid].coins;
+      const prev=S.order.slice();
+      S.order=prev.slice().sort((a,b)=> S.ledger[a]-S.ledger[b] || prev.indexOf(a)-prev.indexOf(b));
+      S.changed=[]; S.hl=[];
+    },
+    cap:`<p>ラウンド末に、コイン台帳へ総額を反映し、<b>次ラウンドの手番順</b>（コイン昇順、同数は前ラウンドの順を維持）を並べ替えます。</p>
+    <p>P3（16）→ P2（19）→ P4（24）→ P1（33）。</p>
+    <p class="rule">RULE §4（手番順）／UI仕様 REC-15・16</p>` },
+
+  { t:"R6 イベント更新", phase:0, sub:0,
+    run(S){
+      const e=S.ev;
+      e.discard.push(e.active);         // 1. 効果を2ラウンド終えたカードを捨て札へ
+      e.active=e.row.shift();           // 2. 直前の左端を継続中へ。列は左へ詰まる
+      e.row.push({c:"tomato",d:-2});    // 4. 山札から右端へ補充（中身は非公開のため仮）
+      e.deck-=1; e.shown+=1;
+      S.round=6; S.tally=null; S.cur=null; S.hl=[]; S.changed=[]; S.income={};
+    },
+    cap:`<p><b>全カードが1つずつ左へ進みます</b>：継続中（ネギ −2）→ 捨て札、今（トマト ＋2）→ 継続中、次 → 今、次の次 → 次、山札から1枚が右端へ。</p>
+    <div class="watch"><b>有効なイベント</b>は、継続中の「トマト ＋2」と、今の「ラディッシュ −4」の2枚です。「次」「次の次」は予告です。作物パネルの補正欄も更新されました。</div>
+    <p class="rule">RULE §4（イベント更新の手順）、§9／UI仕様 REC-08・09。補充されたカード（トマト −2）の中身は、説明用の仮定です。</p>` },
+
+  { t:"R6 手番フェーズの開始", phase:1, sub:0,
+    run(S){ S.cur=S.order[0]; },
+    cap:`<p>第6ラウンドの手番が始まります。手番順は台帳から並べ替えた P3 → P2 → P4 → P1 です。</p>
+    <div class="watch"><b>読み取りの練習</b>：P3の左端のジャガイモは<b>白1</b>なので、初収入は<b>第7ラウンドの終了時</b>（現在 ＋ 白の数）。右端のトマトは<b>緑4</b>なので、<b>今ラウンドの終了時から4回</b>の収入です。<br>グレースケール表示にしても、○⬡◇の形と、中央レーンの位置で、状態が読めるか確認してください。</div>
+    <p class="rule">RULE §6.1／UI仕様 §6.3（読取規則）。「A2：読取値」をオンにすると、初収入ラウンドなどが表示されます。</p>` }
+];
+
+/* ============ 描画ヘルパー ============ */
+const T = (x,y,txt,cls="",extra="") => `<text x="${x}" y="${y}" class="${cls}" ${extra.replace(/fill="([^"]+)"/,'style="fill:$1"')}>${txt}</text>`;
+function shape(t,cx,cy,r,attrs){
+  if(t==="w") return `<circle cx="${cx}" cy="${cy}" r="${r}" ${attrs}/>`;
+  if(t==="g"){ const p=[0,1,2,3,4,5].map(k=>{const a=Math.PI/3*k-Math.PI/6; return (cx+r*Math.cos(a)).toFixed(2)+","+(cy+r*Math.sin(a)).toFixed(2);}).join(" "); return `<polygon points="${p}" ${attrs}/>`; }
+  const d=r*1.1; return `<polygon points="${cx},${cy-d} ${cx+d},${cy} ${cx},${cy+d} ${cx-d},${cy}" ${attrs}/>`;
+}
+function icon(t,cx,cy,col){
+  const p = t==="w" ? "M-2.4,-3.2 L2.4,-3.2 L0,0 L2.4,3.2 L-2.4,3.2 L0,0 Z"
+          : t==="g" ? "M0,3.5 L0,-3.5 M0,-1 L-2.4,-3 M0,-1 L2.4,-3 M0,1.5 L-2.4,-0.5 M0,1.5 L2.4,-0.5"
+          : "M1.5,-3.4 A3.6,3.6 0 1 0 1.5,3.4 A2.8,2.8 0 1 1 1.5,-3.4 Z";
+  const fill = t==="g" ? "none" : col;
+  return `<path d="${p}" transform="translate(${cx} ${cy})" fill="${fill}" stroke="${col}" stroke-width="0.9" stroke-linejoin="round" stroke-linecap="round"/>`;
+}
+function well(t,cx,cy,filled){
+  const r=6.5;
+  if(!filled) return shape(t,cx,cy,r,`fill="none" stroke="#a9a9a9" stroke-width="0.6" stroke-dasharray="1.2 1.2"`);
+  if(t==="w") return shape("w",cx,cy,r,`fill="#fff" stroke="#2b2b2b" stroke-width="1"`)+icon("w",cx,cy,"#2b2b2b");
+  if(t==="g") return shape("g",cx,cy+1.4,r,`fill="#00634a"`)+shape("g",cx,cy,r,`fill="#009E73" stroke="#005C42" stroke-width="1"`)+icon("g",cx,cy,"#fff");
+  return shape("r",cx,cy,r,`fill="url(#p-hatch)" stroke="#7A3500" stroke-width="1"`)+icon("r",cx,cy,"#fff");
+}
+
+/* 作物カード 63x88（案B：時間軸中心） */
+function card(c,opt={}){
+  const d=C[c], ty=TYPE[d.type];
+  let o=`<g ${opt.dim?'opacity="0.55"':''}>`;
+  o+=`<rect width="63" height="88" rx="3" fill="#fff" stroke="#333" stroke-width="0.8"/>`;
+  o+=`<circle cx="15" cy="15" r="10" fill="#f2f0ea" stroke="#333" stroke-width="0.6"/>`+T(15,17.4,d.ini,"f6 b","text-anchor=\"middle\"");
+  o+=T(29,12,d.name,"f5 b")+T(29,19,ty.name,"f3");
+  o+=`<rect x="3" y="28" width="57" height="4" fill="${ty.fill}" stroke="#555" stroke-width="0.3"/>`;
+  o+=`<circle cx="10" cy="44" r="6.2" fill="#f7e7a8" stroke="#8a6d00" stroke-width="0.6"/>`+T(10,46.6,d.cost,"f7 b","text-anchor=\"middle\"")+T(10,53.2,"栽培","f3","text-anchor=\"middle\"");
+  o+=T(20,43,"収入 "+d.base,"f7 b")+T(20,49.5,"最低 "+d.min,"f4");
+  let x=3;
+  for(let i=0;i<d.W;i++){ o+=`<rect x="${x}" y="57" width="5" height="8" fill="#fff" stroke="#2b2b2b" stroke-width="0.6"/>`; x+=5; }
+  for(let i=0;i<d.H;i++){ o+=`<rect x="${x}" y="57" width="5" height="8" fill="#009E73" stroke="#005C42" stroke-width="0.6"/>`; x+=5; }
+  for(let i=0;i<d.Cd;i++){ o+=`<rect x="${x}" y="57" width="5" height="8" fill="url(#p-hatch)" stroke="#7A3500" stroke-width="0.6"/>`; x+=5; }
+  if(d.Cd===0) o+=T(x+1.5,63.4,"連作可","f3.5");
+  o+=T(3,72,`待${d.W} 収${d.H} 休${d.Cd}`,"f4");
+  o+=T(3,80,"1マス＝1ラウンド","f3");
+  if(opt.tag) o+=T(60,6,opt.tag,"f3.5","text-anchor=\"end\"");
+  return o+`</g>`;
+}
+function cardBack(label){
+  return `<rect width="63" height="88" rx="3" fill="#dfd7c2" stroke="#333" stroke-width="0.8"/><rect x="4" y="4" width="55" height="80" rx="2" fill="url(#p-furrow)" stroke="#8a7a52" stroke-width="0.4"/>`+T(31.5,46,label,"f7 b","text-anchor=\"middle\"");
+}
+/* イベントカード 45x63（ミニ） */
+function evCard(e){
+  const d=C[e.c], up=e.d>0;
+  let o=`<rect width="45" height="63" rx="3" fill="${up?'#fff6dd':'#eceaf7'}" stroke="#333" stroke-width="0.8"/>`;
+  o+=`<circle cx="12" cy="13" r="8" fill="#fff" stroke="#333" stroke-width="0.5"/>`+T(12,15,d.ini,"f4.6 b","text-anchor=\"middle\"");
+  o+=T(23,12,d.name,"f4")+T(23,18,"の収入","f3");
+  o+= up ? `<polygon points="38,24 42,31 34,31" fill="#E69F00" stroke="#7a5200" stroke-width="0.4"/>`
+         : `<polygon points="34,24 42,24 38,31" fill="#fff" stroke="#332288" stroke-width="0.9"/>`;
+  o+=T(22.5,48,(up?"＋":"−")+Math.abs(e.d),"f15 b",`text-anchor="middle" fill="${up?'#7a5200':'#332288'}"`);
+  o+=`<rect x="12" y="54" width="9" height="4" fill="#ddd" stroke="#555" stroke-width="0.3"/><rect x="23" y="54" width="9" height="4" fill="#fff" stroke="#555" stroke-width="0.3"/>`+T(34,57.4,"2R","f3");
+  return o;
+}
+
+/* ============ プレイヤーボード ============ */
+function drawSlot(S,pid,i){
+  const sl=S.players[pid].slots[i], key=pid+"-"+i, st=stateOf(sl);
+  const acquired=S.players[pid].slots.filter(Boolean).length;
+  let o=`<g transform="translate(${17+70*i} 10)">`;
+  o+=`<rect width="66" height="180" rx="2" fill="#fbfbf9" stroke="#bbb" stroke-width="0.5"/>`;
+  const counts=[sl?sl.w:0, sl?sl.g:0, sl?sl.r:0], types=["w","g","r"], labels=["待","収","休"];
+  for(let k=0;k<3;k++){
+    const lx=3+20*k;
+    const bg = k===1 ? `fill="#009E73" fill-opacity="0.08"` : k===2 ? `fill="url(#p-hatchlight)"` : `fill="none"`;
+    o+=`<rect x="${lx}" y="0" width="20" height="72" ${bg} stroke="#ccc" stroke-width="0.4"/>`;
+    o+=T(lx+10,6,labels[k],"f4.6 b","text-anchor=\"middle\"");
+    for(let j=0;j<4;j++) o+=well(types[k],lx+10,16+16*j,(3-j)<counts[k]);
+  }
+  if(S.changed.includes(key)) o+=`<rect x="1.5" y="-1.5" width="63" height="75" fill="none" stroke="#d9480f" stroke-width="1.4" stroke-dasharray="3 2"/>`;
+  if(!sl){
+    const next = i===acquired;
+    o+=`<rect x="1.5" y="75" width="63" height="88" rx="3" fill="#f0efe9" stroke="${next?'#7a5200':'#9a9a9a'}" stroke-width="${next?1.4:0.8}" stroke-dasharray="3 2"/>`;
+    o+=T(33,124,i,"f16 b","text-anchor=\"middle\"")+T(33,134,"未取得","f4.6","text-anchor=\"middle\"")+(next?T(33,142,"▲次に取得","f4","text-anchor=\"middle\" fill=\"#7a5200\""):"");
+  } else {
+    const idle = (st==="idleCooling"||st==="idleFree");
+    o+=`<g transform="translate(1.5 75)">${card(sl.c,{dim:idle,tag:idle?"前作":""})}</g>`;
+  }
+  o+=T(3,171,`${CIRC[i]} 取得コスト ${i}`,"f4");
+  o+=`<g class="badge1">`+T(63,177.5,STL[st],"f4 b","text-anchor=\"end\"")+`</g>`;
+  let rd="";
+  if(st==="waiting") rd=`初収入 R${S.round+sl.w}`;
+  else if(st==="harvesting") rd=`収入あと${sl.g}回`;
+  else if(st==="idleCooling") rd=`同種OK R${S.round+sl.r}`;
+  if(rd) o+=`<g class="badge2">`+T(3,177.5,rd,"f4","fill=\"#7a5200\"")+`</g>`;
+  if(S.hl.includes(key)) o+=`<rect x="-1" y="-1" width="68" height="182" rx="3" fill="#ffb703" fill-opacity="0.13" stroke="#e0a63a" stroke-width="1.8"/>`;
+  if(S.income[key]!=null) o+=`<rect x="14" y="98" width="38" height="17" rx="3" fill="#fff" stroke="#009E73" stroke-width="1"/>`+T(33,111,"＋"+S.income[key],"f12 b","text-anchor=\"middle\" fill=\"#005C42\"");
+  return o+`</g>`;
+}
+function drawBoard(S,pid){
+  const P=S.players[pid], pl=PL[pid], s=SEAT[pl.seat];
+  let o=`<g transform="translate(${s.tx} ${s.ty}) rotate(${s.rot})">`;
+  o+=`<rect width="380" height="225" rx="4" fill="#f6f5ef" stroke="${pl.color}" stroke-width="2.4"/>`;
+  o+=T(6,8,`${pl.shape} P${pid}`,"f6 b")+T(40,8,`（${{S:"南",W:"西",N:"北",E:"東"}[pl.seat]}）`,"f4");
+  if(S.cur===pid) o+=`<rect x="-1.5" y="-1.5" width="383" height="228" rx="5" fill="none" stroke="#e0a63a" stroke-width="2.4"/>`+T(374,8,"手番","f5 b","text-anchor=\"end\" fill=\"#b45f06\"");
+  for(let i=0;i<5;i++) o+=drawSlot(S,pid,i);
+  o+=`<rect x="0" y="191" width="380" height="34" fill="#efece0" stroke="#ccc" stroke-width="0.4"/>`;
+  o+=T(8,203,"所持コイン","f4")+T(8,215,P.coins,"f12 b");
+  const n=Math.min(P.coins,24); for(let i=0;i<n;i++) o+=`<circle cx="${52+ (i%12)*6.2}" cy="${203+Math.floor(i/12)*7}" r="2.6" fill="#f2c94c" stroke="#8a6d00" stroke-width="0.3"/>`;
+  o+=T(150,201,"待：白n → n R後の終了時に初収入　収：緑n → 今R終了時を含めn回の収入","f3");
+  o+=T(150,206,"休：赤n → n R後から同じ作物もOK（別作物は今すぐ）　待・収が空 → 空き","f3");
+  o+=T(150,211,"更新（左から）：白を1個取る（0で緑をH個）／緑を1個取り収入（0で赤をC個）／赤を1個取る","f3");
+  return o+`</g>`;
+}
+
+/* ============ 共通エリア ============ */
+function drawShared(S){
+  let o=`<g transform="translate(${SHARED.x} ${SHARED.y})">`;
+  o+=`<rect x="-8" y="-8" width="736" height="456" rx="6" fill="#f8f7f2" stroke="#b8b5a8" stroke-width="0.8" stroke-dasharray="4 3"/>`;
+  /* --- イベントレール --- */
+  o+=`<rect width="320" height="100" fill="#fff" stroke="#999" stroke-width="0.6"/>`;
+  const zn=["捨て札","継続中","今","次","次の次","山札"];
+  for(let i=0;i<6;i++){ const x=10+50*i; o+=T(x+22.5,10,zn[i],"f3.6 b","text-anchor=\"middle\"")+`<rect x="${x}" y="24" width="45" height="63" fill="none" stroke="#bbb" stroke-width="0.4" stroke-dasharray="1.5 1.5"/>`; }
+  o+=`<rect x="57" y="16" width="101" height="77" fill="#ffe08a" fill-opacity="0.12" stroke="#b45f06" stroke-width="1.4"/>`+T(107.5,97.6,"有効（最大2枚）","f3.6 b","text-anchor=\"middle\" fill=\"#b45f06\"");
+  o+=`<rect x="161" y="16" width="99" height="77" fill="none" stroke="#777" stroke-width="0.9" stroke-dasharray="3 2"/>`+T(210.5,97.6,"予告（まだ効かない）","f3.6","text-anchor=\"middle\" fill=\"#555\"");
+  const ev=S.ev;
+  const placeEv=(e,i)=>e?`<g transform="translate(${10+50*i} 24)">${evCard(e)}</g>`:`<g transform="translate(${10+50*i} 24)"><rect width="45" height="63" fill="url(#p-hatchlight)" stroke="#999" stroke-width="0.4"/>${T(22.5,34,"なし","f5","text-anchor=\"middle\"")}</g>`;
+  if(ev.discard.length){ o+=`<g transform="translate(10 24)">${evCard(ev.discard[ev.discard.length-1])}</g>`+T(32,84,"×"+ev.discard.length,"f5 b","text-anchor=\"middle\""); } else o+=placeEv(null,0);
+  o+=placeEv(ev.active,1)+placeEv(ev.row[0],2)+placeEv(ev.row[1],3)+placeEv(ev.row[2],4);
+  o+=`<g transform="translate(260 24)"><rect width="45" height="63" rx="3" fill="#cfe0ec" stroke="#333" stroke-width="0.8"/>${T(22.5,32,"☁","f12","text-anchor=\"middle\"")}${T(22.5,50,ev.deck+"枚","f7 b","text-anchor=\"middle\"")}</g>`;
+  o+=T(0,-3,`イベント（累計 ${ev.shown}／10）`,"f4 b");
+  /* --- ラウンド表示 --- */
+  o+=T(330,-3,`ラウンド　シーズン ${S.season}`,"f4 b");
+  for(let r=1;r<=10;r++){
+    const cur=r===S.round, past=r<S.round;
+    o+=`<rect x="${330+24*(r-1)}" y="0" width="24" height="30" fill="${cur?'#ffe08a':past?'#d5d3ca':'#fff'}" stroke="#333" stroke-width="${cur?1.6:0.5}"/>`+T(330+24*(r-1)+12,19,r,"f9"+(cur?" b":""),"text-anchor=\"middle\"");
+  }
+  /* --- フェーズ --- */
+  const ph=["① イベント更新","② 手番","③ 収入"];
+  for(let i=0;i<3;i++){ const on=S.phaseIdx===i; o+=`<rect x="${330+120*i}" y="40" width="116" height="24" fill="${on?'#ffe08a':'#fff'}" stroke="#333" stroke-width="${on?1.6:0.5}"/>`+T(330+120*i+58,55.5,ph[i],"f5"+(on?" b":""),"text-anchor=\"middle\""); }
+  const sb=["1 計数（凍結）","2 受取","3 更新","4 台帳"];
+  for(let i=0;i<4;i++){ const on=S.phaseIdx===2 && S.sub===i+1; o+=`<rect x="${330+90*i}" y="70" width="88" height="20" fill="${on?'#ffe08a':'#fff'}" stroke="#333" stroke-width="${on?1.4:0.4}"/>`+T(330+90*i+44,83.5,sb[i],"f4"+(on?" b":""),"text-anchor=\"middle\""); }
+  /* --- 作物パネル（4枚） --- */
+  const cnt=S.tally, keyPl=S.incomeN;
+  CROP_ORDER.forEach((c,idx)=>{
+    const d=C[c], x=70*idx, y=110, ty=TYPE[d.type];
+    o+=`<g transform="translate(${x} ${y})"><rect width="63" height="130" rx="3" fill="#fff" stroke="#333" stroke-width="0.8"/>`;
+    o+=`<circle cx="12" cy="12" r="8.5" fill="#f2f0ea" stroke="#333" stroke-width="0.5"/>`+T(12,14.4,d.ini,"f5 b","text-anchor=\"middle\"")+T(24,10,d.name,"f5 b")+T(24,16,ty.name,"f3");
+    o+=`<rect x="3" y="21" width="57" height="4" fill="${ty.fill}" stroke="#555" stroke-width="0.3"/>`;
+    o+=T(3,32,`コスト${d.cost} 待${d.W} 収${d.H} 休${d.Cd}`,"f3.6")+T(3,37,`基本収入${d.base}／最低保証${d.min}`,"f3.6");
+    for(let n=1;n<=8;n++){
+      const yy=39+4.1*n, on = cnt && cnt[c]===n;
+      o+=`<rect x="3" y="${yy-3.4}" width="57" height="4" fill="${on?'#ffe08a':'none'}" ${on?'stroke="#b45f06" stroke-width="0.6"':''}/>`+T(5,yy-0.3,`N=${n}`,"f3")+T(58,yy-0.3,ladder(c,n),"f3.6"+(on?" b":""),"text-anchor=\"end\"");
+    }
+    o+=T(3,84,"収穫中の農地数（N）","f3.4 b");
+    for(let n=0;n<=10;n++){ const on=cnt && cnt[c]===n; o+=`<rect x="${3+5.2*n}" y="86" width="5" height="7" fill="${on?'#009E73':'#fff'}" stroke="#555" stroke-width="0.3"/>`+T(3+5.2*n+2.5,91.3,n,"f3"+(on?" b":""),`text-anchor="middle" fill="${on?'#fff':'#333'}"`); }
+    if(!cnt) o+=T(3,99,"（次の計数まで空）","f3","fill=\"#777\"");
+    const m=modifier(S,c);
+    o+=T(3,107,"イベント補正（有効）","f3.4 b");
+    const badges=[["継続",S.ev.active],["今",S.ev.row[0]]];
+    badges.forEach((b,bi)=>{
+      const e=b[1], hit=e&&e.c===c;
+      o+=`<rect x="${3+22*bi}" y="110" width="20" height="12" fill="${hit?(e.d>0?'#fff6dd':'#eceaf7'):'#fff'}" stroke="#777" stroke-width="0.4" ${hit?'':'stroke-dasharray="1.2 1.2"'}/>`+T(3+22*bi+10,115,b[0],"f3","text-anchor=\"middle\"")+(hit?T(3+22*bi+10,120.4,(e.d>0?"＋":"−")+Math.abs(e.d),"f5 b","text-anchor=\"middle\""):"");
+    });
+    o+=T(60,120,(m>0?"＋":m<0?"−":"±")+Math.abs(m),"f9 b",`text-anchor="end" fill="${m>0?'#7a5200':m<0?'#332288':'#555'}"`);
+    o+=`</g>`;
+  });
+  /* --- コイン台帳 --- */
+  o+=T(290,107,"コイン台帳（ラウンド末に更新）","f4 b")+`<rect x="290" y="110" width="200" height="120" fill="#fff" stroke="#999" stroke-width="0.6"/>`;
+  [1,2,3,4].forEach((pid,i)=>{ const y=124+28*i; o+=`<circle cx="306" cy="${y-4}" r="8" fill="${PL[pid].color}" stroke="#333" stroke-width="0.5"/>`+T(306,y-1.5,PL[pid].shape,"f6","text-anchor=\"middle\"")+T(320,y-1,`P${pid}`,"f6")+T(478,y,S.ledger[pid],"f14 b","text-anchor=\"end\""); });
+  /* --- 手番順 --- */
+  o+=T(500,107,`手番順（R${S.round}${S.round===6?"：台帳から並べ替え済み":""}）`,"f4 b")+`<rect x="500" y="110" width="200" height="56" fill="#fff" stroke="#999" stroke-width="0.6"/>`;
+  S.order.forEach((pid,i)=>{ const x=524+46*i, on=S.cur===pid; o+=`<circle cx="${x}" cy="138" r="12" fill="${PL[pid].color}" stroke="#333" stroke-width="${on?2.4:0.6}"/>`+T(x,143,PL[pid].shape+pid,"f8 b","text-anchor=\"middle\"")+T(x,160,i+1,"f3.6","text-anchor=\"middle\""); });
+  /* --- シーズン表示 --- */
+  o+=T(500,182,"シーズン","f4 b");
+  for(let i=1;i<=4;i++){ o+=`<circle cx="${524+30*(i-1)}" cy="197" r="8" fill="${i===2?'#333':'#fff'}" stroke="#333" stroke-width="0.8"/>`+T(524+30*(i-1),200,i,"f7"+(i===2?" b":""),`text-anchor="middle" fill="${i===2?'#fff':'#333'}"`); }
+  /* --- 場札 --- */
+  o+=T(0,247,"作物の場札（3枚）","f4 b");
+  S.market.forEach((c,i)=>{ o+=`<g transform="translate(${67*i} 250)">${card(c)}</g>`; });
+  o+=`<rect x="201" y="250" width="63" height="88" fill="none" stroke="#bbb" stroke-width="0.5" stroke-dasharray="2 2"/>`+T(232.5,297,"（使用しない枠）","f3.4","text-anchor=\"middle\" fill=\"#888\"");
+  o+=T(290,247,"Bank（コイン・トークン）","f4 b")+`<rect x="290" y="250" width="300" height="88" rx="4" fill="#efece0" stroke="#aaa" stroke-width="0.6"/>`+T(440,297,"共通の置き場","f5","text-anchor=\"middle\" fill=\"#777\"");
+  /* --- 作物の山札・捨て札 --- */
+  o+=`<g transform="translate(0 350)">${cardBack("山札")}</g>`+T(31.5,345,"作物の山札（枚数のみ公開）","f3.6 b","text-anchor=\"middle\"")+T(31.5,441,S.deck+"枚","f5 b","text-anchor=\"middle\"");
+  const dl=S.discard[S.discard.length-1];
+  o+=`<g transform="translate(70 350)">${dl?card(dl):""}</g>`+T(101.5,345,"作物の捨て札（公開）","f3.6 b","text-anchor=\"middle\"")+T(101.5,441,S.discard.length+"枚","f5 b","text-anchor=\"middle\"");
+  o+=`<rect x="290" y="350" width="70" height="60" rx="3" fill="#dcdcdc" stroke="#777" stroke-width="0.6"/>`+T(325,378,"除外 6枚","f5","text-anchor=\"middle\"")+T(325,386,"（非公開）","f3.6","text-anchor=\"middle\"");
+  return o+`</g>`;
+}
+
+/* ============ 全体描画 ============ */
+const svg=document.getElementById("stage");
+let cur=0, seat=1, S=null, vb={x:0,y:0,w:1200,h:950};
+const DEFS=`<defs>
+<pattern id="p-dot" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#56B4E9"/><circle cx="2" cy="2" r="0.9" fill="#1b5f86"/></pattern>
+<pattern id="p-line" width="4" height="3" patternUnits="userSpaceOnUse"><rect width="4" height="3" fill="#F0E442"/><line x1="0" y1="1.5" x2="4" y2="1.5" stroke="#8a7f00" stroke-width="0.7"/></pattern>
+<pattern id="p-wave" width="6" height="4" patternUnits="userSpaceOnUse"><rect width="6" height="4" fill="#CC79A7"/><path d="M0 2 q1.5 -2 3 0 t3 0" stroke="#6b2d55" fill="none" stroke-width="0.7"/></pattern>
+<pattern id="p-hatch" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="3" fill="#D55E00"/><line x1="0" y1="0" x2="0" y2="3" stroke="#fff" stroke-width="0.8"/></pattern>
+<pattern id="p-hatchlight" width="3" height="3" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="3" fill="#fff"/><line x1="0" y1="0" x2="0" y2="3" stroke="#D55E00" stroke-width="0.5" opacity="0.4"/></pattern>
+<pattern id="p-furrow" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#dfd7c2"/><line x1="0" y1="2" x2="4" y2="2" stroke="#8a7a52" stroke-width="0.6"/></pattern>
+</defs>
+<style>
+ text{font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;fill:#1a1a1a}
+ .b{font-weight:700}
+ .f3{font-size:3px}.f3\\.4{font-size:3.4px}.f3\\.5{font-size:3.5px}.f3\\.6{font-size:3.6px}
+ .f4{font-size:4px}.f4\\.6{font-size:4.6px}.f5{font-size:5px}.f6{font-size:6px}.f7{font-size:7px}.f8{font-size:8px}.f9{font-size:9px}.f12{font-size:12px}.f14{font-size:14px}.f15{font-size:15px}.f16{font-size:16px}
+ svg.no-a1 .badge1{display:none} svg.no-a2 .badge2{display:none}
+</style>`;
+
+function computeState(i){
+  const s=initialState();
+  for(let k=0;k<=i;k++){ steps[k].run(s); s.phaseIdx=steps[k].phase; s.sub=steps[k].sub; }
+  return s;
+}
+function draw(){
+  S=computeState(cur);
+  const ang=VIEW_ANGLE[PL[seat].seat];
+  let o=DEFS+`<g id="world" transform="rotate(${ang} 600 475)">`;
+  o+=`<rect x="0" y="0" width="1200" height="950" rx="10" fill="#d8c9a3" stroke="#8a7a52" stroke-width="2"/>`;
+  [1,2,3,4].forEach(p=>o+=drawBoard(S,p));
+  o+=drawShared(S);
+  o+=`</g>`;
+  svg.innerHTML=o;
+  document.getElementById("caption").innerHTML=`<h3>${cur+1}/${steps.length}　${steps[cur].t}</h3>`+steps[cur].cap;
+  document.querySelectorAll("#steps button").forEach((b,i)=>b.classList.toggle("on",i===cur));
+}
+function fitRect(r,margin){
+  const a=VIEW_ANGLE[PL[seat].seat]*Math.PI/180, cx=600, cy=475;
+  const pts=[[r[0],r[1]],[r[0]+r[2],r[1]],[r[0],r[1]+r[3]],[r[0]+r[2],r[1]+r[3]]].map(([x,y])=>{
+    const dx=x-cx, dy=y-cy; return [cx+dx*Math.cos(a)-dy*Math.sin(a), cy+dx*Math.sin(a)+dy*Math.cos(a)]; });
+  const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]);
+  const m=margin==null?12:margin;
+  setVB({x:Math.min(...xs)-m,y:Math.min(...ys)-m,w:Math.max(...xs)-Math.min(...xs)+2*m,h:Math.max(...ys)-Math.min(...ys)+2*m});
+}
+function setVB(v){ vb=v; svg.setAttribute("viewBox",`${v.x} ${v.y} ${v.w} ${v.h}`); }
+function zoomTo(k){
+  const my=SEAT[PL[seat].seat].bbox, opp={S:"N",N:"S",W:"E",E:"W"}[PL[seat].seat], op=SEAT[opp].bbox;
+  const R={ all:[0,0,1200,950], shared:[SHARED.x,SHARED.y,SHARED.w,SHARED.h], rail:[SHARED.x,SHARED.y,320,100],
+            panels:[SHARED.x,SHARED.y+110,273,130], mine:my, opp:op }[k];
+  fitRect(R, k==="all"?20:10);
+}
+
+/* ============ UI ============ */
+(function init(){
+  const ol=document.getElementById("steps");
+  steps.forEach((s,i)=>{ const li=document.createElement("li"); const b=document.createElement("button"); b.textContent=(i+1)+". "+s.t; b.onclick=()=>{cur=i;draw();}; li.appendChild(b); ol.appendChild(li); });
+  document.getElementById("prev").onclick=()=>{ if(cur>0){cur--;draw();} };
+  document.getElementById("next").onclick=()=>{ if(cur<steps.length-1){cur++;draw();} };
+  document.getElementById("reset").onclick=()=>{ cur=0; draw(); };
+  document.getElementById("seat").onchange=e=>{ seat=+e.target.value; draw(); zoomTo("all"); };
+  document.querySelectorAll("button[data-z]").forEach(b=>b.onclick=()=>zoomTo(b.dataset.z));
+  document.getElementById("gray").onchange=e=>svg.classList.toggle("gray",e.target.checked);
+  const a1=document.getElementById("a1"), a2=document.getElementById("a2");
+  const applyA=()=>{ svg.classList.toggle("no-a1",!a1.checked); svg.classList.toggle("no-a2",!a2.checked); };
+  a1.onchange=applyA; a2.onchange=applyA; applyA();
+  document.addEventListener("keydown",e=>{ if(e.key==="ArrowRight") document.getElementById("next").click(); if(e.key==="ArrowLeft") document.getElementById("prev").click(); });
+  /* ホイールで拡大、ドラッグで移動 */
+  function toSvg(cx,cy){ const pt=svg.createSVGPoint(); pt.x=cx; pt.y=cy; return pt.matrixTransform(svg.getScreenCTM().inverse()); }
+  svg.addEventListener("wheel",e=>{ e.preventDefault(); const p=toSvg(e.clientX,e.clientY); const k=e.deltaY>0?1.15:1/1.15;
+    setVB({x:p.x-(p.x-vb.x)*k, y:p.y-(p.y-vb.y)*k, w:vb.w*k, h:vb.h*k}); },{passive:false});
+  let drag=null;
+  svg.addEventListener("pointerdown",e=>{ drag={x:e.clientX,y:e.clientY,vb:{...vb}}; svg.setPointerCapture(e.pointerId); svg.style.cursor="grabbing"; });
+  svg.addEventListener("pointermove",e=>{ if(!drag) return; const r=svg.getBoundingClientRect(); const k=Math.max(drag.vb.w/r.width, drag.vb.h/r.height);
+    setVB({x:drag.vb.x-(e.clientX-drag.x)*k, y:drag.vb.y-(e.clientY-drag.y)*k, w:drag.vb.w, h:drag.vb.h}); });
+  const end=()=>{ drag=null; svg.style.cursor="grab"; };
+  svg.addEventListener("pointerup",end); svg.addEventListener("pointercancel",end);
+  draw(); zoomTo("all");
+})();
+window.__test={steps,computeState,tallyCount,stateOf};
+</script>
+</body>
+</html>

@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>畑作 スマホ ワイヤー（IA v0.4）</title>
+    <style>
+      * { box-sizing: border-box; }
+      body { margin: 0; font: 14px/1.45 ui-sans-serif, system-ui, sans-serif; color: #111; background: #f3f3f3; }
+      header.page { padding: 12px 16px; background: #fff; border-bottom: 1px solid #ccc; }
+      header.page h1 { font-size: 16px; margin: 0 0 4px; }
+      header.page p { margin: 0; color: #555; font-size: 13px; }
+      .nav, .orient { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 16px; background: #fff; border-bottom: 1px solid #ccc; }
+      .nav button, .orient button {
+        font: inherit; padding: 8px 10px; min-height: 40px; border: 1px solid #333; background: #fff; cursor: pointer;
+      }
+      .nav button[aria-current="true"], .orient button[aria-current="true"] { background: #111; color: #fff; }
+      .wrap { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(260px, 420px); gap: 16px; padding: 16px; align-items: start; }
+      .phone { background: #fff; padding: 8px; border: 1px solid #bbb; max-width: 900px; }
+      .phone svg { width: 100%; height: auto; display: block; }
+      .notes { background: #fff; border: 1px solid #bbb; padding: 16px; }
+      .notes h2 { font-size: 15px; margin: 0 0 8px; }
+      .notes h3 { font-size: 13px; margin: 14px 0 6px; }
+      .notes ul { margin: 0; padding-left: 1.2em; }
+      @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <header class="page">
+      <h1>畑作 Web · ワイヤー IA v0.4</h1>
+      <p>
+        場札は最初からフル。植えは場札→合法マス。学習ONで見通し。W4はミニ上。W7は1農地ずつ。
+      </p>
+    </header>
+    <div class="orient" id="orient"></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="wrap">
+      <div class="phone" id="phone"></div>
+      <aside class="notes" id="notes"></aside>
+    </div>
+    <script>
+      let orient = "land";
+      let current = "w1";
+
+      function el(tag, attrs, kids) {
+        const n = document.createElementNS("http://www.w3.org/2000/svg", tag);
+        for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
+        for (const c of kids || []) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+        return n;
+      }
+      function rect(x, y, w, h, extra = {}) {
+        return el("rect", {
+          x, y, width: w, height: h,
+          fill: extra.fill || "none",
+          stroke: extra.stroke || "#222",
+          "stroke-width": extra.sw || 1,
+          "stroke-dasharray": extra.dash || "",
+          rx: extra.rx || 0,
+        });
+      }
+      function t(x, y, s, extra = {}) {
+        return el("text", {
+          x, y,
+          "font-size": extra.size || 12,
+          "font-family": "ui-sans-serif, system-ui, sans-serif",
+          fill: extra.fill || "#111",
+          "font-weight": extra.w || "400",
+          "text-anchor": extra.anchor || "start",
+        }, [s]);
+      }
+      function go(g, x, y, w, h, id) {
+        const r = el("rect", { x, y, width: w, height: h, fill: "#000", opacity: "0", style: "cursor:pointer" });
+        r.addEventListener("click", () => render(id));
+        g.appendChild(r);
+      }
+      function goFn(g, x, y, w, h, fn) {
+        const r = el("rect", { x, y, width: w, height: h, fill: "#000", opacity: "0", style: "cursor:pointer" });
+        r.addEventListener("click", fn);
+        g.appendChild(r);
+      }
+      function dim() {
+        return orient === "land" ? { W: 844, H: 390, land: true } : { W: 390, H: 844, land: false };
+      }
+      function card(g, x, y, w, h, opts = {}) {
+        if (opts.stack) {
+          g.appendChild(rect(x + 3, y + 3, w, h, { fill: "#fff", rx: opts.rx || 5, sw: 1 }));
+          g.appendChild(rect(x + 1.5, y + 1.5, w, h, { fill: "#fff", rx: opts.rx || 5, sw: 1 }));
+        }
+        g.appendChild(rect(x, y, w, h, {
+          fill: opts.fill || "#fff",
+          rx: opts.rx || 5,
+          sw: opts.sw || 1.3,
+          dash: opts.dash || "",
+        }));
+      }
+
+      const EVENTS = [
+        { zone: "継続", crop: "ネギ", val: "−2", live: true },
+        { zone: "今", crop: "トマト", val: "＋2", live: true },
+        { zone: "次", crop: "ラディ", val: "−4", live: false },
+        { zone: "次々", crop: "ジャガ", val: "＋4", live: false },
+      ];
+      const GOLD = 8;
+      const MARKET = [
+        { name: "ジャガイモ", cost: 2, W: 2, H: 2, C: 4, base: 9, floor: 4, type: "中間型" },
+        { name: "トマト", cost: 3, W: 3, H: 4, C: 4, base: 9, floor: 4, type: "長期型" },
+        { name: "ネギ", cost: 2, W: 2, H: 4, C: 0, base: 8, floor: 3, type: "長期型" },
+      ];
+      const HARVEST = [
+        { pl: 0, i: 1, who: "P3", crop: "トマト", add: 10 },
+        { pl: 1, i: 0, who: "P4", crop: "ジャガ", add: 9 },
+        { pl: 1, i: 1, who: "P4", crop: "ネギ", add: 4 },
+        { pl: 2, i: 0, who: "P1", crop: "トマト", add: 10 },
+        { pl: 2, i: 1, who: "P1", crop: "ネギ", add: 4 },
+        { pl: 2, i: 2, who: "P1", crop: "ラディ", add: 7 },
+        { pl: 3, i: 1, who: "P2", crop: "ネギ", add: 4 },
+      ];
+      let harvestStep = 0;
+      let learn = true;
+      const CROP = {
+        ラディ: { base: 7, floor: 3, W: 1, H: 1, C: 0 },
+        ジャガ: { base: 9, floor: 4, W: 2, H: 2, C: 4 },
+        ネギ: { base: 8, floor: 3, W: 2, H: 4, C: 0 },
+        トマト: { base: 9, floor: 4, W: 3, H: 4, C: 4 },
+      };
+      const PLAYERS = [
+        {
+          id: "P3", you: true, gold: 8, turn: true,
+          plots: [
+            { n: "1", name: "ラディ", phase: "free" },
+            { n: "2", name: "トマト", phase: "harvest", remainH: 3 },
+            { n: "3", name: "トマト", phase: "wait", remainW: 1 },
+            { n: "4", name: "次", st: "1G", empty: true },
+            { n: "5", name: "—", st: "2G", empty: true },
+          ],
+        },
+        {
+          id: "P4", gold: 11,
+          plots: [
+            { n: "1", name: "ジャガ", phase: "harvest", remainH: 2 },
+            { n: "2", name: "ネギ", phase: "harvest", remainH: 2 },
+            { n: "3", name: "次", st: "1G", empty: true },
+            { n: "4", name: "—", st: "2G", empty: true },
+            { n: "5", empty: true, name: "—", st: "" },
+          ],
+        },
+        {
+          id: "P1", gold: 12,
+          plots: [
+            { n: "1", name: "トマト", phase: "harvest", remainH: 4 },
+            { n: "2", name: "ネギ", phase: "harvest", remainH: 4 },
+            { n: "3", name: "ラディ", phase: "harvest", remainH: 1 },
+            { n: "4", name: "次", st: "1G", empty: true },
+            { n: "5", empty: true, name: "—", st: "" },
+          ],
+        },
+        {
+          id: "P2", gold: 15,
+          plots: [
+            { n: "1", name: "ジャガ", phase: "cool", remainC: 4, tap: "w4" },
+            { n: "2", name: "ネギ", phase: "harvest", remainH: 3 },
+            { n: "3", name: "トマト", phase: "wait", remainW: 2 },
+            { n: "4", name: "次", st: "1G", empty: true },
+            { n: "5", empty: true, name: "—", st: "" },
+          ],
+        },
+      ];
+
+      function chrome(g, W, H, land, subtitle) {
+        g.appendChild(rect(0, 0, W, H, { fill: "#fff", stroke: "#000", sw: 2, rx: 12 }));
+        g.appendChild(rect(0, 0, W, 22, { fill: "#eee" }));
+        g.appendChild(t(14, 16, "9:41", { size: 11 }));
+        g.appendChild(t(W - 14, 16, "LTE", { size: 11, anchor: "end" }));
+        g.appendChild(rect(0, 22, W, land ? 26 : 46, { fill: "#fafafa" }));
+        g.appendChild(t(12, land ? 40 : 40, "S1/3  R5/10  手番", { size: 13, w: "700" }));
+        if (land) g.appendChild(t(200, 16, subtitle, { size: 11 }));
+        else g.appendChild(t(12, 60, subtitle, { size: 12 }));
+      }
+      function tabs(g, W, H, land, active) {
+        const items = [{ lab: "手番", id: "w1" }, { lab: "記録", id: "w8" }];
+        items.forEach((it, i) => {
+          const x = land ? W - 160 + i * 76 : 16 + i * 90;
+          const y = land ? 2 : H - 52;
+          g.appendChild(rect(x, y, 72, 22, { fill: active === it.lab ? "#111" : "#fff" }));
+          g.appendChild(t(x + 36, y + 16, it.lab, { size: 12, anchor: "middle", fill: active === it.lab ? "#fff" : "#111" }));
+          if (active !== it.lab) go(g, x, y, 72, 22, it.id);
+        });
+        if (!land) g.appendChild(rect(0, H - 64, W, 64, { fill: "#fafafa" }));
+      }
+
+      function eventFace(g, x, y, w, h, ev) {
+        card(g, x, y, w, h, { sw: ev.live ? 2 : 1, dash: ev.live ? "" : "4 3", rx: 6 });
+        g.appendChild(t(x + 5, y + 13, ev.zone, { size: 8, fill: "#555" }));
+        g.appendChild(t(x + 5, y + 26, ev.crop, { size: 11, w: "700" }));
+        g.appendChild(t(x + 5, y + h - 8, ev.val, { size: 14, w: "700" }));
+      }
+
+      function deckBack(g, x, y, w, h, label) {
+        card(g, x, y, w, h, { stack: true, fill: "#eee", rx: 6 });
+        g.appendChild(el("line", { x1: x + 8, y1: y + 8, x2: x + w - 8, y2: y + h - 8, stroke: "#222", "stroke-width": 1 }));
+        g.appendChild(el("line", { x1: x + w - 8, y1: y + 8, x2: x + 8, y2: y + h - 8, stroke: "#222", "stroke-width": 1 }));
+        g.appendChild(t(x + w / 2, y + h / 2 + 4, label, { size: 10, anchor: "middle" }));
+      }
+
+      let clipN = 0;
+      function peekCard(svg, g, x, y, w, h, ev, visW) {
+        clipN += 1;
+        const id = "pk" + clipN;
+        let defs = svg.querySelector("defs");
+        if (!defs) {
+          defs = el("defs", {});
+          svg.insertBefore(defs, svg.firstChild);
+        }
+        const cp = el("clipPath", { id });
+        cp.appendChild(rect(x, y, visW, h));
+        defs.appendChild(cp);
+        const grp = el("g", { "clip-path": "url(#" + id + ")" });
+        eventFace(grp, x, y, w, h, ev);
+        g.appendChild(grp);
+      }
+
+      function eventConveyor(svg, g, x, y, fullW, h, expanded) {
+        if (expanded) {
+          deckBack(g, x, y, 56, h, "捨て3");
+          EVENTS.forEach((ev, i) => eventFace(g, x + 64 + i * (fullW + 6), y, fullW, h, ev));
+          deckBack(g, x + 64 + 4 * (fullW + 6), y, 56, h, "山3");
+          g.appendChild(t(x, y + h + 14, "捨てを出した。有効は継続と今。", { size: 10, fill: "#555" }));
+          return y + h + 22;
+        }
+        // 4枚並ぶなら重ねない。次・次々は破線。
+        EVENTS.forEach((ev, i) => eventFace(g, x + i * (fullW + 4), y, fullW, h, ev));
+        const deckX = x + 4 * (fullW + 4);
+        deckBack(g, deckX, y, 32, h, "山");
+        return y + h + 6;
+      }
+
+      function pipStr(n, ch) {
+        return n > 0 ? Array(n).fill(ch).join("") : "";
+      }
+
+      function miniPlot(g, x, y, w, h, p, selected, gotoId, dim) {
+        const ink = dim ? "#888" : "#111";
+        if (p.empty) {
+          card(g, x, y, w, h, { dash: "4 3", sw: selected ? 2 : 1, rx: 4, fill: dim ? "#f0f0f0" : (selected ? "#f7f7f7" : "#fff") });
+          g.appendChild(t(x + w / 2, y + h * 0.4, p.name, { size: 10, w: "700", anchor: "middle", fill: ink }));
+          if (p.st) g.appendChild(t(x + w / 2, y + h * 0.68, p.st, { size: 10, anchor: "middle", fill: ink }));
+        } else {
+          const def = CROP[p.name] || { base: 0, floor: 0, H: 0, C: 0 };
+          card(g, x, y, w, h, { sw: selected ? 2 : 1.2, rx: 4, fill: dim ? "#eee" : (selected ? "#f7f7f7" : "#fff") });
+          g.appendChild(t(x + 4, y + 12, p.name, { size: 10, w: "700", fill: ink }));
+          g.appendChild(t(x + 4, y + 24, def.base + "/" + def.floor, { size: 9, fill: dim ? "#888" : "#333" }));
+          let py = y + 36;
+          if (p.phase === "free") {
+            g.appendChild(t(x + 4, py, "空", { size: 10, fill: "#555" }));
+          } else {
+            if (p.phase === "wait" && p.remainW) {
+              g.appendChild(t(x + 4, py, pipStr(p.remainW, "○"), { size: 11, fill: ink }));
+              py += 12;
+            }
+            if (p.phase === "harvest" && p.remainH) {
+              g.appendChild(t(x + 4, py, pipStr(p.remainH, "★"), { size: 11, fill: ink }));
+              py += 12;
+            } else if (p.phase === "wait" && def.H) {
+              g.appendChild(t(x + 4, py, pipStr(def.H, "☆"), { size: 11, fill: "#888" }));
+              py += 12;
+            }
+            if (p.phase === "cool" && p.remainC) {
+              g.appendChild(t(x + 4, py, pipStr(p.remainC, "△"), { size: 11, fill: ink }));
+            } else if ((p.phase === "wait" || p.phase === "harvest") && def.C) {
+              g.appendChild(t(x + 4, py, pipStr(def.C, "▽"), { size: 11, fill: "#888" }));
+            }
+          }
+        }
+        if (gotoId) go(g, x, y, w, h, gotoId);
+      }
+
+      function farmRows(g, x, y, land, opts = {}) {
+        const rowH = land ? 78 : 80;
+        const nameW = land ? 96 : 84;
+        const miniW = land ? 66 : 56;
+        const miniH = land ? 72 : 70;
+        const gap = land ? 5 : 4;
+        let overlayPos = null;
+        PLAYERS.forEach((pl, pi) => {
+          const ry = y + pi * rowH;
+          const thick = pl.you || pl.turn;
+          const shownGold = opts.gold && opts.gold[pi] != null ? opts.gold[pi] : pl.gold;
+          g.appendChild(rect(x, ry, nameW, miniH, { sw: thick ? 2 : 1, fill: pl.you ? "#f7f7f7" : "#fff", rx: 4 }));
+          g.appendChild(t(x + 8, ry + 22, pl.id + (pl.you ? "*" : ""), { size: 13, w: "700" }));
+          g.appendChild(t(x + 8, ry + 42, shownGold + "G" + (pl.turn ? " 手番" : ""), { size: 11, fill: "#555" }));
+          pl.plots.forEach((p, i) => {
+            const px = x + nameW + 8 + i * (miniW + gap);
+            const plant = (opts.plantable || []).some((s) => s.pl === pi && s.i === i);
+            const harv = opts.harvestAt && opts.harvestAt.pl === pi && opts.harvestAt.i === i;
+            const hi = opts.highlight && opts.highlight.pl === pi && opts.highlight.i === i;
+            const sel = !!(plant || harv || hi);
+            const dim = !!(opts.dimOwn && pl.you && !plant);
+            let goto = null;
+            if (opts.pickPlant && plant) goto = "w1";
+            if (!opts.pickPlant && !opts.harvestAt && p.tap) goto = p.tap;
+            miniPlot(g, px, ry, miniW, miniH, p, sel, goto, dim);
+            if (opts.balloon && opts.balloon.pl === pi && opts.balloon.i === i) {
+              overlayPos = { px, ry };
+            }
+          });
+        });
+        if (overlayPos && opts.balloon) {
+          const bx = overlayPos.px + 14;
+          const by = overlayPos.ry - 6;
+          const bw = opts.balloon.w || 172;
+          const bh = 14 + opts.balloon.lines.length * 14 + 8;
+          card(g, bx, by, bw, bh, { sw: 1.6, fill: "#fff", rx: 6 });
+          opts.balloon.lines.forEach((ln, i) => {
+            g.appendChild(t(bx + 8, by + 16 + i * 14, ln, { size: 10, w: i === 0 ? "700" : "400" }));
+          });
+          if (opts.balloon.closeTo) go(g, bx, by, bw, bh, opts.balloon.closeTo);
+        }
+        return y + PLAYERS.length * rowH + 4;
+      }
+
+      function marketFull(g, cx, cy, cw, ch, c, selected) {
+        const ok = c.cost <= GOLD;
+        const ink = ok ? "#111" : "#888";
+        card(g, cx, cy, cw, ch, {
+          sw: selected ? 2 : 1.3,
+          fill: !ok ? "#e8e8e8" : selected ? "#f7f7f7" : "#fff",
+          rx: 7,
+        });
+        g.appendChild(t(cx + 8, cy + 16, c.name, { size: 12, w: "700", fill: ink }));
+        g.appendChild(t(cx + cw - 8, cy + 18, c.cost + "G", { size: 16, w: "700", anchor: "end", fill: ink }));
+        g.appendChild(t(cx + 8, cy + 36, pipStr(c.W, "○") + "  " + pipStr(c.H, "★") + (c.C ? "  " + pipStr(c.C, "△") : ""), { size: 11, fill: ink }));
+        g.appendChild(t(cx + 8, cy + 52, "基本" + c.base + "  最低" + c.floor, { size: 11, fill: ink }));
+        g.appendChild(t(cx + 8, cy + 68, c.type + (ok ? "" : "  所持不足"), { size: 10, fill: ok ? "#555" : "#888" }));
+        if (c.C === 0 && ok) g.appendChild(t(cx + 8, cy + 82, "休なし", { size: 10, fill: "#555" }));
+        if (ok) go(g, cx, cy, cw, ch, "w3");
+      }
+
+      function marketGrid(g, x, y, cw, ch, selected, passLabel, passTo) {
+        MARKET.forEach((c, i) => {
+          const col = i % 2;
+          const row = Math.floor(i / 2);
+          marketFull(g, x + col * (cw + 10), y + row * (ch + 10), cw, ch, c, selected === i);
+        });
+        passBox(g, x + (cw + 10), y + (ch + 10), cw, ch, passLabel, passTo);
+      }
+
+      function learnAssist(g, x, y) {
+        if (!learn) return;
+        const lines = [
+          "学習：トマトを置くと",
+          "残り R5〜R10（6R）",
+          "待3 → 収はR8から",
+          "今シーズン収は最大3回",
+          "今のトマト+2は待中は無効",
+          "次ラディ−4はトマトに無関係",
+        ];
+        const bw = 196;
+        const bh = 14 + lines.length * 13 + 6;
+        card(g, x, y, bw, bh, { sw: 1.6, fill: "#fff", rx: 6 });
+        lines.forEach((ln, i) => {
+          g.appendChild(t(x + 8, y + 16 + i * 13, ln, { size: 10, w: i === 0 ? "700" : "400" }));
+        });
+      }
+
+      function passBox(g, x, y, w, h, label, to, fn) {
+        g.appendChild(rect(x, y, w, h, { fill: "#fff", rx: 6, sw: 1.4 }));
+        g.appendChild(t(x + w / 2, y + h / 2 + 4, label, { size: 13, w: "700", anchor: "middle" }));
+        if (fn) goFn(g, x, y, w, h, fn);
+        else if (to) go(g, x, y, w, h, to);
+      }
+
+      function farmOpts(id) {
+        if (id === "w3") {
+          return {
+            plantable: [{ pl: 0, i: 0 }, { pl: 0, i: 3 }, { pl: 0, i: 4 }],
+            pickPlant: true,
+            dimOwn: true,
+          };
+        }
+        if (id === "w4") {
+          return {
+            highlight: { pl: 3, i: 0 },
+            balloon: {
+              pl: 3, i: 0, w: 176, closeTo: "w1",
+              lines: [
+                "ジャガイモ",
+                "待2 収2 休4",
+                "基本9  最低4",
+                "P2 スロット1  休4",
+                "別作物可。同種は不可",
+              ],
+            },
+          };
+        }
+        if (id === "w7") {
+          const step = HARVEST[harvestStep];
+          const gold = PLAYERS.map((pl) => pl.gold);
+          for (let i = 0; i <= harvestStep; i++) gold[HARVEST[i].pl] += HARVEST[i].add;
+          return {
+            harvestAt: { pl: step.pl, i: step.i },
+            gold,
+            balloon: {
+              pl: step.pl, i: step.i, w: 150,
+              lines: [
+                step.who + " " + step.crop + " 収",
+                "+" + step.add + "G  →  " + gold[step.pl] + "G",
+                (harvestStep + 1) + "/" + HARVEST.length,
+              ],
+            },
+          };
+        }
+        return {};
+      }
+
+      function drawScreen(id) {
+        clipN = 0;
+        const { W, H, land } = dim();
+        const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, xmlns: "http://www.w3.org/2000/svg" });
+        svg.appendChild(el("defs", {}));
+        const g = el("g", {});
+        svg.appendChild(g);
+        const sub = {
+          w1: "P3* 8G 手番",
+          w3: "トマト選択 · 合法マスをタップ",
+          w4: "P2 ジャガ 休4 を重ねて見る",
+          w6: "手番 P4 · 待ち",
+          w7: "R5 収入 · 農地を巡る",
+          w8: "記録",
+        }[id];
+        chrome(g, W, H, land, sub);
+        tabs(g, W, H, land, id === "w8" ? "記録" : "手番");
+        const top = land ? 52 : 74;
+        const fopts = farmOpts(id);
+
+        if (id === "w8") {
+          g.appendChild(t(16, top + 14, "得点表", { size: 14, w: "700" }));
+          ["P3*  —", "P4   —", "P1   —", "P2   —"].forEach((s, i) => {
+            g.appendChild(rect(16, top + 24 + i * 32, Math.min(W - 32, 500), 28));
+            g.appendChild(t(28, top + 44 + i * 32, s + "   合計（シーズン終了後）", { size: 12 }));
+          });
+          g.appendChild(t(16, top + 168, "作物山 23（裏）  捨て ラディッシュ×2", { size: 12 }));
+          g.appendChild(t(16, top + 190, "イベント山 3（裏）  捨て 3  除外 6（非公開）", { size: 12 }));
+          return svg;
+        }
+
+        if (id === "w7") {
+          const farmX = land ? 10 : 8;
+          farmRows(g, farmX, top, land, fopts);
+          const last = harvestStep >= HARVEST.length - 1;
+          const goldNow = fopts.gold;
+          if (land) {
+            const rx = 488;
+            g.appendChild(t(rx, top + 16, "収穫を1農地ずつ", { size: 13, w: "700" }));
+            PLAYERS.forEach((pl, pi) => {
+              g.appendChild(t(rx, top + 42 + pi * 22, pl.id + (pl.you ? "*" : "") + "  " + goldNow[pi] + "G", { size: 13 }));
+            });
+            passBox(g, rx, H - 58, 160, 44, last ? "[ 次へ ]" : "[ 次の農地 " + (harvestStep + 1) + "/" + HARVEST.length + " ]", last ? "w1" : null, last ? null : () => {
+              harvestStep += 1;
+              render("w7");
+            });
+          } else {
+            passBox(g, 12, H - 118, W - 24, 44, last ? "[ 次へ ]" : "[ 次の農地 " + (harvestStep + 1) + "/" + HARVEST.length + " ]", last ? "w1" : null, last ? null : () => {
+              harvestStep += 1;
+              render("w7");
+            });
+          }
+          return svg;
+        }
+
+        const selected = id === "w3" ? 1 : null;
+
+        if (land) {
+          const leftX = 10;
+          const rightX = 488;
+          farmRows(g, leftX, top, true, fopts);
+          eventConveyor(svg, g, rightX, top, 70, 46, false);
+          g.appendChild(t(rightX, top + 52, "○待 ★収 △CD　灰☆▽はこれから　9/4=基本/最低", { size: 8, fill: "#555" }));
+
+          if (id === "w6") {
+            g.appendChild(rect(rightX, top + 78, 340, 220, { fill: "#eee", dash: "4 3", rx: 8 }));
+            g.appendChild(t(rightX + 170, top + 188, "P4 思考中…", { size: 16, anchor: "middle", fill: "#555" }));
+            return svg;
+          }
+
+          const label = id === "w3" ? "キャンセル" : "パス";
+          marketGrid(g, rightX, top + 68, 160, 108, selected, label, id === "w3" ? "w1" : null);
+          if (id === "w3") learnAssist(g, rightX + 148, top + 96);
+          return svg;
+        }
+
+        const evBottom = eventConveyor(svg, g, 12, top, 78, 56, false);
+        const farmBottom = farmRows(g, 8, evBottom + 2, false, fopts);
+
+        if (id === "w6") {
+          g.appendChild(rect(12, H - 118, W - 24, 44, { fill: "#eee", dash: "4 3", rx: 6 }));
+          g.appendChild(t(W / 2, H - 90, "P4 思考中…", { size: 14, anchor: "middle", fill: "#555" }));
+          return svg;
+        }
+
+        marketGrid(g, 10, farmBottom, 178, 108, selected, id === "w3" ? "キャンセル" : "パス", id === "w3" ? "w1" : null);
+        if (id === "w3") learnAssist(g, 100, farmBottom + 36);
+        return svg;
+      }
+
+      const screens = {
+        w1: {
+          label: "W1 手番",
+          notes: {
+            title: "W1 手番（場札フル）",
+            show: [
+              "左＝全員の農場ミニ。右＝イベント4枚＋場札フル2×2＋パス",
+              "場札は印刷情報すべて（名、コスト、待W収H休C、基本、最低、タイプ）",
+              "所持が足りない場札はグレー（F1は8Gなので3枚とも可）",
+            ],
+            hide: ["W2", "W5", "今の1農地収入（N込み）", "A3推奨"],
+            tap: ["場札 → W3（植え先ハイライト）", "P2のジャガミニ → W4"],
+          },
+        },
+        w3: {
+          label: "W3 植える",
+          notes: {
+            title: "W3 場札→合法マス",
+            show: [
+              "トマト選択。確定ボタンなし",
+              "可：農地1（3G）、農地4（計4G）、農地5（計5G）",
+              "学習ONなら場札上にイベントと残りラウンドの見通し",
+            ],
+            hide: ["推奨手", "不可マスへの植え"],
+            tap: ["合法マス → 植えてW1", "キャンセル → W1", "学習トグルでロールオーバーの有無"],
+          },
+        },
+        w4: {
+          label: "W4 ミニ重ね",
+          notes: {
+            title: "W4 該当ミニの上に重ねる",
+            show: ["印刷情報とこのスロットの状態（休4）"],
+            hide: ["右ペインへのフル移動", "他を同時展開", "A2のラウンド"],
+            tap: ["ロールオーバー → 閉じる"],
+          },
+        },
+        w6: {
+          label: "W6 待ち",
+          notes: {
+            title: "W6 他人の手番",
+            show: ["盤（ミニ）は見える"],
+            hide: ["パス／植える"],
+            tap: ["記録は見られる"],
+          },
+        },
+        w7: {
+          label: "W7 収穫",
+          notes: {
+            title: "W7 農地を一つずつ巡る",
+            show: [
+              "収のみを手番順：P3トマト+10 → P4ジャガ+9 → P4ネギ+4 → P1トマト+10 → P1ネギ+4 → P1ラディ+7 → P2ネギ+4",
+              "今加算のマスに重ねて+G。所持金も更新",
+            ],
+            hide: ["結果表の一括表示"],
+            tap: ["次の農地 → 最後に次へ"],
+          },
+        },
+        w8: {
+          label: "W8 記録",
+          notes: {
+            title: "W8 記録",
+            show: ["得点表", "山は枚数", "イベント山・捨て"],
+            hide: ["山の中身", "除外6の中身"],
+            tap: ["手番タブ"],
+          },
+        },
+      };
+
+      const nav = document.getElementById("nav");
+      const phone = document.getElementById("phone");
+      const notes = document.getElementById("notes");
+      const orientBar = document.getElementById("orient");
+
+      function render(id) {
+        current = id;
+        const s = screens[id];
+        phone.replaceChildren(drawScreen(id));
+        notes.innerHTML = `
+          <h2>${s.notes.title}</h2>
+          <p style="margin:0 0 8px;color:#555">${orient === "land" ? "横 844×390" : "縦 390×844"}</p>
+          <h3>見える</h3>
+          <ul>${s.notes.show.map((x) => `<li>${x}</li>`).join("")}</ul>
+          <h3>隠す</h3>
+          <ul>${s.notes.hide.map((x) => `<li>${x}</li>`).join("")}</ul>
+          <h3>タップ</h3>
+          <ul>${s.notes.tap.map((x) => `<li>${x}</li>`).join("")}</ul>
+        `;
+        for (const b of nav.querySelectorAll("button")) {
+          if (b.dataset.id === id) b.setAttribute("aria-current", "true");
+          else b.removeAttribute("aria-current");
+        }
+      }
+
+      [["land", "横"], ["port", "縦"]].forEach(([id, lab]) => {
+        const b = document.createElement("button");
+        b.textContent = lab;
+        b.dataset.orient = id;
+        b.onclick = () => {
+          orient = id;
+          for (const x of orientBar.querySelectorAll("button[data-orient]")) {
+            if (x.dataset.orient === id) x.setAttribute("aria-current", "true");
+            else x.removeAttribute("aria-current");
+          }
+          render(current);
+        };
+        orientBar.appendChild(b);
+      });
+      orientBar.querySelector("button").setAttribute("aria-current", "true");
+      const learnBtn = document.createElement("button");
+      learnBtn.textContent = "学習ON";
+      learnBtn.setAttribute("aria-current", "true");
+      learnBtn.onclick = () => {
+        learn = !learn;
+        learnBtn.textContent = learn ? "学習ON" : "学習OFF";
+        if (learn) learnBtn.setAttribute("aria-current", "true");
+        else learnBtn.removeAttribute("aria-current");
+        render(current);
+      };
+      orientBar.appendChild(learnBtn);
+      for (const [id, s] of Object.entries(screens)) {
+        const b = document.createElement("button");
+        b.textContent = s.label;
+        b.dataset.id = id;
+        b.onclick = () => {
+          if (id === "w7") harvestStep = 0;
+          render(id);
+        };
+        nav.appendChild(b);
+      }
+      render("w1");
+    </script>
+  </body>
+</html>
