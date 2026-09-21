@@ -1,4 +1,4 @@
-import { cropDef, cropName, cropSpec } from "../engine/catalog.js";
+import { cropDef, cropName, cropShortName, cropSpec, cropTypeLabel } from "../engine/catalog.js";
 import { acquireCost, type Action, type PublicView } from "../engine/types.js";
 import { describeBoardEvents, type EventChip } from "./eventCopy.js";
 import { describeMarketCard, type EventTone, type HarvestKind } from "./outlook.js";
@@ -7,8 +7,16 @@ import { describePlot, type PlotStatus } from "./status.js";
 export type { EventChip };
 export type MarketChip = {
   index: number;
+  cropId: string;
   cropName: string;
+  shortName: string;
   cost: number;
+  wait: number;
+  harvest: number;
+  cooldown: number;
+  base: number;
+  floor: number;
+  typeLabel: string;
   spec: string;
   harvestOutlook: string;
   harvestKind: HarvestKind;
@@ -106,11 +114,20 @@ export function toPresentation(view: PublicView, youSeat: number | null): BoardP
     harvestEvents: events.harvestEvents,
     previewEvents: events.previewEvents,
     market: view.market.map((c, i) => {
+      const def = cropDef(c.cropId);
       const m = describeMarketCard(view, c.cropId, i);
       return {
         index: i,
+        cropId: c.cropId,
         cropName: m.name,
-        cost: cropDef(c.cropId).cost,
+        shortName: cropShortName(c.cropId),
+        cost: def.cost,
+        wait: def.wait,
+        harvest: def.harvest,
+        cooldown: def.cooldown,
+        base: def.baseIncome,
+        floor: def.floor,
+        typeLabel: cropTypeLabel(c.cropId),
         spec: m.spec,
         harvestOutlook: m.harvestOutlook,
         harvestKind: m.harvestKind,

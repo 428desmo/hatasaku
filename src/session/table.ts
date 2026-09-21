@@ -13,13 +13,15 @@ import {
   lastRound,
   type Action,
   type GameState,
+  type HarvestDetail,
   type Mode,
   type SeatConfig,
   type SeatKind,
 } from "../engine/types.js";
 import { chooseById } from "../cpu/index.js";
+import { cropList } from "../engine/catalog.js";
 import { renderHtml } from "../view/html.js";
-import { toPresentation, type ActionChip } from "../view/presentation.js";
+import { toPresentation, type ActionChip, type BoardPresentation } from "../view/presentation.js";
 import {
   renderGameSummaryHtml,
   renderGameSummaryText,
@@ -141,6 +143,12 @@ export class Table {
     text: string;
     html: string;
     view: ReturnType<typeof getPublicView>;
+    board: BoardPresentation | null;
+    harvest: HarvestDetail[];
+    lastPayouts: number[];
+    scoreSheet: number[][];
+    matchWinnerSeats: number[];
+    crops: typeof cropList;
     hold: UiHold;
     acked: boolean;
     ackNeed: number;
@@ -160,6 +168,12 @@ export class Table {
         ackNeed,
         ackGot,
         actions: [],
+        board: null,
+        harvest: [],
+        lastPayouts: [],
+        scoreSheet: this.scoreSheet,
+        matchWinnerSeats: this.matchWinnerSeats,
+        crops: cropList,
         view: {
           mode: this.config.mode,
           season: 0,
@@ -215,6 +229,12 @@ export class Table {
       text: summaryText ? `${summaryText}\n\n${textBody}` : textBody,
       html: renderHtml(board, summaryHtml, { finalBoard: finalBoard || this.hold === "season" }),
       view,
+      board,
+      harvest: this.state.lastHarvest,
+      lastPayouts: this.state.lastPayouts,
+      scoreSheet: this.scoreSheet,
+      matchWinnerSeats: this.matchWinnerSeats,
+      crops: cropList,
       hold: this.hold,
       acked,
       ackNeed,
