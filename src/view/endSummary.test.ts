@@ -6,7 +6,7 @@ import { buildGameSummary, renderGameSummaryText } from "./endSummary.js";
 describe("game summary", () => {
   it("keeps start coins and a snapshot for every round", () => {
     let { state: s, rng } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["radish", "onion", "corn", "potato"],
     });
     const start = s.players.map((p) => p.coins);
@@ -29,7 +29,7 @@ describe("game summary", () => {
 
   it("counts harvesting and owned land after a plant", () => {
     let { state: s, rng } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["radish", "onion", "corn", "potato"],
     });
     const planter = s.turnOrder[0]!;
@@ -46,11 +46,12 @@ describe("game summary", () => {
 
   it("lists players by final coins and marks waiting plots as leftover", () => {
     const table = new Table({
-      mode: "tutorial",
+      mode: "basic",
       humanCount: 0,
       cpuCount: 3,
       cpuStrategyId: "irr",
       seed: "end-summary-order",
+      seasonCount: 1,
     });
     const state = table.state!;
     expect(state.phase).toBe("gameOver");

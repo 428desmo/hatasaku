@@ -69,8 +69,8 @@ export function buildGameSummary(state: GameState): GameSummary {
 
 function winnerLine(summary: GameSummary): string {
   const names = summary.winnerNames.join("、");
-  if (summary.winnerNames.length > 1) return `共同勝者: ${names}`;
-  return `勝者: ${names || "なし"}`;
+  if (summary.winnerNames.length > 1) return `シーズン共同勝者: ${names}`;
+  return `シーズン勝者: ${names || "なし"}`;
 }
 
 function signedMoney(n: number): string {
@@ -119,7 +119,7 @@ export function renderGameSummaryText(state: GameState): string {
     String(p.leftover),
   ]);
   return [
-    "終了",
+    "シーズン終了",
     winnerLine(summary),
     "",
     "所持コイン",
@@ -128,7 +128,7 @@ export function renderGameSummaryText(state: GameState): string {
     "収穫中の農地",
     renderTable(harvestHeaders, harvestRows),
     "",
-    "このゲーム",
+    "このシーズン",
     renderTable(totalHeaders, totalRows),
     "",
     "取得農地",
@@ -175,14 +175,65 @@ export function renderGameSummaryHtml(state: GameState): string {
     signedMoney(p.eventSum),
     String(p.leftover),
   ]);
-  return `<h2>終了</h2>
+  return `<h2>シーズン終了</h2>
     <p class="winner-line">${esc(winnerLine(summary))}</p>
     <h3>所持コイン</h3>
     ${htmlTable(coinHeaders, coinRows, marks)}
     <h3>収穫中の農地</h3>
     ${htmlTable(roundHeadersOnly, harvestRows, marks)}
-    <h3>このゲーム</h3>
+    <h3>このシーズン</h3>
     ${htmlTable(totalHeaders, totalRows, marks)}
     <h3>取得農地</h3>
     ${htmlTable(roundHeadersOnly, ownedRows, marks)}`;
+}
+
+export function matchTotals(sheet: number[][], playerCount: number): number[] {
+  return Array.from({ length: playerCount }, (_, seat) =>
+    sheet.reduce((sum, row) => sum + (row[seat] ?? 0), 0),
+  );
+}
+
+export function renderScoreSheetText(
+  names: string[],
+  sheet: number[][],
+  winnerSeats: number[],
+  matchDone: boolean,
+): string {
+  const totals = matchTotals(sheet, names.length);
+  const headers = ["", ...sheet.map((_, i) => `S${i + 1}`), "合計"];
+  const rows = names.map((name, seat) => [
+    name,
+    ...sheet.map((row) => String(row[seat] ?? 0)),
+    String(totals[seat] ?? 0),
+  ]);
+  const who = winnerSeats.map((s) => names[s] ?? `席${s}`).join("、");
+  const line = matchDone
+    ? winnerSeats.length > 1
+      ? `マッチ共同勝者: ${who}`
+      : `マッチ勝者: ${who || "なし"}`
+    : `経過 ${sheet.length}シーズン`;
+  return ["得点表", renderTable(headers, rows), line].join("\n");
+}
+
+export function renderScoreSheetHtml(
+  names: string[],
+  sheet: number[][],
+  winnerSeats: number[],
+  matchDone: boolean,
+): string {
+  const totals = matchTotals(sheet, names.length);
+  const headers = ["", ...sheet.map((_, i) => `S${i + 1}`), "合計"];
+  const rows = names.map((name, seat) => [
+    name,
+    ...sheet.map((row) => String(row[seat] ?? 0)),
+    String(totals[seat] ?? 0),
+  ]);
+  const marks = names.map((_, seat) => matchDone && winnerSeats.includes(seat));
+  const who = winnerSeats.map((s) => names[s] ?? `席${s}`).join("、");
+  const line = matchDone
+    ? winnerSeats.length > 1
+      ? `マッチ共同勝者: ${who}`
+      : `マッチ勝者: ${who || "なし"}`
+    : `経過 ${sheet.length}シーズン`;
+  return `<h3>得点表</h3>${htmlTable(headers, rows, marks)}<p class="winner-line">${esc(line)}</p>`;
 }

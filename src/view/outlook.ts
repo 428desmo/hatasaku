@@ -117,7 +117,7 @@ export function harvestRoundsForPlot(
 }
 
 export function formatHarvestWhen(rounds: number[]): string {
-  if (rounds.length === 0) return "ゲーム終了までに収穫なし";
+  if (rounds.length === 0) return "シーズン終了までに収穫なし";
   if (rounds.length === 1) return `R${rounds[0]}にて収穫`;
   const last = rounds[rounds.length - 1]!;
   const contiguous = last === rounds[0]! + rounds.length - 1;
@@ -215,7 +215,7 @@ export function cropOutlook(view: PublicView, cropId: string): CropOutlook {
   const first = view.round + def.wait;
 
   if (rounds.length === 0) {
-    const harvestOutlook = `今から植えても、ゲーム終了（ラウンド${view.lastRound}）までに収穫が間に合わない（初収穫はラウンド${first}）`;
+    const harvestOutlook = `今から植えても、シーズン終了（ラウンド${view.lastRound}）までに収穫が間に合わない（初収穫はラウンド${first}）`;
     const eventLines =
       windows.length === 0
         ? ["イベント見込み: この作物への公開イベントなし"]

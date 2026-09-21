@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer, type WebSocket } from "ws";
 import { Table } from "../session/table.js";
-import { IllegalActionError, type Action, type Mode } from "../engine/types.js";
+import { IllegalActionError, parseMode, type Action } from "../engine/types.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const html = readFileSync(join(here, "../../src/web/index.html"), "utf8");
@@ -17,9 +17,10 @@ function arg(name: string, fallback: string): string {
 
 const humans = Number(arg("humans", "1"));
 const cpus = Number(arg("cpus", "2"));
-const mode = arg("mode", "tutorial") as Mode;
+const mode = parseMode(arg("mode", "basic"));
 const seed = arg("seed", `s${Date.now()}`);
 const port = Number(arg("port", "8080"));
+const seasonsRaw = arg("seasons", "");
 
 const table = new Table({
   mode,
@@ -27,6 +28,7 @@ const table = new Table({
   cpuCount: cpus,
   cpuStrategyId: arg("cpu", "irr"),
   seed,
+  ...(seasonsRaw ? { seasonCount: Number(seasonsRaw) } : {}),
 });
 
 const seats = new Map<WebSocket, number>();
@@ -47,7 +49,7 @@ function sendView(ws: WebSocket, seat: number): void {
       ackNeed: packed.ackNeed,
       ackGot: packed.ackGot,
       phase: packed.view.phase,
-      over: packed.view.phase === "gameOver" && !packed.hold,
+      over: table.matchOver,
     }),
   );
 }
@@ -130,5 +132,5 @@ function lanAddress(): string {
 
 server.listen(port, () => {
   const ip = lanAddress();
-  console.log(`畑作  http://${ip}:${port}  (humans=${humans} cpus=${cpus} mode=${mode} seed=${seed})`);
+  console.log(`畑作  http://${ip}:${port}  (humans=${humans} cpus=${cpus} mode=${mode} seasons=${table.seasonCount} seed=${seed})`);
 });
