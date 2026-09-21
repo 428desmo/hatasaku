@@ -52,7 +52,7 @@ describe("status copy", () => {
 
   it("prints crop specs on the board", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["potato", "corn", "onion", "pumpkin"],
     });
     const you = state.actingSeat!;
@@ -71,7 +71,7 @@ describe("status copy", () => {
 
   it("lists players in turn order, not seat number", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["potato", "corn", "onion", "pumpkin"],
     });
     state.turnOrder = [1, 2, 0];
@@ -86,7 +86,7 @@ describe("status copy", () => {
 describe("summaries", () => {
   it("formats a harvest line with event", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["corn", "onion", "potato", "pumpkin"],
     });
     const line = formatHarvestLine(state, {
@@ -116,7 +116,7 @@ describe("summaries", () => {
 
   it("lists recorded actions", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["radish", "onion", "corn", "potato"],
     });
     state.roundActions = [
@@ -130,7 +130,7 @@ describe("summaries", () => {
 
   it("combines turn, harvest, and coins into one round result", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["radish", "onion", "corn", "potato"],
     });
     state.round = 6;
@@ -179,7 +179,7 @@ describe("summaries", () => {
 
   it("shows spend only for the planter on the coin line", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["komatsuna", "onion", "corn", "potato"],
     });
     state.round = 3;

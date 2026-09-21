@@ -5,7 +5,8 @@ import {
   eventDrawCap,
   lastRound,
   marketSize,
-  startingCoins,
+  clockwiseOrder,
+  dealStartCoins,
   EVENT_ROW_MAX,
   type CropCard,
   type CropId,
@@ -60,11 +61,9 @@ export function createGame(config: StartConfig, rng: Rng): GameState {
   const first = row[0];
   if (first) activatedRound[first.instanceId] = 1;
 
-  const turnOrder = shuffle(
-    config.seats.map((_, i) => i),
-    rng,
-  );
-  const coins = startingCoins(n);
+  const startSeat = config.startSeat ?? rng.nextInt(n);
+  const turnOrder = clockwiseOrder(startSeat, n);
+  const coins = dealStartCoins(n, config.evenStartCoins === true);
   const players = config.seats.map((seat, i) => ({
     seat: i,
     kind: seat.kind,
@@ -79,9 +78,12 @@ export function createGame(config: StartConfig, rng: Rng): GameState {
   }
 
   return {
-    specVersion: "0.4",
+    specVersion: "0.6",
     mode: config.mode,
     seed: config.seed,
+    season: config.season ?? 1,
+    seasonCount: config.seasonCount ?? 1,
+    startSeat,
     round: 1,
     lastRound: lastRound(config.mode),
     phase: "turn",

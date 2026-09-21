@@ -1,4 +1,4 @@
-export type Mode = "tutorial" | "full";
+export type Mode = "basic" | "advanced";
 export type Phase = "lobby" | "eventUpdate" | "turn" | "income" | "gameOver";
 export type SeatKind = "human" | "cpu";
 export type CropType = "immediate" | "lump" | "long" | "mid";
@@ -53,6 +53,10 @@ export type StartConfig = {
   mode: Mode;
   seed: string;
   seats: SeatConfig[];
+  startSeat?: number;
+  evenStartCoins?: boolean;
+  season?: number;
+  seasonCount?: number;
   forcedCrops?: CropId[];
   forcedEventDeck?: { cropId: CropId; delta: number }[];
 };
@@ -89,9 +93,12 @@ export type HarvestDetail = {
 };
 
 export type GameState = {
-  specVersion: "0.4";
+  specVersion: "0.6";
   mode: Mode;
   seed: string;
+  season: number;
+  seasonCount: number;
+  startSeat: number;
   round: number;
   lastRound: number;
   phase: Phase;
@@ -146,6 +153,9 @@ export type PublicEvent = {
 
 export type PublicView = {
   mode: Mode;
+  season: number;
+  seasonCount: number;
+  startSeat: number;
   round: number;
   lastRound: number;
   phase: Phase;
@@ -189,12 +199,26 @@ export function marketSize(playerCount: number): number {
   return playerCount === 5 ? 4 : 3;
 }
 
+export function parseMode(raw: string): Mode {
+  if (raw === "advanced" || raw === "full") return "advanced";
+  return "basic";
+}
+
 export function lastRound(mode: Mode): number {
-  return mode === "tutorial" ? 10 : 20;
+  return mode === "basic" ? 10 : 18;
 }
 
 export function eventDrawCap(mode: Mode): number {
-  return mode === "tutorial" ? 10 : 20;
+  return mode === "basic" ? 10 : 18;
+}
+
+export function clockwiseOrder(startSeat: number, n: number): number[] {
+  return Array.from({ length: n }, (_, i) => (startSeat + i) % n);
+}
+
+export function dealStartCoins(playerCount: number, even: boolean): number[] {
+  if (even) return Array.from({ length: playerCount }, () => 8);
+  return startingCoins(playerCount);
 }
 
 export function startingCoins(playerCount: number): number[] {

@@ -6,7 +6,7 @@ import { describeBoardEvents } from "./eventCopy.js";
 describe("describeBoardEvents", () => {
   it("treats the leftmost card as this round's harvest event", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["radish", "corn", "komatsuna", "onion"],
       events: [
         { cropId: "radish", delta: 4 },
@@ -30,7 +30,7 @@ describe("describeBoardEvents", () => {
 
   it("moves the previous left card to lingering on round 2", () => {
     let { state, rng } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["radish", "corn", "komatsuna", "onion"],
       events: [
         { cropId: "radish", delta: 4 },

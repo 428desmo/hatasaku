@@ -28,7 +28,7 @@ function coinsByTurnOrder(s: GameState): number[] {
 describe("accept 1 potato lifecycle", () => {
   it("harvests R5-R6, other crop from R7, potato from R11", () => {
     let { state: s, rng } = startForced({
-      mode: "full",
+      mode: "advanced",
       crops: ["potato", "corn", "onion", "pumpkin"],
       events: onionEvents(16),
     });
@@ -83,7 +83,7 @@ describe("accept 1 potato lifecycle", () => {
 describe("accept 2 pumpkin last harvest R8", () => {
   it("other crop from R9, pumpkin from R13", () => {
     let { state: s, rng } = startForced({
-      mode: "full",
+      mode: "advanced",
       crops: ["pumpkin", "corn", "onion", "potato"],
       events: onionEvents(16),
     });
@@ -152,7 +152,7 @@ describe("accept 4 event row", () => {
       (cropId) => [4, 2, -2, -4].map((delta) => ({ cropId, delta })),
     );
     let { state: s, rng } = startForced({
-      mode: "full",
+      mode: "advanced",
       crops: ["corn", "potato", "onion", "pumpkin"],
       events,
     });
@@ -188,9 +188,9 @@ describe("accept 4 event row", () => {
 });
 
 describe("accept 5 row length", () => {
-  it("tutorial shortens R9-10", () => {
+  it("basic shortens R9-10", () => {
     let { state: s, rng } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["corn", "potato", "onion", "pumpkin"],
       events: onionEvents(16),
     });
@@ -202,18 +202,38 @@ describe("accept 5 row length", () => {
     expect(s.event.row.length).toBe(1);
   });
 
-  it("full shortens R18-20", () => {
+  it("advanced shortens R17-18", () => {
     let { state: s, rng } = startForced({
-      mode: "full",
+      mode: "advanced",
       crops: ["corn", "potato", "onion", "pumpkin"],
       events: onionEvents(16),
     });
-    s = passAllUntil(s, rng, (x) => x.round === 18 && x.turnIndex === 0);
+    s = passAllUntil(s, rng, (x) => x.round === 16 && x.turnIndex === 0);
     expect(s.event.row.length).toBe(3);
-    expect(s.event.drawnCount).toBe(20);
-    s = passAllUntil(s, rng, (x) => x.round === 20 && x.turnIndex === 0);
+    expect(s.event.drawnCount).toBe(18);
+    s = passAllUntil(s, rng, (x) => x.round === 17 && x.turnIndex === 0);
+    expect(s.event.row.length).toBe(2);
+    s = passAllUntil(s, rng, (x) => x.round === 18 && x.turnIndex === 0);
     expect(s.event.row.length).toBe(1);
-    expect(s.event.drawnCount).toBe(20);
+    expect(s.event.drawnCount).toBe(18);
+  });
+
+  it("advanced reshuffles expired events at R15 and caps at 18", () => {
+    let { state: s, rng } = startForced({
+      mode: "advanced",
+      crops: ["corn", "potato", "onion", "pumpkin"],
+      events: onionEvents(16),
+    });
+    s = passAllUntil(s, rng, (x) => x.round === 14 && x.turnIndex === 0);
+    expect(s.event.drawnCount).toBe(16);
+    expect(s.event.deck.length).toBe(0);
+    s = passAllUntil(s, rng, (x) => x.round === 15 && x.turnIndex === 0);
+    expect(s.event.drawnCount).toBe(17);
+    s = passAllUntil(s, rng, (x) => x.round === 16 && x.turnIndex === 0);
+    expect(s.event.drawnCount).toBe(18);
+    s = passAllUntil(s, rng, (x) => x.phase === "gameOver");
+    expect(s.event.drawnCount).toBe(18);
+    expect(s.lastRound).toBe(18);
   });
 });
 
@@ -229,16 +249,35 @@ describe("accept 6 starting coins", () => {
         name: `P${i}`,
       }));
       const rng = createRng(`coins-${n}`);
-      const s = createGame({ mode: "tutorial", seed: `coins-${n}`, seats }, rng);
+      const s = createGame({ mode: "basic", seed: `coins-${n}`, seats }, rng);
       expect(coinsByTurnOrder(s)).toEqual([...expected]);
     }
+  });
+
+  it("deals 8 to everyone when evenStartCoins is set", () => {
+    const seats = Array.from({ length: 4 }, (_, i) => ({ kind: "cpu" as const, name: `P${i}` }));
+    const rng = createRng("even-coins");
+    const s = createGame(
+      { mode: "basic", seed: "even-coins", seats, startSeat: 2, evenStartCoins: true },
+      rng,
+    );
+    expect(s.players.map((p) => p.coins)).toEqual([8, 8, 8, 8]);
+    expect(s.turnOrder).toEqual([2, 3, 0, 1]);
   });
 });
 
 describe("accept 7 turn order", () => {
+  it("uses clockwise order from the start seat in round 1", () => {
+    const seats = Array.from({ length: 4 }, (_, i) => ({ kind: "cpu" as const, name: `P${i}` }));
+    const rng = createRng("clock");
+    const s = createGame({ mode: "basic", seed: "clock", seats, startSeat: 1 }, rng);
+    expect(s.turnOrder).toEqual([1, 2, 3, 0]);
+    expect(s.actingSeat).toBe(1);
+  });
+
   it("stable-sorts by coins", () => {
     let { state: s, rng } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["potato", "corn", "onion", "pumpkin"],
       events: onionEvents(16),
     });
@@ -256,7 +295,7 @@ describe("accept 7 turn order", () => {
 describe("accept 8-12 legal plants", () => {
   it("allows pass even when planting is possible", () => {
     const { state: s } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["radish", "onion", "corn", "potato"],
     });
     const legal = listLegalActions(s);
@@ -266,7 +305,7 @@ describe("accept 8-12 legal plants", () => {
 
   it("empty with red: other crop ok, same crop blocked; newLand still ok", () => {
     let { state: s } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["potato", "onion", "corn", "radish"],
     });
     const seat = s.actingSeat!;
@@ -285,7 +324,7 @@ describe("accept 8-12 legal plants", () => {
 
   it("replacing a crop discards previous and clears red", () => {
     let { state: s, rng } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["radish", "onion", "corn", "potato"],
       events: onionEvents(16),
     });
@@ -308,7 +347,7 @@ describe("accept 8-12 legal plants", () => {
 describe("accept 11 self competition", () => {
   it("two own harvesting plots count as 1 other each", () => {
     let { state: s } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["corn", "onion", "potato", "pumpkin"],
       events: onionEvents(16),
     });
@@ -329,19 +368,19 @@ describe("accept 11 self competition", () => {
 });
 
 describe("accept 13-14 decks", () => {
-  it("full drawnCount caps at 20", () => {
+  it("advanced drawnCount caps at 18", () => {
     let { state: s, rng } = startForced({
-      mode: "full",
+      mode: "advanced",
       crops: ["corn", "potato", "onion", "pumpkin"],
       events: onionEvents(16),
     });
     s = passAllUntil(s, rng, (x) => x.phase === "gameOver");
-    expect(s.event.drawnCount).toBe(20);
+    expect(s.event.drawnCount).toBe(18);
   });
 
   it("market shrinks when crop piles are empty", () => {
     let { state: s, rng } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["radish", "onion", "corn", "potato"],
     });
     s.crop.deck = [];

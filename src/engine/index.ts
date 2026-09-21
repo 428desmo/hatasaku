@@ -9,6 +9,7 @@ import {
   acquireCost,
   cloneState,
   IllegalActionError,
+  parseMode,
   type Action,
   type ActionLog,
   type GameState,
@@ -30,6 +31,7 @@ export {
   harvestIncome,
   IllegalActionError,
   listLegalActions,
+  parseMode,
 };
 
 function publicEvent(e: EventCard, activatedRound: number | undefined): PublicEvent {
@@ -90,6 +92,9 @@ export function getPublicView(
 ): PublicView {
   const view: PublicView = {
     mode: state.mode,
+    season: state.season,
+    seasonCount: state.seasonCount,
+    startSeat: state.startSeat,
     round: state.round,
     lastRound: state.lastRound,
     phase: state.phase,

@@ -38,9 +38,13 @@ export function plant(state: GameState, rng: Rng, action: Action): GameState {
 }
 
 export function startForced(opts: {
-  mode: "tutorial" | "full";
+  mode: "basic" | "advanced";
   seed?: string;
   seats?: SeatConfig[];
+  startSeat?: number;
+  evenStartCoins?: boolean;
+  season?: number;
+  seasonCount?: number;
   crops: CropId[];
   events?: { cropId: CropId; delta: number }[];
 }): { state: GameState; rng: Rng } {
@@ -49,6 +53,10 @@ export function startForced(opts: {
     mode: opts.mode,
     seed: opts.seed ?? "test",
     seats: opts.seats ?? threeCpus,
+    startSeat: opts.startSeat ?? 0,
+    ...(opts.evenStartCoins !== undefined ? { evenStartCoins: opts.evenStartCoins } : {}),
+    ...(opts.season !== undefined ? { season: opts.season } : {}),
+    ...(opts.seasonCount !== undefined ? { seasonCount: opts.seasonCount } : {}),
     forcedCrops: opts.crops,
     ...(opts.events ? { forcedEventDeck: opts.events } : {}),
   };

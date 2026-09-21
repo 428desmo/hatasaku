@@ -33,7 +33,7 @@ export function applyEventUpdate(state: GameState, rng: Rng): GameState {
   if (previousLeft) s.event.active.push(previousLeft);
 
   const cap = eventDrawCap(s.mode);
-  if (s.mode === "full" && s.event.deck.length === 0 && s.event.drawnCount < cap) {
+  if (s.mode === "advanced" && s.event.deck.length === 0 && s.event.drawnCount < cap) {
     s.event.deck = shuffle(s.event.discard, rng);
     s.event.discard = [];
   }

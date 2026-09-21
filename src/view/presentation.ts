@@ -44,11 +44,13 @@ export type BoardPresentation = {
 };
 
 function modeLabel(mode: PublicView["mode"]): string {
-  return mode === "tutorial" ? "チュートリアル" : "本格";
+  return mode === "basic" ? "基本" : "上級";
 }
 
 function phaseLine(view: PublicView, youSeat: number | null): string {
-  if (view.phase === "gameOver") return "終了";
+  if (view.phase === "gameOver") {
+    return view.season >= view.seasonCount ? "マッチ終了" : "シーズン終了";
+  }
   if (view.phase === "income") return "収入処理の前";
   if (view.phase === "eventUpdate") return "イベント更新中";
   if (view.phase === "lobby") return "ロビー";
@@ -97,7 +99,7 @@ export function toPresentation(view: PublicView, youSeat: number | null): BoardP
   }));
   const events = describeBoardEvents(view);
   return {
-    title: `畑作  ${modeLabel(view.mode)}  ラウンド ${view.round}/${view.lastRound}`,
+    title: `畑作  ${modeLabel(view.mode)}  シーズン ${view.season}/${view.seasonCount}  ラウンド ${view.round}/${view.lastRound}`,
     phaseLine: phaseLine(view, youSeat),
     harvestEventLine: events.harvestLine,
     previewEventLine: events.previewLine,

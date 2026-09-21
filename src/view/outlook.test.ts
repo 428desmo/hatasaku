@@ -22,7 +22,7 @@ describe("harvestRoundsIfPlanted", () => {
 describe("cropOutlook", () => {
   it("says potato planted now in R3 harvests fully on R5-R6", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["potato", "corn", "onion", "pumpkin"],
     });
     state.round = 3;
@@ -34,7 +34,7 @@ describe("cropOutlook", () => {
 
   it("warns when watermelon cannot finish before game end", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["watermelon", "radish", "onion", "pumpkin"],
     });
     state.round = 7;
@@ -53,7 +53,7 @@ describe("cropOutlook", () => {
 
   it("projects visible events onto future harvest rounds", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["potato", "onion", "corn", "pumpkin"],
       events: [
         { cropId: "potato", delta: 4 },
@@ -84,7 +84,7 @@ describe("cropOutlook", () => {
 describe("planted plot outlook", () => {
   it("names the harvest round while waiting", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["sweetpotato", "radish", "onion", "corn"],
     });
     state.round = 2;
@@ -102,7 +102,7 @@ describe("planted plot outlook", () => {
 
   it("includes event and same-crop competition", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["sweetpotato", "radish", "onion", "corn"],
       events: [
         { cropId: "onion", delta: 4 },
@@ -138,7 +138,7 @@ describe("planted plot outlook", () => {
 
   it("treats a preview card's 2-round window as known, and later new events as unknown", () => {
     const { state } = startForced({
-      mode: "tutorial",
+      mode: "basic",
       crops: ["pumpkin", "sweetpotato", "edamame", "komatsuna"],
       events: [
         { cropId: "edamame", delta: 4 },
