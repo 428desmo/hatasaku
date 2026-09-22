@@ -31,6 +31,7 @@ export type PlayerRow = {
   coins: number;
   isYou: boolean;
   isActing: boolean;
+  curseReady: boolean;
   plots: PlotStatus[];
 };
 export type ActionChip = { action: Action; label: string; key: string };
@@ -41,6 +42,7 @@ export type BoardPresentation = {
   previewEventLine: string;
   harvestEvents: EventChip[];
   previewEvents: EventChip[];
+  curseEvents: EventChip[];
   market: MarketChip[];
   cropDeckCount: number;
   eventDeckCount: number;
@@ -96,6 +98,7 @@ function orderedPlayers(view: PublicView): PublicView["players"] {
 
 function actionLabel(view: PublicView, action: Action, youSeat: number | null): string {
   if (action.type === "pass") return "パス";
+  if (action.type === "curse") return `呪い（${cropName(action.cropId)}）`;
   const card = view.market[action.marketIndex];
   const name = card ? cropName(card.cropId) : "?";
   const grow = card ? cropDef(card.cropId).cost : 0;
@@ -108,6 +111,7 @@ function actionLabel(view: PublicView, action: Action, youSeat: number | null): 
 
 function actionKey(action: Action, index: number): string {
   if (action.type === "pass") return "P";
+  if (action.type === "curse") return `C${action.cropId}`;
   if (action.target === "newLand") return `N${action.marketIndex + 1}`;
   return String(index);
 }
@@ -126,6 +130,7 @@ export function toPresentation(view: PublicView, youSeat: number | null): BoardP
     previewEventLine: events.previewLine,
     harvestEvents: events.harvestEvents,
     previewEvents: events.previewEvents,
+    curseEvents: events.curseEvents,
     market: view.market.map((c, i) => {
       const def = cropDef(c.cropId);
       const m = describeMarketCard(view, c.cropId, i);
@@ -176,6 +181,7 @@ export function toPresentation(view: PublicView, youSeat: number | null): BoardP
       coins: p.coins,
       isYou: p.seat === youSeat,
       isActing: p.seat === view.actingSeat,
+      curseReady: (view.curseReadySeats ?? []).includes(p.seat),
       plots: p.plots.map((plot) => describePlot(plot, { view, seat: p.seat })),
     })),
     actions,

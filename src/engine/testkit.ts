@@ -47,6 +47,7 @@ export function startForced(opts: {
   seasonCount?: number;
   crops: CropId[];
   events?: { cropId: CropId; delta: number }[];
+  curseSeats?: number[];
 }): { state: GameState; rng: Rng } {
   const rng = createRng(opts.seed ?? "test");
   const config = {
@@ -59,6 +60,7 @@ export function startForced(opts: {
     ...(opts.seasonCount !== undefined ? { seasonCount: opts.seasonCount } : {}),
     forcedCrops: opts.crops,
     ...(opts.events ? { forcedEventDeck: opts.events } : {}),
+    ...(opts.curseSeats ? { curseSeats: opts.curseSeats } : {}),
   };
   return { state: createGame(config, rng), rng };
 }

@@ -15,6 +15,7 @@
   let harvestKey = "";
   let harvestPhase = "idle";
   let harvestTimers = [];
+  let cursePick = false;
   let learn = localStorage.getItem(LEARN_KEY) === "1";
   let errText = "";
 
@@ -42,6 +43,7 @@
     selectedMarket = null;
     peek = null;
     cropPeek = null;
+    cursePick = false;
     send({ type: "action", action });
   }
 
@@ -132,6 +134,9 @@
     he.filter((e) => e.lingering).forEach((e) => events.push({ zone: "継続", ...e, live: true }));
     he.filter((e) => !e.lingering).forEach((e) => events.push({ zone: "今", ...e, live: true }));
     pe.forEach((e, i) => events.push({ zone: i === 0 ? "次" : "次々", ...e, live: false }));
+    const curses = msg.board.curseEvents || [];
+    const R = msg.view.round;
+    curses.forEach((e) => events.push({ zone: "呪い", ...e, live: e.from <= R }));
     return events;
   }
 
@@ -144,6 +149,7 @@
     const card = msg.board.market[index];
     if (!card || !card.enabled) return;
     cropPeek = null;
+    cursePick = false;
     if (selectedMarket === index) {
       selectedMarket = null;
       return render();
@@ -186,8 +192,9 @@
   }
 
   function onPass() {
-    if (selectedMarket != null) {
+    if (selectedMarket != null || cursePick) {
       selectedMarket = null;
+      cursePick = false;
       render();
       return;
     }
@@ -205,6 +212,19 @@
     }
     if (act === "pass") onPass();
     if (act === "next") send({ type: "next" });
+    if (act === "curse") {
+      if (selectedMarket != null) selectedMarket = null;
+      cursePick = !cursePick;
+      cropPeek = null;
+      peek = null;
+      render();
+      return;
+    }
+    if (act === "curse-crop") {
+      const cropId = el.getAttribute("data-id");
+      if (cropId) sendAction({ type: "curse", cropId });
+      return;
+    }
     if (act === "market") onMarket(Number(el.getAttribute("data-i")));
     if (act === "plot") onPlot(Number(el.getAttribute("data-seat")), Number(el.getAttribute("data-i")));
     if (act === "crop") {
@@ -249,7 +269,7 @@
     const inner = cards.map((e) => {
       const sign = e.delta > 0 ? "plus" : e.delta < 0 ? "minus" : "";
       const d = e.delta > 0 ? `+${e.delta}` : `${e.delta}`;
-      return `<article class="event${e.live ? "" : " preview"}">
+      return `<article class="event${e.live ? "" : " preview"}${e.zone === "呪い" ? " curse" : ""}">
         <div class="zone">${esc(e.zone)}</div>
         <div class="name">${esc(e.cropName)}</div>
         <div class="delta ${sign}">${d}</div>
@@ -312,8 +332,11 @@
     const crown = (msg.crownSeats || []).includes(player.seat)
       ? `<span class="crown" title="これまでの獲得コイン首位">👑</span>`
       : "";
+    const curse = player.curseReady
+      ? `<span class="curse-mark" title="呪いの権利">呪</span>`
+      : "";
     const g = coins.get(player.seat) ?? player.coins;
-    return `<div class="who${you}${acting}${honor}"><div class="id">${esc(displayName(player))}${player.isYou ? "*" : ""}${crown}</div><div class="g">${g}G${player.isActing ? " 手番" : ""}</div></div>`;
+    return `<div class="who${you}${acting}${honor}"><div class="id">${esc(displayName(player))}${player.isYou ? "*" : ""}${crown}${curse}</div><div class="g">${g}G${player.isActing ? " 手番" : ""}</div></div>`;
   }
 
   function seatsHtml() {
@@ -363,11 +386,15 @@
         ${assist}
       </button>`;
     }).join("");
-    const passLabel = selectedMarket != null ? "キャンセル" : "パス";
+    const passLabel = selectedMarket != null || cursePick ? "キャンセル" : "パス";
     const pass = isTurn
       ? `<button type="button" class="pass" data-act="pass">${passLabel}</button>`
       : `<button type="button" class="pass" disabled>待ち</button>`;
-    return `<div class="market">${items}${pass}</div>`;
+    const canCurse = isTurn && (msg.actions || []).some((a) => a.type === "curse");
+    const curseBtn = canCurse
+      ? `<button type="button" class="curse-btn${cursePick ? " sel" : ""}" data-act="curse">${cursePick ? "作物を選ぶ" : "呪い"}</button>`
+      : "";
+    return `<div class="market">${items}${pass}${curseBtn}</div>`;
   }
 
   function honorLine() {
@@ -535,10 +562,11 @@
     if (!crops.length) return "";
     return `<div class="season-crops">${crops.map((c, i) => {
       const open = cropPeek === i;
-      const overlay = open
+      const overlay = open && !cursePick
         ? `<div class="overlay crop-full ${i < 2 ? "left" : "right"}" data-act="close-crop">${cropFullInner(c)}</div>`
         : "";
-      return `<button type="button" class="crop-mini${open ? " sel" : ""}" data-act="crop" data-i="${i}">
+      const act = cursePick ? "curse-crop" : "crop";
+      return `<button type="button" class="crop-mini${open || cursePick ? " sel" : ""}${cursePick ? " curse-pick" : ""}" data-act="${act}" data-i="${i}" data-id="${esc(c.id)}">
         <div class="head"><b>${esc(c.shortName || c.name)}</b><span class="cost">${c.cost}G</span></div>
         <div class="stat">${c.wait ? `待 ${pips(c.wait, "○")}` : "待 なし"}</div>
         <div class="stat">収 ${pips(c.harvest, "★")} ${c.base}/${c.floor}</div>
@@ -553,9 +581,17 @@
     const start = msg.acked
       ? `<button type="button" class="next" disabled>確認済み（${msg.ackGot}/${msg.ackNeed}）</button>`
       : `<button type="button" class="next" data-act="next">開始</button>`;
+    const ready = (msg.view.curseReadySeats || []).map((seat) => {
+      const p = msg.board.players.find((x) => x.seat === seat);
+      return p ? displayName(p) : `席${seat}`;
+    });
+    const curseNote = ready.length
+      ? `<p class="intro-curse">呪いの権利　${esc(ready.join("、"))}</p>`
+      : "";
     return `<div class="intro">
       <p class="intro-head">今シーズンの作物</p>
       <div class="intro-cards">${cards}</div>
+      ${curseNote}
       ${start}
     </div>`;
   }
@@ -659,7 +695,11 @@
           queueHarvest(beginHarvestWalk, 1000);
         }
       }
-      if (view.actingSeat !== youSeat) selectedMarket = null;
+      if (view.actingSeat !== youSeat) {
+        selectedMarket = null;
+        cursePick = false;
+      }
+      if (!(msg.actions || []).some((a) => a.type === "curse")) cursePick = false;
       app.innerHTML = chrome(board, view) + (tab === "record" ? recordHtml() : playHtml());
     } catch (e) {
       console.error(e);

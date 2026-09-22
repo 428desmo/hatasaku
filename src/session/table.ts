@@ -29,7 +29,7 @@ import {
   renderScoreSheetText,
 } from "../view/endSummary.js";
 import { formatHarvestFigure } from "../view/harvestCopy.js";
-import { previousSeasonLeaders, type HonorKind } from "../view/standings.js";
+import { previousSeasonLeaders, previousSeasonTrailers, type HonorKind } from "../view/standings.js";
 import { seasonActionRows, type SeasonActionRow } from "../view/seasonLog.js";
 import { renderRoundResultHtml, renderRoundResultText } from "../view/summary.js";
 import { renderText } from "../view/text.js";
@@ -209,6 +209,8 @@ export class Table {
           eventDiscard: [],
           drawnEventCount: 0,
           cropIdsInGame: [],
+          curseReadySeats: [],
+          curses: [],
           message: waiting,
         },
       };
@@ -292,6 +294,7 @@ export class Table {
         evenStartCoins: this.seasonCount % n === 0,
         season: this.seasonIndex,
         seasonCount: this.seasonCount,
+        curseSeats: previousSeasonTrailers(this.scoreSheet, this.seasonIndex, n),
       },
       this.rng,
     );

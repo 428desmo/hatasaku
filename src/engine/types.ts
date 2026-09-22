@@ -43,7 +43,15 @@ export type PlotView = {
 
 export type Action =
   | { type: "pass" }
-  | { type: "plant"; marketIndex: number; target: "newLand" | { plotIndex: number } };
+  | { type: "plant"; marketIndex: number; target: "newLand" | { plotIndex: number } }
+  | { type: "curse"; cropId: CropId };
+
+export type CurseEffect = {
+  cropId: CropId;
+  from: number;
+  to: number;
+  bySeat: number;
+};
 
 export type SeatConfig = {
   kind: SeatKind;
@@ -61,6 +69,7 @@ export type StartConfig = {
   seasonCount?: number;
   forcedCrops?: CropId[];
   forcedEventDeck?: { cropId: CropId; delta: number }[];
+  curseSeats?: number[];
 };
 
 export type Player = {
@@ -95,7 +104,7 @@ export type HarvestDetail = {
 };
 
 export type GameState = {
-  specVersion: "0.9";
+  specVersion: "0.11";
   mode: Mode;
   seed: string;
   season: number;
@@ -132,6 +141,8 @@ export type GameState = {
   lastHarvest: HarvestDetail[];
   startCoins: number[];
   roundLog: RoundSnapshot[];
+  curseReadySeats: number[];
+  curses: CurseEffect[];
 };
 
 export type RoundSnapshot = {
@@ -180,6 +191,8 @@ export type PublicView = {
   eventDiscard: PublicEvent[];
   drawnEventCount: number;
   cropIdsInGame: CropId[];
+  curseReadySeats: number[];
+  curses: CurseEffect[];
   legalActions?: Action[];
   message?: string | null;
 };
@@ -189,6 +202,8 @@ export const EVENT_ROW_MAX = 3;
 export const EVENT_DURATION = 2;
 export const PLOT_COUNT = 5;
 export const EVENT_DELTAS = [4, 2, -2, -4] as const;
+export const CURSE_DELTA = -6;
+export const CURSE_DURATION = 4;
 
 export function eventEffectEnd(started: number): number {
   return started + EVENT_DURATION - 1;

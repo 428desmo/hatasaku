@@ -94,6 +94,7 @@
 
       function label(action) {
         if (action.type === "pass") return "パス";
+        if (action.type === "curse") return "呪い（" + action.cropId + "）";
         if (action.target === "newLand") return "場札" + (action.marketIndex + 1) + " → 新しい農地";
         return "場札" + (action.marketIndex + 1) + " → 農地" + (action.target.plotIndex + 1);
       }

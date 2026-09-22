@@ -1,4 +1,5 @@
 import { cropDef } from "./catalog.js";
+import { curseActions } from "./curse.js";
 import { acquireCost, type Action, type GameState, type Plot } from "./types.js";
 
 export function ownedCount(player: GameState["players"][number]): number {
@@ -23,7 +24,7 @@ export function listLegalActions(state: GameState): Action[] {
   const player = state.players[state.actingSeat];
   if (!player) return [];
 
-  const actions: Action[] = [{ type: "pass" }];
+  const actions: Action[] = [{ type: "pass" }, ...curseActions(state)];
   for (let marketIndex = 0; marketIndex < state.crop.market.length; marketIndex++) {
     const card = state.crop.market[marketIndex];
     if (!card) continue;
@@ -51,6 +52,7 @@ export function listLegalActions(state: GameState): Action[] {
 export function actionsEqual(a: Action, b: Action): boolean {
   if (a.type !== b.type) return false;
   if (a.type === "pass" || b.type === "pass") return true;
+  if (a.type === "curse" && b.type === "curse") return a.cropId === b.cropId;
   if (a.type !== "plant" || b.type !== "plant") return false;
   if (a.marketIndex !== b.marketIndex) return false;
   if (a.target === "newLand" || b.target === "newLand") return a.target === b.target;

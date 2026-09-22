@@ -1,5 +1,5 @@
 import { cropName, formatDelta } from "../engine/catalog.js";
-import { eventEffectEnd, type PublicEvent, type PublicView } from "../engine/types.js";
+import { CURSE_DELTA, eventEffectEnd, type PublicEvent, type PublicView } from "../engine/types.js";
 
 export type EventChip = {
   cropName: string;
@@ -11,11 +11,13 @@ export type EventChip = {
   lingering: boolean;
   from: number;
   to: number;
+  kind?: "event" | "curse";
 };
 
 export type BoardEvents = {
   harvestEvents: EventChip[];
   previewEvents: EventChip[];
+  curseEvents: EventChip[];
   harvestLine: string;
   previewLine: string;
 };
@@ -89,5 +91,22 @@ export function describeBoardEvents(view: PublicView): BoardEvents {
 
   const harvestLine = `R${R} 収穫イベント: ${harvestEvents.map((e) => e.text).join("　") || "なし"}`;
   const previewLine = `予告（各2ラウンド有効）: ${previewEvents.map((e) => e.text).join("　") || "なし"}`;
-  return { harvestEvents, previewEvents, harvestLine, previewLine };
+  const curseEvents: EventChip[] = (view.curses ?? [])
+    .filter((c) => c.to >= R)
+    .map((c) => {
+      const live = c.from <= R;
+      return {
+        cropName: cropName(c.cropId),
+        cropId: c.cropId,
+        delta: CURSE_DELTA,
+        text: `${cropName(c.cropId)} ${formatDelta(CURSE_DELTA)}（呪い・R${c.from}〜R${c.to}）`,
+        span: `R${c.from}-${c.to}`,
+        role: live ? ("harvest" as const) : ("preview" as const),
+        lingering: false,
+        from: c.from,
+        to: c.to,
+        kind: "curse" as const,
+      };
+    });
+  return { harvestEvents, previewEvents, curseEvents, harvestLine, previewLine };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { previousSeasonLeaders, topSeats } from "./standings.js";
+import { previousSeasonLeaders, previousSeasonTrailers, topSeats } from "./standings.js";
 
 describe("standings", () => {
   it("marks every seat tied at the top", () => {
@@ -19,5 +19,16 @@ describe("standings", () => {
     ];
     expect(previousSeasonLeaders(sheet, 2, 3)).toEqual([1]);
     expect(previousSeasonLeaders(sheet, 3, 3)).toEqual([0]);
+  });
+
+  it("gives curse rights to previous-season last place including ties", () => {
+    expect(previousSeasonTrailers([[90, 80, 70]], 1, 3)).toEqual([]);
+    expect(previousSeasonTrailers([[80, 90, 70]], 2, 3)).toEqual([2]);
+    expect(previousSeasonTrailers([[80, 70, 70]], 2, 3)).toEqual([1, 2]);
+    const sheet = [
+      [80, 90, 70],
+      [10, 10, 100],
+    ];
+    expect(previousSeasonTrailers(sheet, 3, 3)).toEqual([0]);
   });
 });

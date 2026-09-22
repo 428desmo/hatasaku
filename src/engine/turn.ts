@@ -1,4 +1,5 @@
 import { cropDef } from "./catalog.js";
+import { applyCurse } from "./curse.js";
 import { isLegal } from "./legal.js";
 import { refillMarket } from "./setup.js";
 import type { Rng } from "./rng.js";
@@ -22,6 +23,8 @@ export function applyTurn(state: GameState, action: Action, rng: Rng): GameState
   const s = cloneState(state);
   const seat = s.actingSeat!;
   const player = s.players[seat]!;
+
+  if (action.type === "curse") return applyCurse(state, action);
 
   if (action.type === "plant") {
     const card = s.crop.market[action.marketIndex];

@@ -27,3 +27,16 @@ export function previousSeasonLeaders(
   if (prior.length === 0) return [];
   return topSeats(previousSeasonTotals(scoreSheet, season, playerCount));
 }
+
+export function previousSeasonTrailers(
+  scoreSheet: number[][],
+  season: number,
+  playerCount: number,
+): number[] {
+  if (season < 2 || playerCount <= 0) return [];
+  const prior = scoreSheet.slice(0, season - 1);
+  if (prior.length === 0) return [];
+  const totals = previousSeasonTotals(scoreSheet, season, playerCount);
+  const worst = Math.min(...totals);
+  return totals.flatMap((n, seat) => (n === worst ? [seat] : []));
+}
