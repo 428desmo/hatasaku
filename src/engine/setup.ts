@@ -1,4 +1,4 @@
-import { cropList, EVENT_DELTAS_DATA } from "./catalog.js";
+import { cropsForMode, EVENT_DELTAS_DATA } from "./catalog.js";
 import { shuffle, type Rng } from "./rng.js";
 import {
   cloneState,
@@ -20,7 +20,7 @@ export function createGame(config: StartConfig, rng: Rng): GameState {
   const n = config.seats.length;
   if (n < 3 || n > 5) throw new Error("player count must be 3-5");
 
-  const crops = config.forcedCrops ?? pickCrops(rng);
+  const crops = config.forcedCrops ?? pickCrops(rng, config.mode);
   if (crops.length !== 4) throw new Error("must use 4 crops");
 
   let cropNext = 0;
@@ -79,7 +79,7 @@ export function createGame(config: StartConfig, rng: Rng): GameState {
   }
 
   return {
-    specVersion: "0.8",
+    specVersion: "0.9",
     mode: config.mode,
     seed: config.seed,
     season: config.season ?? 1,
@@ -113,8 +113,8 @@ export function createGame(config: StartConfig, rng: Rng): GameState {
   };
 }
 
-function pickCrops(rng: Rng): CropId[] {
-  return shuffle(cropList.map((c) => c.id), rng).slice(0, 4);
+function pickCrops(rng: Rng, mode: StartConfig["mode"]): CropId[] {
+  return shuffle(cropsForMode(mode).map((c) => c.id), rng).slice(0, 4);
 }
 
 export function refillMarket(state: GameState, rng: Rng): void {
