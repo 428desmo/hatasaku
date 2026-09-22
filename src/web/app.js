@@ -253,7 +253,7 @@
     const dim = selectedMarket != null && !plantable;
     const cls = [
       "mini",
-      !plot.owned || plot.kind === "cooldown" ? "dash" : "",
+      !plot.owned || plot.kind === "cooldown" || plot.kind === "ready" ? "dash" : "",
       sel ? "sel" : "",
       dim ? "dim" : "",
     ].filter(Boolean).join(" ");
@@ -297,8 +297,12 @@
   function whoCard(player, coins) {
     const acting = player.isActing ? " acting" : "";
     const you = player.isYou ? " you" : "";
+    const honor = (msg.honorSeats || []).includes(player.seat) ? " honor" : "";
+    const crown = (msg.crownSeats || []).includes(player.seat)
+      ? `<span class="crown" title="これまでの獲得コイン首位">👑</span>`
+      : "";
     const g = coins.get(player.seat) ?? player.coins;
-    return `<div class="who${you}${acting}"><div class="id">${esc(displayName(player))}${player.isYou ? "*" : ""}</div><div class="g">${g}G${player.isActing ? " 手番" : ""}</div></div>`;
+    return `<div class="who${you}${acting}${honor}"><div class="id">${esc(displayName(player))}${player.isYou ? "*" : ""}${crown}</div><div class="g">${g}G${player.isActing ? " 手番" : ""}</div></div>`;
   }
 
   function seatsHtml() {
@@ -353,6 +357,18 @@
       ? `<button type="button" class="pass" data-act="pass">${passLabel}</button>`
       : `<button type="button" class="pass" disabled>待ち</button>`;
     return `<div class="market">${items}${pass}</div>`;
+  }
+
+  function honorLine() {
+    const seats = msg.honorSeats || [];
+    if (!seats.length || !msg.board) return "";
+    const names = seats.map((seat) => {
+      const p = msg.board.players.find((x) => x.seat === seat);
+      return p ? displayName(p) : `席${seat}`;
+    }).join("、");
+    if (msg.honorKind === "match") return `<p class="honor-line">総合優勝　${esc(names)}</p>`;
+    if (msg.honorKind === "season") return `<p class="honor-line">今シーズン 1位　${esc(names)}</p>`;
+    return "";
   }
 
   function harvestPane() {
@@ -418,7 +434,7 @@
     const right = msg.hold === "result"
       ? harvestPane()
       : msg.hold === "season" || msg.over
-        ? `<div class="harvest-bar">${esc(view.message || "")}<button type="button" class="next" data-act="next" ${msg.acked ? "disabled" : ""}>${msg.acked ? "確認済み" : "次へ"}</button></div>`
+        ? `<div class="harvest-bar">${honorLine()}<button type="button" class="next" data-act="next" ${msg.over || msg.acked ? "disabled" : ""}>${msg.over ? "おわり" : msg.acked ? "確認済み" : "次へ"}</button></div>`
         : waiting
           ? `<div class="waitbox">${esc(actor ? actor.name + " の手番…" : "待ち")}</div>`
           : `${marketHtml()}`;
@@ -444,8 +460,9 @@
       const rows = names.map((p) => {
         const cells = sheet.map((row) => `<td>${row[p.seat] ?? ""}</td>`).join("");
         const sum = sheet.reduce((n, row) => n + (row[p.seat] ?? 0), 0);
-        const win = (msg.matchWinnerSeats || []).includes(p.seat) ? " ★" : "";
-        return `<tr><td>${esc(p.name)}${win}</td>${cells}<td>${sheet.length ? sum : ""}</td></tr>`;
+        const honored = (msg.honorSeats || []).includes(p.seat);
+        const crown = (msg.crownSeats || []).includes(p.seat) || honored ? " 👑" : "";
+        return `<tr${honored ? ' class="honor"' : ""}><td>${esc(p.name)}${crown}</td>${cells}<td>${sheet.length ? sum : ""}</td></tr>`;
       }).join("");
       table = `<table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>`;
     }

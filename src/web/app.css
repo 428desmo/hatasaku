@@ -118,8 +118,11 @@ body {
 .who { padding: 8px 8px 6px; }
 .who.you { background: #f7f7f7; }
 .who.acting { border-width: 2px; }
+.who.honor { background: #fff6d8; }
+.who.honor.you { background: #fff0c2; }
 .who .id { font-weight: 700; font-size: 12px; line-height: 1.2; }
 .who .g { font-size: 12px; color: #555; }
+.crown { font-size: 12px; margin-left: 2px; }
 
 .mini {
   min-height: 78px;
@@ -300,6 +303,12 @@ body {
 .record table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .record th, .record td { border: 1px solid #ccc; padding: 4px 8px; text-align: right; }
 .record th:first-child, .record td:first-child { text-align: left; }
+.record tr.honor td { background: #fff6d8; }
+.honor-line {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
 .muted { color: #555; font-size: 13px; }
 
 .next {

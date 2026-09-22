@@ -94,6 +94,9 @@ describe("table seats", () => {
     expect(table.matchWinnerSeats.length).toBeGreaterThan(0);
     expect(table.state?.startCoins).toEqual([8, 8, 8]);
     const view = table.viewFor("spectator");
+    expect(view.honorKind).toBe("match");
+    expect(view.honorSeats).toEqual(table.matchWinnerSeats);
+    expect(view.crownSeats).toEqual([]);
     expect(view.text).toContain("得点表");
     expect(view.text).toContain("S1");
     expect(view.text).toContain("合計");
@@ -129,10 +132,22 @@ describe("table seats", () => {
       }
       if (table.hold === "season") {
         expect(table.state.startSeat).toBe(start1);
+        const seasonView = table.viewFor(0);
+        expect(seasonView.honorKind).toBe("season");
+        expect(seasonView.honorSeats).toEqual(table.state.winnerSeats);
+        expect(seasonView.crownSeats).toEqual([]);
         table.nextFromSeat(0);
         expect(table.state!.startSeat).toBe((start1 + 1) % n);
         expect(table.state!.turnOrder).toEqual([(start1 + 1) % n, (start1 + 2) % n, start1]);
         expect(table.state!.round).toBe(1);
+        const intro = table.viewFor(0);
+        expect(table.hold).toBe("intro");
+        expect(intro.honorKind).toBeNull();
+        expect(intro.crownSeats.length).toBeGreaterThan(0);
+        const best = Math.max(...table.scoreSheet[0]!);
+        expect(intro.crownSeats).toEqual(
+          table.scoreSheet[0]!.flatMap((c, seat) => (c === best ? [seat] : [])),
+        );
         return;
       }
       if (table.state.actingSeat === 0) table.applyFromSeat(0, { type: "pass" });
