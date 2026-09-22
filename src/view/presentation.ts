@@ -1,4 +1,4 @@
-import { cropDef, cropName, cropShortName, cropSpec, cropTypeLabel } from "../engine/catalog.js";
+import { cropBlurb, cropDef, cropName, cropShortName, cropSpec, cropTypeLabel } from "../engine/catalog.js";
 import { acquireCost, type Action, type PublicView } from "../engine/types.js";
 import { describeBoardEvents, type EventChip } from "./eventCopy.js";
 import { describeMarketCard, type EventTone, type HarvestKind } from "./outlook.js";
@@ -45,7 +45,19 @@ export type BoardPresentation = {
   cropDeckCount: number;
   eventDeckCount: number;
   cropDiscardNames: string[];
-  cropsInGame: { name: string; spec: string }[];
+  cropsInGame: {
+    id: string;
+    name: string;
+    spec: string;
+    blurb: string;
+    cost: number;
+    wait: number;
+    harvest: number;
+    cooldown: number;
+    base: number;
+    floor: number;
+    typeLabel: string;
+  }[];
   players: PlayerRow[];
   actions: ActionChip[];
   message: string | null;
@@ -139,7 +151,22 @@ export function toPresentation(view: PublicView, youSeat: number | null): BoardP
     cropDeckCount: view.cropDeckCount,
     eventDeckCount: view.eventDeckCount,
     cropDiscardNames: view.cropDiscard.map((c) => cropName(c.cropId)),
-    cropsInGame: view.cropIdsInGame.map((id) => ({ name: cropName(id), spec: cropSpec(id) })),
+    cropsInGame: view.cropIdsInGame.map((id) => {
+      const def = cropDef(id);
+      return {
+        id,
+        name: cropName(id),
+        spec: cropSpec(id),
+        blurb: cropBlurb(id),
+        cost: def.cost,
+        wait: def.wait,
+        harvest: def.harvest,
+        cooldown: def.cooldown,
+        base: def.baseIncome,
+        floor: def.floor,
+        typeLabel: cropTypeLabel(id),
+      };
+    }),
     players: orderedPlayers(view).map((p) => ({
       seat: p.seat,
       name: p.name,

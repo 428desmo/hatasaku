@@ -10,8 +10,10 @@
   let tab = "play";
   let selectedMarket = null;
   let peek = null;
-  let harvestStep = 0;
+  let harvestStep = -1;
   let harvestKey = "";
+  let harvestPhase = "idle";
+  let harvestTimers = [];
   let learn = localStorage.getItem(LEARN_KEY) === "1";
   let errText = "";
 
@@ -41,6 +43,41 @@
     send({ type: "action", action });
   }
 
+  function clearHarvestTimers() {
+    harvestTimers.forEach((id) => clearTimeout(id));
+    harvestTimers = [];
+  }
+
+  function queueHarvest(fn, ms) {
+    harvestTimers.push(setTimeout(fn, ms));
+  }
+
+  function beginHarvestWalk() {
+    const walk = harvestWalk();
+    if (walk.length === 0) {
+      harvestPhase = "done";
+      harvestStep = -1;
+      render();
+      return;
+    }
+    harvestPhase = "walk";
+    harvestStep = 0;
+    render();
+    queueHarvest(stepHarvestWalk, 200);
+  }
+
+  function stepHarvestWalk() {
+    const walk = harvestWalk();
+    if (harvestStep >= walk.length - 1) {
+      harvestPhase = "done";
+      render();
+      return;
+    }
+    harvestStep += 1;
+    render();
+    queueHarvest(stepHarvestWalk, 200);
+  }
+
   function harvestWalk() {
     const harvest = msg.harvest || [];
     const order = msg.view?.turnOrder || [];
@@ -60,9 +97,10 @@
       const pay = payouts[p.seat] ?? 0;
       map.set(p.seat, msg.hold === "result" ? after - pay : after);
     }
-    if (msg.hold === "result") {
+    if (msg.hold === "result" && (harvestPhase === "walk" || harvestPhase === "done")) {
       const walk = harvestWalk();
-      for (let i = 0; i <= harvestStep && i < walk.length; i++) {
+      const shown = harvestPhase === "done" ? walk.length - 1 : harvestStep;
+      for (let i = 0; i <= shown && i < walk.length; i++) {
         const h = walk[i];
         map.set(h.seat, (map.get(h.seat) ?? 0) + h.gain);
       }
@@ -100,10 +138,6 @@
     return p.name.replace("プレイヤー", "P");
   }
 
-  function cropById(id) {
-    return (msg.crops || []).find((c) => c.id === id);
-  }
-
   function onMarket(index) {
     const card = msg.board.market[index];
     if (!card || !card.enabled) return;
@@ -117,7 +151,7 @@
   }
 
   function onPlot(seat, plotIndex) {
-    if (msg.hold === "result" || msg.hold === "season") return;
+    if (msg.hold === "result" || msg.hold === "season" || msg.hold === "intro") return;
     if (selectedMarket != null && msg.board.players.find((p) => p.seat === seat)?.isYou) {
       const action = plotAction(selectedMarket, plotIndex);
       if (action) {
@@ -157,15 +191,6 @@
     }
     if (act === "pass") onPass();
     if (act === "next") send({ type: "next" });
-    if (act === "harvest-next") {
-      const walk = harvestWalk();
-      if (harvestStep < walk.length - 1) {
-        harvestStep += 1;
-        render();
-      } else {
-        send({ type: "next" });
-      }
-    }
     if (act === "market") onMarket(Number(el.getAttribute("data-i")));
     if (act === "plot") onPlot(Number(el.getAttribute("data-seat")), Number(el.getAttribute("data-i")));
     if (act === "close-peek") { peek = null; render(); }
@@ -207,6 +232,7 @@
         <div class="zone">${esc(e.zone)}</div>
         <div class="name">${esc(e.cropName)}</div>
         <div class="delta ${sign}">${d}</div>
+        <div class="span">${esc(e.span || `R${e.from}-${e.to}`)}</div>
       </article>`;
     }).join("");
     return `<div class="events">${inner}<div class="deck">山${msg.view.eventDeckCount}</div></div>`;
@@ -252,20 +278,17 @@
       </div>`;
     }
     if (harvestHit) {
-      const h = harvestHit;
-      overlay = `<div class="overlay">
-        <b>${esc(displayName(player))} ${esc(cropById(h.cropId)?.name || h.cropId || "")} 収</b>
-        <div>+${h.gain}G → ${coins.get(player.seat)}G</div>
-        <div>${harvestStep + 1}/${harvestWalk().length}</div>
-      </div>`;
+      overlay = `<div class="figure">${esc(harvestHit.figure || `+${harvestHit.gain}`)}</div>`;
     }
     return `<button type="button" class="${cls}" data-act="plot" data-seat="${player.seat}" data-i="${plot.index}">${body}${overlay}</button>`;
   }
 
   function farmsHtml() {
     const coins = shownCoins();
-    const walk = msg.hold === "result" ? harvestWalk() : [];
-    const cur = walk[harvestStep];
+    const walk = msg.hold === "result" && (harvestPhase === "walk" || harvestPhase === "done")
+      ? harvestWalk()
+      : [];
+    const shown = harvestPhase === "done" ? walk.length - 1 : harvestStep;
     return `<div class="farms">${msg.board.players.map((p) => {
       const acting = p.isActing ? " acting" : "";
       const you = p.isYou ? " you" : "";
@@ -274,7 +297,7 @@
         <div class="who${you}${acting}"><div class="id">${esc(displayName(p))}${p.isYou ? "*" : ""}</div><div class="g">${g}G${p.isActing ? " 手番" : ""}</div></div>
         ${p.plots.map((plot) => {
           const plantable = selectedMarket != null && p.isYou && !!plotAction(selectedMarket, plot.index);
-          const harvestHit = cur && cur.seat === p.seat && cur.plotIndex === plot.index ? cur : null;
+          const harvestHit = walk.find((h, i) => i <= shown && h.seat === p.seat && h.plotIndex === plot.index) || null;
           return miniHtml(p, plot, coins, plantable, harvestHit);
         }).join("")}
       </div>`;
@@ -313,18 +336,37 @@
   }
 
   function harvestPane() {
-    const walk = harvestWalk();
-    const last = walk.length === 0 || harvestStep >= walk.length - 1;
-    const coins = shownCoins();
-    const totals = (msg.board.players || []).map((p) => `${esc(displayName(p))} ${coins.get(p.seat)}G`).join("<br>");
-    const label = walk.length === 0 || last ? "次へ" : `次の農地 ${harvestStep + 1}/${walk.length}`;
+    if (harvestPhase !== "done") return "";
     if (msg.acked) {
-      return `<div class="harvest-bar"><div class="muted">確認済み（${msg.ackGot}/${msg.ackNeed}）</div><div>${totals}</div></div>`;
+      return `<div class="harvest-bar"><div class="muted">確認済み（${msg.ackGot}/${msg.ackNeed}）</div></div>`;
     }
     return `<div class="harvest-bar">
-      <div>収穫を1農地ずつ</div>
-      <div>${totals}</div>
-      <button type="button" class="next" data-act="harvest-next">${label}</button>
+      <button type="button" class="next" data-act="next">次へ</button>
+    </div>`;
+  }
+
+  function introPane() {
+    const crops = msg.board.cropsInGame || [];
+    const cards = crops.map((c) => {
+      const wait = pipLine("待", c.wait, "○", "なし");
+      const harv = pipLine("収", c.harvest, "★");
+      const cool = c.cooldown ? pipLine("休", c.cooldown, "△") : "休 なし";
+      return `<article class="market-card intro-card">
+        <div class="head"><b>${esc(c.name)}</b><span class="cost">${c.cost}G</span></div>
+        <div class="stat">${esc(wait)}</div>
+        <div class="stat">${esc(harv)}</div>
+        <div class="stat">${esc(cool)}</div>
+        <div class="stat">基本${c.base}　最低${c.floor}</div>
+        <div class="type">${esc(c.typeLabel)}</div>
+        <p class="blurb">${esc(c.blurb)}</p>
+      </article>`;
+    }).join("");
+    const start = msg.acked
+      ? `<button type="button" class="next" disabled>確認済み（${msg.ackGot}/${msg.ackNeed}）</button>`
+      : `<button type="button" class="next" data-act="next">開始</button>`;
+    return `<div class="intro">
+      <div class="intro-cards">${cards}</div>
+      ${start}
     </div>`;
   }
 
@@ -336,14 +378,20 @@
     }
     const waiting = !msg.hold && view.actingSeat !== youSeat && view.phase === "turn";
     const actor = board.players.find((p) => p.isActing);
-    const right = msg.hold === "result"
-      ? harvestPane()
-      : msg.hold === "season" || msg.over
-        ? `<div class="harvest-bar">${esc(view.message || "")}<button type="button" class="next" data-act="next" ${msg.acked ? "disabled" : ""}>${msg.acked ? "確認済み" : "次へ"}</button></div>`
-        : waiting
-          ? `<div class="waitbox">${esc(actor ? actor.name + " の手番…" : "待ち")}</div>`
-          : `${marketHtml()}`;
+    const banner = msg.hold === "result" && harvestPhase === "banner"
+      ? `<div class="harvest-banner">収穫タイム</div>`
+      : "";
+    const right = msg.hold === "intro"
+      ? introPane()
+      : msg.hold === "result"
+        ? harvestPane()
+        : msg.hold === "season" || msg.over
+          ? `<div class="harvest-bar">${esc(view.message || "")}<button type="button" class="next" data-act="next" ${msg.acked ? "disabled" : ""}>${msg.acked ? "確認済み" : "次へ"}</button></div>`
+          : waiting
+            ? `<div class="waitbox">${esc(actor ? actor.name + " の手番…" : "待ち")}</div>`
+            : `${marketHtml()}`;
     return `<div class="layout">
+      ${banner}
       <section>${farmsHtml()}</section>
       <section class="hand">
         ${eventHtml()}
@@ -393,7 +441,13 @@
       const key = `${view.round}-${view.season}-${(msg.harvest || []).length}-${msg.hold}`;
       if (key !== harvestKey) {
         harvestKey = key;
-        harvestStep = 0;
+        clearHarvestTimers();
+        harvestStep = -1;
+        harvestPhase = "idle";
+        if (msg.hold === "result") {
+          harvestPhase = "banner";
+          queueHarvest(beginHarvestWalk, 1000);
+        }
       }
       if (view.actingSeat !== youSeat) selectedMarket = null;
       app.innerHTML = chrome(board, view) + (tab === "record" ? recordHtml() : playHtml());

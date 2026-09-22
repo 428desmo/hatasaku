@@ -53,6 +53,7 @@ body {
   gap: 10px;
   padding: 8px 10px 16px;
   flex: 1;
+  position: relative;
 }
 @media (min-width: 760px) {
   .layout { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
@@ -75,6 +76,7 @@ body {
 .event .zone { font-size: 10px; color: #555; }
 .event .name { font-weight: 700; font-size: 12px; }
 .event .delta { font-size: 16px; font-weight: 700; }
+.event .span { font-size: 11px; font-weight: 700; margin-top: 2px; }
 .event .plus { color: #2e7d32; }
 .event .minus { color: #c62828; }
 .deck {
@@ -178,6 +180,45 @@ body {
   font-size: 12px;
 }
 .overlay b { display: block; margin-bottom: 4px; }
+
+.figure {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  top: auto;
+  bottom: 4px;
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.25;
+  pointer-events: none;
+  text-shadow: 0 0 4px #fff, 0 0 6px #fff, 0 1px 0 #fff;
+}
+
+.harvest-banner {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(28px, 8vw, 52px);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  background: rgba(255, 255, 255, 0.62);
+  pointer-events: none;
+}
+
+.intro-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.intro-card { min-height: 168px; cursor: default; }
+.intro-card .blurb {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
 
 .waitbox {
   border: 1.4px dashed #222;

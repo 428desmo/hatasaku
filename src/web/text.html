@@ -76,7 +76,7 @@
               b.textContent = "確認済み（" + msg.ackGot + "/" + msg.ackNeed + "）";
               b.disabled = true;
             } else {
-              b.textContent = "次へ（" + msg.ackGot + "/" + msg.ackNeed + "）";
+              b.textContent = (msg.hold === "intro" ? "開始" : "次へ") + "（" + msg.ackGot + "/" + msg.ackNeed + "）";
               b.onclick = () => ws.send(JSON.stringify({ type: "next" }));
             }
             actionsEl.appendChild(b);
