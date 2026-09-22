@@ -1,6 +1,7 @@
 import { cropDef } from "./catalog.js";
+import { curseHits } from "./curse.js";
 import { effectiveEvents, eventSumFor } from "./events.js";
-import { cloneState, type GameState, type HarvestDetail, type Plot, type RoundSnapshot } from "./types.js";
+import { cloneState, CURSE_DELTA, type GameState, type HarvestDetail, type Plot, type RoundSnapshot } from "./types.js";
 
 export function harvestIncome(base: number, floor: number, others: number, eventSum: number): number {
   return Math.max(floor, base - others + eventSum);
@@ -27,6 +28,9 @@ export function applyHarvest(state: GameState): GameState {
     const events = liveEvents
       .filter((e) => e.cropId === h.cropId)
       .map((e) => ({ cropId: e.cropId, delta: e.delta }));
+    for (const c of curseHits(s, h.cropId)) {
+      events.push({ cropId: c.cropId, delta: CURSE_DELTA });
+    }
     const eventSum = eventSumFor(s, h.cropId);
     const raw = def.baseIncome - others + eventSum;
     const gain = harvestIncome(def.baseIncome, def.floor, others, eventSum);

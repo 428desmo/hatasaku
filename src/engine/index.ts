@@ -46,6 +46,7 @@ function publicEvent(e: EventCard, activatedRound: number | undefined): PublicEv
 function describeAction(state: GameState, action: Action): ActionLog {
   const seat = state.actingSeat!;
   if (action.type === "pass") return { seat, kind: "pass" };
+  if (action.type === "curse") return { seat, kind: "pass" };
   const card = state.crop.market[action.marketIndex];
   const cropId = card?.cropId;
   if (action.target === "newLand") {
@@ -72,6 +73,7 @@ function describeAction(state: GameState, action: Action): ActionLog {
 
 export function applyPlayerAction(state: GameState, action: Action, rng: Rng): GameState {
   if (state.phase === "gameOver") throw new IllegalActionError("game is over");
+  if (action.type === "curse") return applyTurn(state, action, rng);
   const log = describeAction(state, action);
   let s = applyTurn(state, action, rng);
   s.roundActions = [...s.roundActions, log];
@@ -132,6 +134,8 @@ export function getPublicView(
     })),
     drawnEventCount: state.event.drawnCount,
     cropIdsInGame: [...state.cropIdsInGame],
+    curseReadySeats: [...state.curseReadySeats],
+    curses: state.curses.map((c) => ({ ...c })),
   };
   if (viewerSeat !== "spectator" && viewerSeat === state.actingSeat) {
     view.legalActions = listLegalActions(state);

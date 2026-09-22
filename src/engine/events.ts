@@ -1,5 +1,6 @@
 import { shuffle, type Rng } from "./rng.js";
 import { cloneState, eventDrawCap, eventHasExpired, type EventCard, type GameState } from "./types.js";
+import { curseSumFor } from "./curse.js";
 
 export function effectiveEvents(state: GameState): EventCard[] {
   const out: EventCard[] = [];
@@ -10,9 +11,10 @@ export function effectiveEvents(state: GameState): EventCard[] {
 }
 
 export function eventSumFor(state: GameState, cropId: string): number {
-  return effectiveEvents(state)
+  const fromEvents = effectiveEvents(state)
     .filter((e) => e.cropId === cropId)
     .reduce((s, e) => s + e.delta, 0);
+  return fromEvents + curseSumFor(state, cropId);
 }
 
 export function applyEventUpdate(state: GameState, rng: Rng): GameState {

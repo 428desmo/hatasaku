@@ -79,7 +79,7 @@ export function createGame(config: StartConfig, rng: Rng): GameState {
   }
 
   return {
-    specVersion: "0.9",
+    specVersion: "0.11",
     mode: config.mode,
     seed: config.seed,
     season: config.season ?? 1,
@@ -111,6 +111,8 @@ export function createGame(config: StartConfig, rng: Rng): GameState {
     lastHarvest: [],
     startCoins: players.map((p) => p.coins),
     roundLog: [],
+    curseReadySeats: [...(config.curseSeats ?? [])],
+    curses: [],
   };
 }
 

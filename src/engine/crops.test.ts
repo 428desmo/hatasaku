@@ -36,7 +36,7 @@ describe("v0.9 crop pools", () => {
       for (let i = 0; i < 40; i++) {
         const seed = `pool-${mode}-${i}`;
         const s = createGame({ mode, seed, seats: threeCpus }, createRng(seed));
-        expect(s.specVersion).toBe("0.9");
+        expect(s.specVersion).toBe("0.11");
         expect(s.cropIdsInGame).toHaveLength(4);
         for (const id of s.cropIdsInGame) expect(allowed.has(id)).toBe(true);
       }

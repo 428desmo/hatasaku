@@ -1,6 +1,6 @@
 import { cropDef, cropName, cropSpec, formatDelta } from "../engine/catalog.js";
 import { harvestIncome } from "../engine/income.js";
-import { eventEffectEnd, type PublicEvent, type PublicView } from "../engine/types.js";
+import { CURSE_DELTA, eventEffectEnd, type PublicEvent, type PublicView } from "../engine/types.js";
 
 export type HarvestKind = "full" | "limited" | "missed";
 export type EventTone = "plus" | "minus" | "none" | "mixed";
@@ -76,6 +76,16 @@ export function visibleEventWindows(view: PublicView): WindowedEvent[] {
       label: eventLabel(started, i === 0 ? "now" : "preview"),
     });
   });
+  for (const c of view.curses ?? []) {
+    if (c.to < R) continue;
+    out.push({
+      cropId: c.cropId,
+      delta: CURSE_DELTA,
+      from: c.from,
+      to: c.to,
+      label: `呪いR${c.from}`,
+    });
+  }
   return out;
 }
 
