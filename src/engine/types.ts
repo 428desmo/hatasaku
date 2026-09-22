@@ -93,7 +93,7 @@ export type HarvestDetail = {
 };
 
 export type GameState = {
-  specVersion: "0.7";
+  specVersion: "0.8";
   mode: Mode;
   seed: string;
   season: number;

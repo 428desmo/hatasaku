@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   applyAction,
+  applyPlayerAction,
   applyIncome,
   createGame,
   createRng,
@@ -390,5 +391,23 @@ describe("accept 13-14 decks", () => {
     s = applyAction(s, { type: "plant", marketIndex: 0, target: "newLand" }, rng);
     expect(before).toBe(1);
     expect(s.crop.market.length).toBe(0);
+  });
+});
+
+describe("all-pass market sweep", () => {
+  it("discards the market and refills before income when everyone passed", () => {
+    let { state: s, rng } = startForced({
+      mode: "basic",
+      crops: ["radish", "onion", "corn", "potato"],
+    });
+    const oldIds = s.crop.market.map((c) => c.instanceId);
+    const last = s.turnOrder[s.turnOrder.length - 1]!;
+    s = passAllUntil(s, rng, (x) => x.round === 1 && x.actingSeat === last);
+    s = applyPlayerAction(s, { type: "pass" }, rng);
+    expect(s.phase).toBe("income");
+    expect(s.roundActions.every((a) => a.kind === "pass")).toBe(true);
+    expect(oldIds.every((id) => s.crop.discard.some((c) => c.instanceId === id))).toBe(true);
+    expect(s.crop.market.every((c) => !oldIds.includes(c.instanceId))).toBe(true);
+    expect(s.crop.market.length).toBe(3);
   });
 });

@@ -3,7 +3,7 @@ import { applyEventUpdate, effectiveEvents, eventSumFor } from "./events.js";
 import { applyHarvest, applyIncome, concludeRound, harvestIncome } from "./income.js";
 import { listLegalActions, nextUnownedIndex, ownedCount } from "./legal.js";
 import { createRng, type Rng } from "./rng.js";
-import { createGame } from "./setup.js";
+import { createGame, sweepMarketIfAllPassed } from "./setup.js";
 import { advanceTurnPointer, applyTurn } from "./turn.js";
 import {
   acquireCost,
@@ -33,6 +33,8 @@ export {
   listLegalActions,
   parseMode,
 };
+
+export { refillMarket, sweepMarketIfAllPassed } from "./setup.js";
 
 function publicEvent(e: EventCard, activatedRound: number | undefined): PublicEvent {
   if (activatedRound === undefined) {
@@ -73,7 +75,9 @@ export function applyPlayerAction(state: GameState, action: Action, rng: Rng): G
   const log = describeAction(state, action);
   let s = applyTurn(state, action, rng);
   s.roundActions = [...s.roundActions, log];
-  return advanceTurnPointer(s);
+  s = advanceTurnPointer(s);
+  if (s.phase === "income") s = sweepMarketIfAllPassed(s, rng);
+  return s;
 }
 
 export function applyAction(state: GameState, action: Action, rng: Rng): GameState {

@@ -6,6 +6,7 @@ export type EventChip = {
   cropId: string;
   delta: number;
   text: string;
+  span: string;
   role: "harvest" | "preview";
   lingering: boolean;
   from: number;
@@ -27,8 +28,9 @@ function body(e: { cropId: string; delta: number }): string {
   return `${cropName(e.cropId)} ${formatDelta(e.delta)}`;
 }
 
-function windowOf(from: number): { from: number; to: number } {
-  return { from, to: eventEffectEnd(from) };
+function windowOf(from: number): { from: number; to: number; span: string } {
+  const to = eventEffectEnd(from);
+  return { from, to, span: `R${from}-${to}` };
 }
 
 export function describeBoardEvents(view: PublicView): BoardEvents {
@@ -38,12 +40,13 @@ export function describeBoardEvents(view: PublicView): BoardEvents {
 
   view.eventActive.forEach((e, i) => {
     const from = startedRound(e, R - (n - i));
-    const { to } = windowOf(from);
+    const { to, span } = windowOf(from);
     harvestEvents.push({
       cropName: cropName(e.cropId),
       cropId: e.cropId,
       delta: e.delta,
       text: `${body(e)}（継続・R${from}〜R${to}）`,
+      span,
       role: "harvest",
       lingering: true,
       from,
@@ -54,12 +57,13 @@ export function describeBoardEvents(view: PublicView): BoardEvents {
   const left = view.eventRow[0];
   if (left) {
     const from = startedRound(left, R);
-    const { to } = windowOf(from);
+    const { to, span } = windowOf(from);
     harvestEvents.push({
       cropName: cropName(left.cropId),
       cropId: left.cropId,
       delta: left.delta,
       text: `${body(left)}（R${from}〜R${to}）`,
+      span,
       role: "harvest",
       lingering: false,
       from,
@@ -69,12 +73,13 @@ export function describeBoardEvents(view: PublicView): BoardEvents {
 
   const previewEvents: EventChip[] = view.eventRow.slice(1).map((e, i) => {
     const from = R + i + 1;
-    const { to } = windowOf(from);
+    const { to, span } = windowOf(from);
     return {
       cropName: cropName(e.cropId),
       cropId: e.cropId,
       delta: e.delta,
       text: `R${from} ${body(e)}（R${from}〜R${to}）`,
+      span,
       role: "preview" as const,
       lingering: false,
       from,

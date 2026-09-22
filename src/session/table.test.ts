@@ -29,6 +29,8 @@ describe("table seats", () => {
     });
     const seat = table.assignHuman();
     expect(seat).toBe(0);
+    expect(table.hold).toBe("intro");
+    table.nextFromSeat(0);
     expect(table.state).not.toBeNull();
     while (table.state && table.hold === null && table.state.phase === "turn") {
       const actor = table.state.actingSeat;
@@ -49,6 +51,8 @@ describe("table seats", () => {
     expect(view.html).toContain("収穫");
     expect(view.html).toContain("所持コイン");
     expect(view.actions).toEqual([]);
+    table.nextFromSeat(0);
+    expect(table.hold).toBe("intro");
     table.nextFromSeat(0);
     expect(table.hold).toBeNull();
     expect(table.state?.round).toBe(2);
@@ -115,6 +119,10 @@ describe("table seats", () => {
 
     for (let i = 0; i < 4000; i++) {
       if (!table.state) throw new Error("missing state");
+      if (table.hold === "intro") {
+        table.nextFromSeat(0);
+        continue;
+      }
       if (table.hold === "result") {
         expect(table.state.turnOrder).toEqual(order1);
         expect(table.state.startSeat).toBe(start1);

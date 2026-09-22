@@ -28,6 +28,7 @@ import {
   renderScoreSheetHtml,
   renderScoreSheetText,
 } from "../view/endSummary.js";
+import { formatHarvestFigure } from "../view/harvestCopy.js";
 import { renderRoundResultHtml, renderRoundResultText } from "../view/summary.js";
 import { renderText } from "../view/text.js";
 
@@ -40,7 +41,7 @@ export type TableConfig = {
   seasonCount?: number;
 };
 
-export type UiHold = "result" | "season" | null;
+export type UiHold = "intro" | "result" | "season" | null;
 
 type HumanSlot = { seat: number; connected: boolean };
 
@@ -117,7 +118,7 @@ export class Table {
     this.scoreSheet = [];
     this.matchWinnerSeats = [];
     this.state = this.createSeasonState();
-    this.flushCpus();
+    this.pauseForIntro();
   }
 
   applyFromSeat(seat: number, action: Action): void {
@@ -201,6 +202,7 @@ export class Table {
     const view = getPublicView(this.state, this.hold ? "spectator" : seat);
     if (this.hold === "result") view.message = "内容を確認して［次へ］を押してください。";
     if (this.hold === "season") view.message = "シーズンが終わりました。確認して［次へ］で次のシーズンに進みます。";
+    if (this.hold === "intro") view.message = "今ラウンドの作物を見て［開始］。";
     const you = seat === "spectator" ? null : seat;
     const board = toPresentation(view, you);
     const names = this.state.players.map((p) => p.name);
@@ -230,7 +232,7 @@ export class Table {
       html: renderHtml(board, summaryHtml, { finalBoard: finalBoard || this.hold === "season" }),
       view,
       board,
-      harvest: this.state.lastHarvest,
+      harvest: this.state.lastHarvest.map((d) => ({ ...d, figure: formatHarvestFigure(d) })),
       lastPayouts: this.state.lastPayouts,
       scoreSheet: this.scoreSheet,
       matchWinnerSeats: this.matchWinnerSeats,
@@ -280,20 +282,32 @@ export class Table {
     this.state = this.createSeasonState();
   }
 
-  private advanceHold(): void {
-    if (!this.state || !this.hold) return;
-    if (this.hold === "season") {
-      this.beginNextSeason();
+  private pauseForIntro(): void {
+    if (this.config.humanCount === 0) {
       this.hold = null;
       this.flushCpus();
+      return;
+    }
+    this.hold = "intro";
+  }
+
+  private advanceHold(): void {
+    if (!this.state || !this.hold) return;
+    if (this.hold === "intro") {
+      this.hold = null;
+      this.flushCpus();
+      return;
+    }
+    if (this.hold === "season") {
+      this.beginNextSeason();
+      this.pauseForIntro();
       return;
     }
     this.state = concludeRound(this.state);
     if (this.state.phase !== "gameOver") {
       this.state = applyEventUpdate(this.state, this.rng);
       this.state.phase = "turn";
-      this.hold = null;
-      this.flushCpus();
+      this.pauseForIntro();
       return;
     }
     this.recordSeason();

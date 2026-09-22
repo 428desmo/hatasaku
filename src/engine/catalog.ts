@@ -40,6 +40,21 @@ export function cropTypeLabel(id: CropId): string {
   return CROP_TYPE_LABEL[cropDef(id).type];
 }
 
+export function cropBlurb(id: CropId): string {
+  const d = cropDef(id);
+  const cool = d.cooldown === 0 ? "連作障害なし" : `休${d.cooldown}`;
+  if (d.type === "immediate") {
+    return `即時型。待${d.wait}・収${d.harvest}と短く、すぐ現金になる。${cool}。`;
+  }
+  if (d.type === "mid") {
+    return `中間型。待ちと収穫の長さが釣り合っている。${cool}。`;
+  }
+  if (d.type === "long") {
+    return `長期型。収穫が長く続くが、実るまでも長い。${cool}。`;
+  }
+  return `一括型。収穫は短いが高収入。待ちが長い。${cool}。`;
+}
+
 export function cropShortName(id: CropId): string {
   return CROP_SHORT[id] ?? cropName(id);
 }

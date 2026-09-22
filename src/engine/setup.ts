@@ -1,6 +1,7 @@
 import { cropList, EVENT_DELTAS_DATA } from "./catalog.js";
 import { shuffle, type Rng } from "./rng.js";
 import {
+  cloneState,
   emptyPlots,
   eventDrawCap,
   lastRound,
@@ -78,7 +79,7 @@ export function createGame(config: StartConfig, rng: Rng): GameState {
   }
 
   return {
-    specVersion: "0.7",
+    specVersion: "0.8",
     mode: config.mode,
     seed: config.seed,
     season: config.season ?? 1,
@@ -127,4 +128,15 @@ export function refillMarket(state: GameState, rng: Rng): void {
     if (!next) break;
     state.crop.market.push(next);
   }
+}
+
+export function sweepMarketIfAllPassed(state: GameState, rng: Rng): GameState {
+  if (state.phase !== "income") return state;
+  if (state.roundActions.length === 0) return state;
+  if (state.roundActions.some((a) => a.kind !== "pass")) return state;
+  const s = cloneState(state);
+  s.crop.discard.push(...s.crop.market);
+  s.crop.market = [];
+  refillMarket(s, rng);
+  return s;
 }
