@@ -409,14 +409,11 @@
       const packs = ranges.map((r, pi) => {
         const cells = row.cells.slice(r.from - 1, r.to);
         const nodes = cells.map((v, ni) => {
+          const round = r.from + ni;
           const pass = v === "パス" ? " is-pass" : "";
-          return `<div class="act-node n${ni}${pass}">${esc(shortActionLabel(v))}</div>`;
-        });
-        const first = pi === 0 ? " first" : "";
-        if (nodes.length >= 2) {
-          return `<div class="act-pack count-${nodes.length}${first}" style="--i:${pi}">${nodes[0]}<div class="act-fork" aria-hidden="true"></div><div class="act-stack">${nodes.slice(1).join("")}</div></div>`;
-        }
-        return `<div class="act-pack count-${nodes.length}${first}" style="--i:${pi}">${nodes.join("")}</div>`;
+          return `<div class="act-node${pass}"><span class="rn">${round}</span>${esc(shortActionLabel(v))}</div>`;
+        }).join("");
+        return `<div class="act-pack count-${cells.length}" style="--i:${pi}">${nodes}</div>`;
       }).join("");
       return `${who}${packs}`;
     }).join("");
