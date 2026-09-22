@@ -439,11 +439,73 @@ body {
   min-width: 1.15em;
 }
 .act-node.is-pass { color: #888; font-weight: 600; }
+.mix-head {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+}
+.mix-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mix-row {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  opacity: 0;
+  animation: act-in 0.06s linear forwards;
+  animation-delay: calc(var(--i, 0) * 0.1s);
+}
+.mix-bar {
+  display: flex;
+  height: 40px;
+  border: 1.3px solid #222;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #f3f3f3;
+}
+.mix-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+.mix-seg.pass { color: #333; }
+.mix-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  font-size: 12px;
+}
+.mix-key { display: inline-flex; align-items: center; gap: 5px; }
+.mix-swatch {
+  width: 12px;
+  height: 12px;
+  border: 1px solid #222;
+  display: inline-block;
+}
+.honor-pane .honor-seats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 280px;
+}
+.honor-pane .who { min-height: 64px; }
+.honor-pane .who .g { font-size: 16px; font-weight: 700; color: #111; }
 @keyframes act-in {
   to { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .act-pack { opacity: 1; animation: none; }
+  .act-pack, .mix-row { opacity: 1; animation: none; }
 }
 .muted { color: #555; font-size: 13px; }
 
