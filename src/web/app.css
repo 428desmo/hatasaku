@@ -367,6 +367,51 @@ body {
   font-size: 14px;
   font-weight: 700;
 }
+.end-block {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.layout.is-end {
+  align-content: start;
+}
+.act-wrap {
+  overflow-x: auto;
+  margin: 0 0 8px;
+  min-width: 0;
+}
+.act-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  width: 100%;
+  table-layout: fixed;
+}
+.act-table th, .act-table td {
+  border: 1px solid #ccc;
+  padding: 4px 2px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.act-table thead th { font-weight: 700; color: #555; }
+.act-table th:first-child, .act-table td:first-child {
+  text-align: left;
+  width: 4.8em;
+  padding-left: 6px;
+}
+.act-table tr.honor th, .act-table tr.honor td { background: #fff6d8; }
+.act-table td.is-pass { color: #888; }
+.act-table td.cell {
+  opacity: 0;
+  animation: act-in 0.06s linear forwards;
+  animation-delay: calc(var(--i, 0) * 0.1s);
+}
+@keyframes act-in {
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .act-table td.cell { opacity: 1; animation: none; }
+}
 .muted { color: #555; font-size: 13px; }
 
 .next {

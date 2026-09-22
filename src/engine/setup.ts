@@ -107,6 +107,7 @@ export function createGame(config: StartConfig, rng: Rng): GameState {
     winnerSeats: [],
     lastPayouts: players.map(() => 0),
     roundActions: [],
+    seasonActions: [],
     lastHarvest: [],
     startCoins: players.map((p) => p.coins),
     roundLog: [],

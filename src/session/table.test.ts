@@ -77,6 +77,8 @@ describe("table seats", () => {
     expect(view.text).toContain("最終盤面");
     expect(view.html).toContain("<table>");
     expect(view.html).toContain("最終盤面");
+    expect(view.seasonLog).toHaveLength(3);
+    for (const row of view.seasonLog) expect(row.cells).toHaveLength(10);
   });
 
   it("plays a match of player-count seasons with rotating start seats", () => {
@@ -136,6 +138,8 @@ describe("table seats", () => {
         expect(seasonView.honorKind).toBe("season");
         expect(seasonView.honorSeats).toEqual(table.state.winnerSeats);
         expect(seasonView.crownSeats).toEqual([]);
+        expect(seasonView.seasonLog).toHaveLength(3);
+        for (const row of seasonView.seasonLog) expect(row.cells).toHaveLength(10);
         table.nextFromSeat(0);
         expect(table.state!.startSeat).toBe((start1 + 1) % n);
         expect(table.state!.turnOrder).toEqual([(start1 + 1) % n, (start1 + 2) % n, start1]);

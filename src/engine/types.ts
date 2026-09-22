@@ -128,6 +128,7 @@ export type GameState = {
   winnerSeats: number[];
   lastPayouts: number[];
   roundActions: ActionLog[];
+  seasonActions: ActionLog[];
   lastHarvest: HarvestDetail[];
   startCoins: number[];
   roundLog: RoundSnapshot[];

@@ -30,6 +30,7 @@ import {
 } from "../view/endSummary.js";
 import { formatHarvestFigure } from "../view/harvestCopy.js";
 import { previousSeasonLeaders, type HonorKind } from "../view/standings.js";
+import { seasonActionRows, type SeasonActionRow } from "../view/seasonLog.js";
 import { renderRoundResultHtml, renderRoundResultText } from "../view/summary.js";
 import { renderText } from "../view/text.js";
 
@@ -153,6 +154,7 @@ export class Table {
     crownSeats: number[];
     honorSeats: number[];
     honorKind: HonorKind;
+    seasonLog: SeasonActionRow[];
     crops: typeof cropList;
     hold: UiHold;
     acked: boolean;
@@ -181,6 +183,7 @@ export class Table {
         crownSeats: [],
         honorSeats: [],
         honorKind: null,
+        seasonLog: [],
         crops: cropList,
         view: {
           mode: this.config.mode,
@@ -247,6 +250,7 @@ export class Table {
       scoreSheet: this.scoreSheet,
       matchWinnerSeats: this.matchWinnerSeats,
       ...this.standings(),
+      seasonLog: seasonActionRows(this.state),
       crops: cropList,
       hold: this.hold,
       acked,
