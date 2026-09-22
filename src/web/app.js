@@ -150,8 +150,17 @@
     render();
   }
 
+  function ackHarvestNext() {
+    if (msg.hold !== "result" || msg.acked) return;
+    send({ type: "next" });
+  }
+
   function onPlot(seat, plotIndex) {
-    if (msg.hold === "result" || msg.hold === "season" || msg.hold === "intro") return;
+    if (msg.hold === "result") {
+      ackHarvestNext();
+      return;
+    }
+    if (msg.hold === "season" || msg.hold === "intro") return;
     if (selectedMarket != null && msg.board.players.find((p) => p.seat === seat)?.isYou) {
       const action = plotAction(selectedMarket, plotIndex);
       if (action) {
@@ -160,6 +169,7 @@
         return;
       }
     }
+    if (selectedMarket != null) return;
     const player = msg.board.players.find((p) => p.seat === seat);
     const plot = player?.plots[plotIndex];
     if (!plot || plot.kind === "unowned") {
@@ -240,10 +250,10 @@
 
   function miniHtml(player, plot, coins, plantable, harvestHit) {
     const sel = plantable || harvestHit || (peek && peek.seat === player.seat && peek.index === plot.index);
-    const dim = selectedMarket != null && player.isYou && !plantable;
+    const dim = selectedMarket != null && !plantable;
     const cls = [
       "mini",
-      plot.owned ? "" : "dash",
+      !plot.owned || plot.kind === "cooldown" ? "dash" : "",
       sel ? "sel" : "",
       dim ? "dim" : "",
     ].filter(Boolean).join(" ");
@@ -266,8 +276,8 @@
         <div class="pip">収 ${pips(plot.green, "★")} ${plot.green}</div>
         ${plot.cooldown ? `<div class="pip future">休 ${pips(plot.cooldown, "▽")}</div>` : ""}`;
     } else if (plot.kind === "cooldown") {
-      body = `<div class="nm">${esc(plot.shortName)}</div><div class="inc">${plot.base}/${plot.floor}</div>
-        <div class="pip">休 ${pips(plot.red, "△")} ${plot.red}</div>`;
+      body = `<div class="nm">${esc(plot.shortName)}</div>
+        <div class="pip">休 ${pips(plot.red, "▼")} ${plot.red}</div>`;
     }
     let overlay = "";
     if (peek && peek.seat === player.seat && peek.index === plot.index) {
@@ -381,9 +391,9 @@
     const waiting = !msg.hold && view.actingSeat !== youSeat && view.phase === "turn";
     const actor = board.players.find((p) => p.isActing);
     const banner = msg.hold === "result" && harvestPhase === "banner"
-      ? `<div class="harvest-banner">収穫タイム</div>`
+      ? `<div class="harvest-banner" data-act="next">収穫タイム</div>`
       : msg.hold === "result" && harvestPhase === "empty"
-        ? `<div class="harvest-dialog" role="dialog" aria-label="収穫なし">
+        ? `<div class="harvest-dialog" data-act="next" role="dialog" aria-label="収穫なし">
             <div class="harvest-dialog-box">
               <p class="title">収穫なし</p>
               <p>今ラウンドは誰も収穫しませんでした。</p>
@@ -404,7 +414,7 @@
       <section>${farmsHtml()}</section>
       <section class="hand">
         ${eventHtml()}
-        <div class="legend">待○　収★　休△　灰☆▽はこれから　基本/最低</div>
+        <div class="legend">待○　収★　休▼　灰☆▽はこれから　基本/最低</div>
         ${right}
       </section>
     </div>`;
