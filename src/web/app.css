@@ -186,12 +186,17 @@ body {
   left: 3px;
   right: 3px;
   top: auto;
-  bottom: 4px;
-  font-weight: 700;
-  font-size: 12px;
-  line-height: 1.25;
+  bottom: 3px;
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1.15;
+  color: #2e7d32;
   pointer-events: none;
   text-shadow: 0 0 4px #fff, 0 0 6px #fff, 0 1px 0 #fff;
+  word-break: break-all;
+}
+.figure.up, .figure.down, .figure.flat, .figure.floor {
+  color: #2e7d32;
 }
 
 .harvest-banner {
@@ -208,7 +213,38 @@ body {
   pointer-events: none;
 }
 
-.intro-cards {
+.harvest-dialog {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+}
+.harvest-dialog-box {
+  min-width: 220px;
+  max-width: 86%;
+  padding: 18px 22px;
+  border: 1.6px solid #222;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 10px rgba(0,0,0,.15);
+  text-align: center;
+}
+.harvest-dialog-box .title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 800;
+}
+.harvest-dialog-box p { margin: 0; }
+
+.intro-head {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;

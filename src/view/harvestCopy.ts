@@ -1,3 +1,10 @@
+export type HarvestTone = "up" | "down" | "floor" | "flat";
+
+export type HarvestFigure = {
+  text: string;
+  tone: HarvestTone;
+};
+
 export function formatHarvestFigure(d: {
   base: number;
   others: number;
@@ -5,10 +12,10 @@ export function formatHarvestFigure(d: {
   raw: number;
   floor: number;
   gain: number;
-}): string {
-  let expr = String(d.base);
-  if (d.eventSum !== 0) expr += d.eventSum > 0 ? `+${d.eventSum}` : `${d.eventSum}`;
-  if (d.others !== 0) expr += `-${d.others}`;
-  if (d.raw < d.floor) return `+${d.gain} (${expr} < ${d.floor})`;
-  return `+${d.gain} (${expr} = ${d.raw})`;
+}): HarvestFigure {
+  if (d.raw < d.floor) return { text: `${d.gain}😞`, tone: "floor" };
+  const delta = d.gain - d.base;
+  if (delta > 0) return { text: `${d.gain} ${"△".repeat(delta)}`, tone: "up" };
+  if (delta < 0) return { text: `${d.gain}${"▼".repeat(-delta)}`, tone: "down" };
+  return { text: `${d.gain}`, tone: "flat" };
 }

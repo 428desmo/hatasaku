@@ -202,7 +202,7 @@ export class Table {
     const view = getPublicView(this.state, this.hold ? "spectator" : seat);
     if (this.hold === "result") view.message = "内容を確認して［次へ］を押してください。";
     if (this.hold === "season") view.message = "シーズンが終わりました。確認して［次へ］で次のシーズンに進みます。";
-    if (this.hold === "intro") view.message = "今ラウンドの作物を見て［開始］。";
+    if (this.hold === "intro") view.message = "今シーズンの作物を見て［開始］。";
     const you = seat === "spectator" ? null : seat;
     const board = toPresentation(view, you);
     const names = this.state.players.map((p) => p.name);
@@ -232,7 +232,10 @@ export class Table {
       html: renderHtml(board, summaryHtml, { finalBoard: finalBoard || this.hold === "season" }),
       view,
       board,
-      harvest: this.state.lastHarvest.map((d) => ({ ...d, figure: formatHarvestFigure(d) })),
+      harvest: this.state.lastHarvest.map((d) => {
+        const fig = formatHarvestFigure(d);
+        return { ...d, figure: fig.text, tone: fig.tone };
+      }),
       lastPayouts: this.state.lastPayouts,
       scoreSheet: this.scoreSheet,
       matchWinnerSeats: this.matchWinnerSeats,
@@ -307,7 +310,8 @@ export class Table {
     if (this.state.phase !== "gameOver") {
       this.state = applyEventUpdate(this.state, this.rng);
       this.state.phase = "turn";
-      this.pauseForIntro();
+      this.hold = null;
+      this.flushCpus();
       return;
     }
     this.recordSeason();

@@ -55,7 +55,7 @@
   function beginHarvestWalk() {
     const walk = harvestWalk();
     if (walk.length === 0) {
-      harvestPhase = "done";
+      harvestPhase = "empty";
       harvestStep = -1;
       render();
       return;
@@ -278,7 +278,8 @@
       </div>`;
     }
     if (harvestHit) {
-      overlay = `<div class="figure">${esc(harvestHit.figure || `+${harvestHit.gain}`)}</div>`;
+      const tone = harvestHit.tone || "";
+      overlay = `<div class="figure ${esc(tone)}">${esc(harvestHit.figure || String(harvestHit.gain))}</div>`;
     }
     return `<button type="button" class="${cls}" data-act="plot" data-seat="${player.seat}" data-i="${plot.index}">${body}${overlay}</button>`;
   }
@@ -336,7 +337,7 @@
   }
 
   function harvestPane() {
-    if (harvestPhase !== "done") return "";
+    if (harvestPhase !== "done" && harvestPhase !== "empty") return "";
     if (msg.acked) {
       return `<div class="harvest-bar"><div class="muted">確認済み（${msg.ackGot}/${msg.ackNeed}）</div></div>`;
     }
@@ -365,6 +366,7 @@
       ? `<button type="button" class="next" disabled>確認済み（${msg.ackGot}/${msg.ackNeed}）</button>`
       : `<button type="button" class="next" data-act="next">開始</button>`;
     return `<div class="intro">
+      <p class="intro-head">今シーズンの作物</p>
       <div class="intro-cards">${cards}</div>
       ${start}
     </div>`;
@@ -380,7 +382,14 @@
     const actor = board.players.find((p) => p.isActing);
     const banner = msg.hold === "result" && harvestPhase === "banner"
       ? `<div class="harvest-banner">収穫タイム</div>`
-      : "";
+      : msg.hold === "result" && harvestPhase === "empty"
+        ? `<div class="harvest-dialog" role="dialog" aria-label="収穫なし">
+            <div class="harvest-dialog-box">
+              <p class="title">収穫なし</p>
+              <p>今ラウンドは誰も収穫しませんでした。</p>
+            </div>
+          </div>`
+        : "";
     const right = msg.hold === "intro"
       ? introPane()
       : msg.hold === "result"
