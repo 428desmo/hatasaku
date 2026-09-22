@@ -275,20 +275,20 @@ describe("accept 7 turn order", () => {
     expect(s.actingSeat).toBe(1);
   });
 
-  it("stable-sorts by coins", () => {
+  it("keeps clockwise order for the whole season", () => {
     let { state: s, rng } = startForced({
       mode: "basic",
       crops: ["potato", "corn", "onion", "pumpkin"],
       events: onionEvents(16),
     });
-    const first = s.turnOrder[0]!;
     const order1 = [...s.turnOrder];
-    s = passAllUntil(s, rng, (x) => x.round === 1 && x.actingSeat === first);
+    const last = order1[order1.length - 1]!;
+    s = passAllUntil(s, rng, (x) => x.round === 1 && x.actingSeat === last);
     s = replaceMarket(s, ["radish", "onion", "corn"]);
     s = plant(s, rng, { type: "plant", marketIndex: 0, target: "newLand" });
     s = passAllUntil(s, rng, (x) => x.round === 2 && x.turnIndex === 0);
-    expect(s.turnOrder[0]).toBe(first);
-    expect(s.turnOrder.slice(1)).toEqual(order1.slice(1));
+    expect(s.turnOrder).toEqual(order1);
+    expect(s.actingSeat).toBe(order1[0]);
   });
 });
 

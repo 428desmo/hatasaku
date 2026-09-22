@@ -97,4 +97,40 @@ describe("table seats", () => {
     expect(view.text).toContain("合計");
     expect(view.text).toMatch(/マッチ勝者|マッチ共同勝者/);
   });
+
+  it("keeps turn order within a season and shifts start by one next season", () => {
+    const table = new Table({
+      mode: "basic",
+      humanCount: 1,
+      cpuCount: 2,
+      cpuStrategyId: "random",
+      seed: "order-fixed",
+      seasonCount: 2,
+    });
+    expect(table.assignHuman()).toBe(0);
+    const start1 = table.state!.startSeat;
+    const n = 3;
+    const order1 = [...table.state!.turnOrder];
+    expect(order1).toEqual([(start1) % n, (start1 + 1) % n, (start1 + 2) % n]);
+
+    for (let i = 0; i < 4000; i++) {
+      if (!table.state) throw new Error("missing state");
+      if (table.hold === "result") {
+        expect(table.state.turnOrder).toEqual(order1);
+        expect(table.state.startSeat).toBe(start1);
+        table.nextFromSeat(0);
+        continue;
+      }
+      if (table.hold === "season") {
+        expect(table.state.startSeat).toBe(start1);
+        table.nextFromSeat(0);
+        expect(table.state!.startSeat).toBe((start1 + 1) % n);
+        expect(table.state!.turnOrder).toEqual([(start1 + 1) % n, (start1 + 2) % n, start1]);
+        expect(table.state!.round).toBe(1);
+        return;
+      }
+      if (table.state.actingSeat === 0) table.applyFromSeat(0, { type: "pass" });
+    }
+    throw new Error("did not reach season 2");
+  });
 });
