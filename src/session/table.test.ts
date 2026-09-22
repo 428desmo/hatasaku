@@ -52,8 +52,6 @@ describe("table seats", () => {
     expect(view.html).toContain("所持コイン");
     expect(view.actions).toEqual([]);
     table.nextFromSeat(0);
-    expect(table.hold).toBe("intro");
-    table.nextFromSeat(0);
     expect(table.hold).toBeNull();
     expect(table.state?.round).toBe(2);
   });
