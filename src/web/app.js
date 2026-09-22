@@ -10,6 +10,7 @@
   let tab = "play";
   let selectedMarket = null;
   let peek = null;
+  let cropPeek = null;
   let harvestStep = -1;
   let harvestKey = "";
   let harvestPhase = "idle";
@@ -40,6 +41,7 @@
   function sendAction(action) {
     selectedMarket = null;
     peek = null;
+    cropPeek = null;
     send({ type: "action", action });
   }
 
@@ -141,6 +143,7 @@
   function onMarket(index) {
     const card = msg.board.market[index];
     if (!card || !card.enabled) return;
+    cropPeek = null;
     if (selectedMarket === index) {
       selectedMarket = null;
       return render();
@@ -161,6 +164,7 @@
       return;
     }
     if (msg.hold === "season" || msg.hold === "intro") return;
+    cropPeek = null;
     if (selectedMarket != null && msg.board.players.find((p) => p.seat === seat)?.isYou) {
       const action = plotAction(selectedMarket, plotIndex);
       if (action) {
@@ -203,7 +207,14 @@
     if (act === "next") send({ type: "next" });
     if (act === "market") onMarket(Number(el.getAttribute("data-i")));
     if (act === "plot") onPlot(Number(el.getAttribute("data-seat")), Number(el.getAttribute("data-i")));
+    if (act === "crop") {
+      const i = Number(el.getAttribute("data-i"));
+      cropPeek = cropPeek === i ? null : i;
+      peek = null;
+      render();
+    }
     if (act === "close-peek") { peek = null; render(); }
+    if (act === "close-crop") { cropPeek = null; render(); }
   }
 
   app.addEventListener("click", (e) => {
@@ -381,22 +392,46 @@
     </div>`;
   }
 
+  function cropStats(c) {
+    return {
+      wait: pipLine("待", c.wait, "○", "なし"),
+      harv: pipLine("収", c.harvest, "★"),
+      cool: c.cooldown ? pipLine("休", c.cooldown, "△") : "休 なし",
+    };
+  }
+
+  function cropFullInner(c) {
+    const s = cropStats(c);
+    return `<div class="head"><b>${esc(c.name)}</b><span class="cost">${c.cost}G</span></div>
+      <div class="stat">${esc(s.wait)}</div>
+      <div class="stat">${esc(s.harv)}</div>
+      <div class="stat">${esc(s.cool)}</div>
+      <div class="stat">基本${c.base}　最低${c.floor}</div>
+      <div class="type">${esc(c.typeLabel)}</div>
+      <p class="blurb">${esc(c.blurb)}</p>`;
+  }
+
+  function seasonCropsHtml() {
+    const crops = msg.board.cropsInGame || [];
+    if (!crops.length) return "";
+    return `<div class="season-crops">${crops.map((c, i) => {
+      const s = cropStats(c);
+      const open = cropPeek === i;
+      const overlay = open
+        ? `<div class="overlay crop-full ${i < 2 ? "left" : "right"}" data-act="close-crop">${cropFullInner(c)}</div>`
+        : "";
+      return `<button type="button" class="crop-mini${open ? " sel" : ""}" data-act="crop" data-i="${i}">
+        <div class="head"><b>${esc(c.shortName || c.name)}</b><span class="cost">${c.cost}G</span></div>
+        <div class="stat">${esc(s.wait)}</div>
+        <div class="stat">${esc(s.harv)}</div>
+        ${overlay}
+      </button>`;
+    }).join("")}</div>`;
+  }
+
   function introPane() {
     const crops = msg.board.cropsInGame || [];
-    const cards = crops.map((c) => {
-      const wait = pipLine("待", c.wait, "○", "なし");
-      const harv = pipLine("収", c.harvest, "★");
-      const cool = c.cooldown ? pipLine("休", c.cooldown, "△") : "休 なし";
-      return `<article class="market-card intro-card">
-        <div class="head"><b>${esc(c.name)}</b><span class="cost">${c.cost}G</span></div>
-        <div class="stat">${esc(wait)}</div>
-        <div class="stat">${esc(harv)}</div>
-        <div class="stat">${esc(cool)}</div>
-        <div class="stat">基本${c.base}　最低${c.floor}</div>
-        <div class="type">${esc(c.typeLabel)}</div>
-        <p class="blurb">${esc(c.blurb)}</p>
-      </article>`;
-    }).join("");
+    const cards = crops.map((c) => `<article class="market-card intro-card">${cropFullInner(c)}</article>`).join("");
     const start = msg.acked
       ? `<button type="button" class="next" disabled>確認済み（${msg.ackGot}/${msg.ackNeed}）</button>`
       : `<button type="button" class="next" data-act="next">開始</button>`;
@@ -443,6 +478,7 @@
       <section>${farmsHtml()}</section>
       <section class="hand">
         ${eventHtml()}
+        ${seasonCropsHtml()}
         <div class="legend">待○　収★　休▼　灰☆▽はこれから　基本/最低</div>
         ${right}
       </section>

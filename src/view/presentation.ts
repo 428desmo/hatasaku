@@ -48,6 +48,7 @@ export type BoardPresentation = {
   cropsInGame: {
     id: string;
     name: string;
+    shortName: string;
     spec: string;
     blurb: string;
     cost: number;
@@ -156,6 +157,7 @@ export function toPresentation(view: PublicView, youSeat: number | null): BoardP
       return {
         id,
         name: cropName(id),
+        shortName: cropShortName(id),
         spec: cropSpec(id),
         blurb: cropBlurb(id),
         cost: def.cost,
