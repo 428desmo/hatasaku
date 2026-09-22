@@ -132,11 +132,6 @@ export function concludeRound(state: GameState): GameState {
     return s;
   }
   s.round += 1;
-  s.turnOrder = [...s.turnOrder].sort((a, b) => {
-    const d = s.players[a]!.coins - s.players[b]!.coins;
-    if (d !== 0) return d;
-    return s.turnOrder.indexOf(a) - s.turnOrder.indexOf(b);
-  });
   s.turnIndex = 0;
   s.actingSeat = s.turnOrder[0]!;
   s.phase = "turn";
