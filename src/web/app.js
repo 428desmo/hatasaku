@@ -100,6 +100,10 @@
     return p.name.replace("プレイヤー", "P");
   }
 
+  function cropById(id) {
+    return (msg.crops || []).find((c) => c.id === id);
+  }
+
   function onMarket(index) {
     const card = msg.board.market[index];
     if (!card || !card.enabled) return;
@@ -250,7 +254,7 @@
     if (harvestHit) {
       const h = harvestHit;
       overlay = `<div class="overlay">
-        <b>${esc(displayName(player))} ${esc(cropById(h.cropId)?.name || "")} 収</b>
+        <b>${esc(displayName(player))} ${esc(cropById(h.cropId)?.name || h.cropId || "")} 収</b>
         <div>+${h.gain}G → ${coins.get(player.seat)}G</div>
         <div>${harvestStep + 1}/${harvestWalk().length}</div>
       </div>`;
@@ -379,19 +383,25 @@
   }
 
   function render() {
-    if (!msg) {
-      app.innerHTML = `<p class="boot">接続中…</p>`;
-      return;
+    try {
+      if (!msg) {
+        app.innerHTML = `<p class="boot">接続中…</p>`;
+        return;
+      }
+      const view = msg.view;
+      const board = msg.board;
+      const key = `${view.round}-${view.season}-${(msg.harvest || []).length}-${msg.hold}`;
+      if (key !== harvestKey) {
+        harvestKey = key;
+        harvestStep = 0;
+      }
+      if (view.actingSeat !== youSeat) selectedMarket = null;
+      app.innerHTML = chrome(board, view) + (tab === "record" ? recordHtml() : playHtml());
+    } catch (e) {
+      console.error(e);
+      errText = e instanceof Error ? e.message : String(e);
+      app.innerHTML = `<p class="boot">描画エラー: ${esc(errText)}</p>`;
     }
-    const view = msg.view;
-    const board = msg.board;
-    const key = `${view.round}-${view.season}-${(msg.harvest || []).length}-${msg.hold}`;
-    if (key !== harvestKey) {
-      harvestKey = key;
-      harvestStep = 0;
-    }
-    if (view.actingSeat !== youSeat) selectedMarket = null;
-    app.innerHTML = chrome(board, view) + (tab === "record" ? recordHtml() : playHtml());
   }
 
   ws.onmessage = (ev) => {
