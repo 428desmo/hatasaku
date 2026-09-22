@@ -29,6 +29,7 @@ import {
   renderScoreSheetText,
 } from "../view/endSummary.js";
 import { formatHarvestFigure } from "../view/harvestCopy.js";
+import { previousSeasonLeaders, type HonorKind } from "../view/standings.js";
 import { renderRoundResultHtml, renderRoundResultText } from "../view/summary.js";
 import { renderText } from "../view/text.js";
 
@@ -149,6 +150,9 @@ export class Table {
     lastPayouts: number[];
     scoreSheet: number[][];
     matchWinnerSeats: number[];
+    crownSeats: number[];
+    honorSeats: number[];
+    honorKind: HonorKind;
     crops: typeof cropList;
     hold: UiHold;
     acked: boolean;
@@ -174,6 +178,9 @@ export class Table {
         lastPayouts: [],
         scoreSheet: this.scoreSheet,
         matchWinnerSeats: this.matchWinnerSeats,
+        crownSeats: [],
+        honorSeats: [],
+        honorKind: null,
         crops: cropList,
         view: {
           mode: this.config.mode,
@@ -239,12 +246,26 @@ export class Table {
       lastPayouts: this.state.lastPayouts,
       scoreSheet: this.scoreSheet,
       matchWinnerSeats: this.matchWinnerSeats,
+      ...this.standings(),
       crops: cropList,
       hold: this.hold,
       acked,
       ackNeed,
       ackGot,
       actions: this.hold ? [] : board.actions,
+    };
+  }
+
+  private standings(): { crownSeats: number[]; honorSeats: number[]; honorKind: HonorKind } {
+    if (!this.state) return { crownSeats: [], honorSeats: [], honorKind: null };
+    const n = this.state.players.length;
+    if (this.matchOver) {
+      return { crownSeats: [], honorSeats: [...this.matchWinnerSeats], honorKind: "match" };
+    }
+    return {
+      crownSeats: previousSeasonLeaders(this.scoreSheet, this.state.season, n),
+      honorSeats: this.hold === "season" ? [...this.state.winnerSeats] : [],
+      honorKind: this.hold === "season" ? "season" : null,
     };
   }
 
