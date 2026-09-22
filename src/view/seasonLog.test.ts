@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cropShortName } from "../engine/catalog.js";
 import { Table } from "../session/table.js";
 import { plant, replaceMarket, startForced } from "../engine/testkit.js";
-import { seasonActionRows } from "./seasonLog.js";
+import { actionPackRanges, packRangeLabel, seasonActionRows, shortActionLabel } from "./seasonLog.js";
 
 describe("season action log", () => {
   it("keeps plants and passes without plot indexes", () => {
@@ -34,5 +34,14 @@ describe("season action log", () => {
     expect(rows).toHaveLength(3);
     for (const row of rows) expect(row.cells).toHaveLength(10);
     expect(rows.some((r) => r.cells.includes("パス"))).toBe(true);
+  });
+
+  it("groups rounds into threes for the end tree", () => {
+    expect(actionPackRanges(10).map(packRangeLabel)).toEqual(["R1-3", "R4-6", "R7-9", "R10"]);
+    expect(actionPackRanges(18)).toHaveLength(6);
+    expect(packRangeLabel(actionPackRanges(18)[5]!)).toBe("R16-18");
+    expect(shortActionLabel("トウモロ")).toBe("トウモ..");
+    expect(shortActionLabel("トマト")).toBe("トマト");
+    expect(shortActionLabel("パス")).toBe("パス");
   });
 });
