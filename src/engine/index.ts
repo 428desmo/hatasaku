@@ -75,6 +75,7 @@ export function applyPlayerAction(state: GameState, action: Action, rng: Rng): G
   const log = describeAction(state, action);
   let s = applyTurn(state, action, rng);
   s.roundActions = [...s.roundActions, log];
+  s.seasonActions = [...s.seasonActions, log];
   s = advanceTurnPointer(s);
   if (s.phase === "income") s = sweepMarketIfAllPassed(s, rng);
   return s;

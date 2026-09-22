@@ -279,16 +279,16 @@
       body = `<div class="nm">${esc(plot.shortName)}</div><div class="inc">${plot.base}/${plot.floor}</div><div class="pip">空</div>`;
     } else if (plot.kind === "wait") {
       body = `<div class="nm">${esc(plot.shortName)}</div><div class="inc">${plot.base}/${plot.floor}</div>
-        <div class="pip">待 ${pips(plot.white, "○")} ${plot.white}</div>
+        <div class="pip">待 ${pips(plot.white, "○")}</div>
         <div class="pip future">収 ${pips(plot.harvest, "☆")}</div>
         ${plot.cooldown ? `<div class="pip future">休 ${pips(plot.cooldown, "▽")}</div>` : ""}`;
     } else if (plot.kind === "harvest") {
       body = `<div class="nm">${esc(plot.shortName)}</div><div class="inc">${plot.base}/${plot.floor}</div>
-        <div class="pip">収 ${pips(plot.green, "★")} ${plot.green}</div>
+        <div class="pip">収 ${pips(plot.green, "★")}</div>
         ${plot.cooldown ? `<div class="pip future">休 ${pips(plot.cooldown, "▽")}</div>` : ""}`;
     } else if (plot.kind === "cooldown") {
       body = `<div class="nm">${esc(plot.shortName)}</div>
-        <div class="pip">休 ${pips(plot.red, "▼")} ${plot.red}</div>`;
+        <div class="pip">休 ${pips(plot.red, "▼")}</div>`;
     }
     let overlay = "";
     if (peek && peek.seat === player.seat && peek.index === plot.index) {
@@ -382,6 +382,26 @@
     return "";
   }
 
+  function actionTableHtml() {
+    const rows = msg.seasonLog || [];
+    if (!rows.length || !msg.board) return "";
+    const last = msg.view.lastRound || Math.max(0, ...rows.map((r) => r.cells.length));
+    const head = ["", ...Array.from({ length: last }, (_, i) => `R${i + 1}`)]
+      .map((h) => `<th>${h}</th>`).join("");
+    const body = rows.map((row) => {
+      const p = msg.board.players.find((x) => x.seat === row.seat);
+      const name = p ? `${displayName(p)}${p.isYou ? "*" : ""}` : `席${row.seat}`;
+      const honor = (msg.honorSeats || []).includes(row.seat) ? " honor" : "";
+      const cells = Array.from({ length: last }, (_, i) => {
+        const v = row.cells[i] ?? "";
+        const skipped = v === "パス" ? " is-pass" : "";
+        return `<td class="cell${skipped}" style="--i:${i}">${esc(v)}</td>`;
+      }).join("");
+      return `<tr class="${honor}"><th>${esc(name)}</th>${cells}</tr>`;
+    }).join("");
+    return `<div class="act-wrap"><table class="act-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  }
+
   function harvestPane() {
     if (harvestPhase !== "done" && harvestPhase !== "empty") return "";
     if (msg.acked) {
@@ -415,15 +435,14 @@
     const crops = msg.board.cropsInGame || [];
     if (!crops.length) return "";
     return `<div class="season-crops">${crops.map((c, i) => {
-      const s = cropStats(c);
       const open = cropPeek === i;
       const overlay = open
         ? `<div class="overlay crop-full ${i < 2 ? "left" : "right"}" data-act="close-crop">${cropFullInner(c)}</div>`
         : "";
       return `<button type="button" class="crop-mini${open ? " sel" : ""}" data-act="crop" data-i="${i}">
         <div class="head"><b>${esc(c.shortName || c.name)}</b><span class="cost">${c.cost}G</span></div>
-        <div class="stat">${esc(s.wait)}</div>
-        <div class="stat">${esc(s.harv)}</div>
+        <div class="stat">${c.wait ? `待 ${pips(c.wait, "○")}` : "待 なし"}</div>
+        <div class="stat">収 ${pips(c.harvest, "★")} ${c.base}/${c.floor}</div>
         ${overlay}
       </button>`;
     }).join("")}</div>`;
@@ -456,6 +475,7 @@
     }
     const waiting = !msg.hold && view.actingSeat !== youSeat && view.phase === "turn";
     const actor = board.players.find((p) => p.isActing);
+    const ending = msg.hold === "season" || msg.over;
     const banner = msg.hold === "result" && harvestPhase === "banner"
       ? `<div class="harvest-banner" data-act="next">収穫タイム</div>`
       : msg.hold === "result" && harvestPhase === "empty"
@@ -468,12 +488,15 @@
         : "";
     const right = msg.hold === "result"
       ? harvestPane()
-      : msg.hold === "season" || msg.over
-        ? `<div class="harvest-bar">${honorLine()}<button type="button" class="next" data-act="next" ${msg.over || msg.acked ? "disabled" : ""}>${msg.over ? "おわり" : msg.acked ? "確認済み" : "次へ"}</button></div>`
+      : ending
+        ? ""
         : waiting
           ? `<div class="waitbox">${esc(actor ? actor.name + " の手番…" : "待ち")}</div>`
           : `${marketHtml()}`;
-    return `<div class="layout">
+    const endBlock = ending
+      ? `<div class="end-block">${honorLine()}${actionTableHtml()}<button type="button" class="next" data-act="next" ${msg.over || msg.acked ? "disabled" : ""}>${msg.over ? "おわり" : msg.acked ? "確認済み" : "次へ"}</button></div>`
+      : "";
+    return `<div class="layout${ending ? " is-end" : ""}">
       ${banner}
       <section>${farmsHtml()}</section>
       <section class="hand">
@@ -482,6 +505,7 @@
         <div class="legend">待○　収★　休▼　灰☆▽はこれから　基本/最低</div>
         ${right}
       </section>
+      ${endBlock}
     </div>`;
   }
 
