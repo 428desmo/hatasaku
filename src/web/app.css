@@ -55,9 +55,21 @@ body {
   flex: 1;
   position: relative;
 }
+.layout.is-intro {
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: start;
+}
 @media (min-width: 760px) {
   .layout { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+  .layout.is-intro { grid-template-columns: 84px minmax(0, 1fr); }
 }
+
+.seats {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.seats .who { min-height: 52px; }
 
 .events {
   display: flex;
@@ -246,8 +258,16 @@ body {
 }
 .harvest-dialog-box p { margin: 0; }
 
+.intro {
+  display: flex;
+  flex-direction: column;
+  max-width: 560px;
+  width: 100%;
+  margin: 8px auto 0;
+  gap: 10px;
+}
 .intro-head {
-  margin: 0 0 6px;
+  margin: 0;
   font-size: 13px;
   font-weight: 700;
 }
@@ -262,6 +282,7 @@ body {
   font-size: 12px;
   line-height: 1.35;
 }
+.intro .next { margin-top: 6px; }
 
 .waitbox {
   border: 1.4px dashed #222;
