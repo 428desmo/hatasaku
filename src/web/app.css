@@ -367,50 +367,104 @@ body {
   font-size: 14px;
   font-weight: 700;
 }
-.end-block {
-  grid-column: 1 / -1;
-  min-width: 0;
-}
 .layout.is-end {
+  grid-template-columns: minmax(0, 1fr);
   align-content: start;
 }
-.act-wrap {
-  overflow-x: auto;
-  margin: 0 0 8px;
+.end-log {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
   min-width: 0;
 }
-.act-table {
-  border-collapse: collapse;
-  font-size: 12px;
-  width: 100%;
-  table-layout: fixed;
+.end-scroll {
+  overflow-x: auto;
+  min-width: 0;
 }
-.act-table th, .act-table td {
-  border: 1px solid #ccc;
-  padding: 4px 2px;
+.end-grid {
+  display: grid;
+  grid-template-columns: 84px repeat(var(--packs, 4), minmax(108px, 1fr));
+  gap: 10px 16px;
+  align-items: stretch;
+  min-width: max-content;
+}
+.end-ph { min-height: 1px; }
+.act-pack-h {
+  font-size: 11px;
+  font-weight: 700;
+  color: #555;
   text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.act-table thead th { font-weight: 700; color: #555; }
-.act-table th:first-child, .act-table td:first-child {
-  text-align: left;
-  width: 4.8em;
-  padding-left: 6px;
+.end-grid .who {
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
-.act-table tr.honor th, .act-table tr.honor td { background: #fff6d8; }
-.act-table td.is-pass { color: #888; }
-.act-table td.cell {
+.end-grid .who .g {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+}
+.act-pack {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-height: 72px;
+  min-width: 108px;
+  padding: 2px 6px 2px 14px;
   opacity: 0;
   animation: act-in 0.06s linear forwards;
   animation-delay: calc(var(--i, 0) * 0.1s);
+}
+.act-pack.count-1 { padding-left: 6px; padding-right: 6px; }
+.act-fork {
+  width: 8px;
+  align-self: stretch;
+  margin: 10px 2px;
+  border: 1.3px solid #222;
+  border-left: none;
+  border-radius: 0 6px 6px 0;
+  pointer-events: none;
+}
+.act-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.act-node {
+  border: 1.3px solid #222;
+  border-radius: 3px;
+  padding: 3px 7px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #fff;
+  white-space: nowrap;
+  width: fit-content;
+  min-width: 3.6em;
+  text-align: center;
+}
+.act-node.is-pass { color: #888; font-weight: 600; }
+.act-pack:not(.first):not(.count-1)::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 7px;
+  border: 1.3px solid #222;
+  border-right: none;
+  border-radius: 6px 0 0 6px;
+  pointer-events: none;
 }
 @keyframes act-in {
   to { opacity: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .act-table td.cell { opacity: 1; animation: none; }
+  .act-pack { opacity: 1; animation: none; }
 }
 .muted { color: #555; font-size: 13px; }
 

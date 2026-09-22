@@ -382,24 +382,52 @@
     return "";
   }
 
-  function actionTableHtml() {
+  function actionPackRanges(lastRound) {
+    const out = [];
+    for (let from = 1; from <= lastRound; from += 3) {
+      out.push({ from, to: Math.min(from + 2, lastRound) });
+    }
+    return out;
+  }
+
+  function shortActionLabel(label) {
+    return label.length > 3 ? `${label.slice(0, 3)}..` : label;
+  }
+
+  function seasonEndHtml() {
     const rows = msg.seasonLog || [];
-    if (!rows.length || !msg.board) return "";
     const last = msg.view.lastRound || Math.max(0, ...rows.map((r) => r.cells.length));
-    const head = ["", ...Array.from({ length: last }, (_, i) => `R${i + 1}`)]
-      .map((h) => `<th>${h}</th>`).join("");
+    const ranges = actionPackRanges(last);
+    const coins = shownCoins();
+    const head = `<div class="end-ph"></div>${ranges.map((r) => {
+      const label = r.from === r.to ? `R${r.from}` : `R${r.from}-${r.to}`;
+      return `<div class="act-pack-h">${label}</div>`;
+    }).join("")}`;
     const body = rows.map((row) => {
       const p = msg.board.players.find((x) => x.seat === row.seat);
-      const name = p ? `${displayName(p)}${p.isYou ? "*" : ""}` : `席${row.seat}`;
-      const honor = (msg.honorSeats || []).includes(row.seat) ? " honor" : "";
-      const cells = Array.from({ length: last }, (_, i) => {
-        const v = row.cells[i] ?? "";
-        const skipped = v === "パス" ? " is-pass" : "";
-        return `<td class="cell${skipped}" style="--i:${i}">${esc(v)}</td>`;
+      const who = p ? whoCard(p, coins) : `<div class="who"><div class="id">席${row.seat}</div></div>`;
+      const packs = ranges.map((r, pi) => {
+        const cells = row.cells.slice(r.from - 1, r.to);
+        const nodes = cells.map((v, ni) => {
+          const pass = v === "パス" ? " is-pass" : "";
+          return `<div class="act-node n${ni}${pass}">${esc(shortActionLabel(v))}</div>`;
+        });
+        const first = pi === 0 ? " first" : "";
+        if (nodes.length >= 2) {
+          return `<div class="act-pack count-${nodes.length}${first}" style="--i:${pi}">${nodes[0]}<div class="act-fork" aria-hidden="true"></div><div class="act-stack">${nodes.slice(1).join("")}</div></div>`;
+        }
+        return `<div class="act-pack count-${nodes.length}${first}" style="--i:${pi}">${nodes.join("")}</div>`;
       }).join("");
-      return `<tr class="${honor}"><th>${esc(name)}</th>${cells}</tr>`;
+      return `${who}${packs}`;
     }).join("");
-    return `<div class="act-wrap"><table class="act-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+    const next = `<button type="button" class="next" data-act="next" ${msg.over || msg.acked ? "disabled" : ""}>${msg.over ? "おわり" : msg.acked ? "確認済み" : "次へ"}</button>`;
+    return `<div class="end-log">
+      ${honorLine()}
+      <div class="end-scroll">
+        <div class="end-grid" style="--packs:${ranges.length}">${head}${body}</div>
+      </div>
+      ${next}
+    </div>`;
   }
 
   function harvestPane() {
@@ -473,9 +501,12 @@
         ${introPane()}
       </div>`;
     }
+    const ending = msg.hold === "season" || msg.over;
+    if (ending) {
+      return `<div class="layout is-end">${seasonEndHtml()}</div>`;
+    }
     const waiting = !msg.hold && view.actingSeat !== youSeat && view.phase === "turn";
     const actor = board.players.find((p) => p.isActing);
-    const ending = msg.hold === "season" || msg.over;
     const banner = msg.hold === "result" && harvestPhase === "banner"
       ? `<div class="harvest-banner" data-act="next">収穫タイム</div>`
       : msg.hold === "result" && harvestPhase === "empty"
@@ -488,15 +519,10 @@
         : "";
     const right = msg.hold === "result"
       ? harvestPane()
-      : ending
-        ? ""
-        : waiting
-          ? `<div class="waitbox">${esc(actor ? actor.name + " の手番…" : "待ち")}</div>`
-          : `${marketHtml()}`;
-    const endBlock = ending
-      ? `<div class="end-block">${honorLine()}${actionTableHtml()}<button type="button" class="next" data-act="next" ${msg.over || msg.acked ? "disabled" : ""}>${msg.over ? "おわり" : msg.acked ? "確認済み" : "次へ"}</button></div>`
-      : "";
-    return `<div class="layout${ending ? " is-end" : ""}">
+      : waiting
+        ? `<div class="waitbox">${esc(actor ? actor.name + " の手番…" : "待ち")}</div>`
+        : `${marketHtml()}`;
+    return `<div class="layout">
       ${banner}
       <section>${farmsHtml()}</section>
       <section class="hand">
@@ -505,7 +531,6 @@
         <div class="legend">待○　収★　休▼　灰☆▽はこれから　基本/最低</div>
         ${right}
       </section>
-      ${endBlock}
     </div>`;
   }
 
