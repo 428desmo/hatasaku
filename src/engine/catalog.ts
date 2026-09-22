@@ -1,10 +1,14 @@
 import cropsData from "../../data/crops.json" with { type: "json" };
-import type { CropDef, CropId, CropType } from "./types.js";
+import type { CropDef, CropId, CropType, Mode } from "./types.js";
 
 export const cropList: CropDef[] = cropsData.crops as CropDef[];
 export const EVENT_DELTAS_DATA: number[] = cropsData.eventDeltas;
 
 const byId = new Map(cropList.map((c) => [c.id, c]));
+
+export function cropsForMode(mode: Mode): CropDef[] {
+  return cropList.filter((c) => c.pool === "common" || c.pool === mode);
+}
 
 export function cropDef(id: CropId): CropDef {
   const found = byId.get(id);
@@ -34,6 +38,10 @@ const CROP_SHORT: Record<string, string> = {
   pumpkin: "カボチャ",
   tomato: "トマト",
   watermelon: "スイカ",
+  asparagus: "アスパラ",
+  burdock: "ゴボウ",
+  pepper: "ピーマン",
+  melon: "メロン",
 };
 
 export function cropTypeLabel(id: CropId): string {

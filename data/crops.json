@@ -1,16 +1,20 @@
 {
-  "version": "0.6",
+  "version": "0.9",
   "crops": [
-    { "id": "radish", "name": "ラディッシュ", "cost": 1, "wait": 1, "harvest": 1, "baseIncome": 7, "floor": 3, "cooldown": 0, "copies": 10, "type": "immediate" },
-    { "id": "komatsuna", "name": "コマツナ", "cost": 1, "wait": 1, "harvest": 2, "baseIncome": 6, "floor": 3, "cooldown": 2, "copies": 10, "type": "immediate" },
-    { "id": "potato", "name": "ジャガイモ", "cost": 2, "wait": 2, "harvest": 2, "baseIncome": 9, "floor": 4, "cooldown": 4, "copies": 10, "type": "mid" },
-    { "id": "corn", "name": "トウモロコシ", "cost": 2, "wait": 3, "harvest": 2, "baseIncome": 10, "floor": 4, "cooldown": 2, "copies": 10, "type": "mid" },
-    { "id": "onion", "name": "ネギ", "cost": 2, "wait": 2, "harvest": 4, "baseIncome": 8, "floor": 3, "cooldown": 0, "copies": 10, "type": "long" },
-    { "id": "edamame", "name": "エダマメ", "cost": 2, "wait": 2, "harvest": 1, "baseIncome": 12, "floor": 5, "cooldown": 4, "copies": 10, "type": "lump" },
-    { "id": "sweetpotato", "name": "サツマイモ", "cost": 3, "wait": 4, "harvest": 1, "baseIncome": 19, "floor": 8, "cooldown": 0, "copies": 10, "type": "lump" },
-    { "id": "pumpkin", "name": "カボチャ", "cost": 3, "wait": 4, "harvest": 3, "baseIncome": 11, "floor": 4, "cooldown": 4, "copies": 10, "type": "long" },
-    { "id": "tomato", "name": "トマト", "cost": 3, "wait": 3, "harvest": 4, "baseIncome": 9, "floor": 4, "cooldown": 4, "copies": 10, "type": "long" },
-    { "id": "watermelon", "name": "スイカ", "cost": 4, "wait": 4, "harvest": 2, "baseIncome": 13, "floor": 5, "cooldown": 4, "copies": 10, "type": "lump" }
+    { "id": "radish", "name": "ラディッシュ", "cost": 1, "wait": 1, "harvest": 1, "baseIncome": 7, "floor": 3, "cooldown": 0, "copies": 10, "type": "immediate", "pool": "common" },
+    { "id": "komatsuna", "name": "コマツナ", "cost": 1, "wait": 1, "harvest": 2, "baseIncome": 6, "floor": 3, "cooldown": 2, "copies": 10, "type": "immediate", "pool": "common" },
+    { "id": "potato", "name": "ジャガイモ", "cost": 2, "wait": 2, "harvest": 2, "baseIncome": 9, "floor": 4, "cooldown": 4, "copies": 10, "type": "mid", "pool": "common" },
+    { "id": "corn", "name": "トウモロコシ", "cost": 2, "wait": 3, "harvest": 2, "baseIncome": 10, "floor": 4, "cooldown": 2, "copies": 10, "type": "mid", "pool": "common" },
+    { "id": "edamame", "name": "エダマメ", "cost": 2, "wait": 2, "harvest": 1, "baseIncome": 12, "floor": 5, "cooldown": 4, "copies": 10, "type": "lump", "pool": "common" },
+    { "id": "sweetpotato", "name": "サツマイモ", "cost": 3, "wait": 4, "harvest": 1, "baseIncome": 19, "floor": 8, "cooldown": 0, "copies": 10, "type": "lump", "pool": "common" },
+    { "id": "onion", "name": "ネギ", "cost": 2, "wait": 2, "harvest": 4, "baseIncome": 8, "floor": 3, "cooldown": 0, "copies": 10, "type": "long", "pool": "basic" },
+    { "id": "pumpkin", "name": "カボチャ", "cost": 3, "wait": 4, "harvest": 3, "baseIncome": 11, "floor": 4, "cooldown": 4, "copies": 10, "type": "long", "pool": "basic" },
+    { "id": "tomato", "name": "トマト", "cost": 3, "wait": 3, "harvest": 4, "baseIncome": 9, "floor": 4, "cooldown": 4, "copies": 10, "type": "long", "pool": "basic" },
+    { "id": "watermelon", "name": "スイカ", "cost": 4, "wait": 4, "harvest": 2, "baseIncome": 13, "floor": 5, "cooldown": 4, "copies": 10, "type": "lump", "pool": "basic" },
+    { "id": "asparagus", "name": "アスパラガス", "cost": 2, "wait": 2, "harvest": 4, "baseIncome": 5, "floor": 3, "cooldown": 0, "copies": 10, "type": "long", "pool": "advanced" },
+    { "id": "burdock", "name": "ゴボウ", "cost": 3, "wait": 4, "harvest": 3, "baseIncome": 9, "floor": 4, "cooldown": 4, "copies": 10, "type": "long", "pool": "advanced" },
+    { "id": "pepper", "name": "ピーマン", "cost": 3, "wait": 3, "harvest": 4, "baseIncome": 6, "floor": 4, "cooldown": 4, "copies": 10, "type": "long", "pool": "advanced" },
+    { "id": "melon", "name": "メロン", "cost": 4, "wait": 4, "harvest": 2, "baseIncome": 12, "floor": 5, "cooldown": 4, "copies": 10, "type": "lump", "pool": "advanced" }
   ],
   "eventDeltas": [4, 2, -2, -4]
 }

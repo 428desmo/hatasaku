@@ -2,6 +2,7 @@ export type Mode = "basic" | "advanced";
 export type Phase = "lobby" | "eventUpdate" | "turn" | "income" | "gameOver";
 export type SeatKind = "human" | "cpu";
 export type CropType = "immediate" | "lump" | "long" | "mid";
+export type CropPool = "common" | "basic" | "advanced";
 export type PlotKind = "unowned" | "waiting" | "harvesting" | "empty";
 export type CropId = string;
 
@@ -16,6 +17,7 @@ export type CropDef = {
   cooldown: number;
   copies: number;
   type: CropType;
+  pool: CropPool;
 };
 
 export type CropCard = { instanceId: string; cropId: CropId };
@@ -93,7 +95,7 @@ export type HarvestDetail = {
 };
 
 export type GameState = {
-  specVersion: "0.8";
+  specVersion: "0.9";
   mode: Mode;
   seed: string;
   season: number;
