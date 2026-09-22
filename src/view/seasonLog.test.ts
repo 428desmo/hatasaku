@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { cropShortName } from "../engine/catalog.js";
 import { Table } from "../session/table.js";
 import { plant, replaceMarket, startForced } from "../engine/testkit.js";
-import { actionPackRanges, packRangeLabel, seasonActionRows, shortActionLabel } from "./seasonLog.js";
+import { actionPackRanges, mixShares, packRangeLabel, seasonActionRows, shortActionLabel } from "./seasonLog.js";
 
 describe("season action log", () => {
   it("keeps plants and passes without plot indexes", () => {
@@ -43,5 +43,14 @@ describe("season action log", () => {
     expect(shortActionLabel("トウモロ")).toBe("トウモ..");
     expect(shortActionLabel("トマト")).toBe("トマト");
     expect(shortActionLabel("パス")).toBe("パス");
+  });
+
+  it("orders mix shares by season crops then pass", () => {
+    const shares = mixShares(["ジャガ", "パス", "ジャガ", "トマト", "パス"], ["トマト", "ジャガ", "エダマメ"]);
+    expect(shares).toEqual([
+      { label: "トマト", count: 1, pass: false },
+      { label: "ジャガ", count: 2, pass: false },
+      { label: "パス", count: 2, pass: true },
+    ]);
   });
 });

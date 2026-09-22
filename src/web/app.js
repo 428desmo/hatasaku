@@ -163,7 +163,7 @@
       ackHarvestNext();
       return;
     }
-    if (msg.hold === "season" || msg.hold === "intro") return;
+    if (msg.hold === "season" || msg.hold === "intro" || msg.hold === "mix" || msg.hold === "honor") return;
     cropPeek = null;
     if (selectedMarket != null && msg.board.players.find((p) => p.seat === seat)?.isYou) {
       const action = plotAction(selectedMarket, plotIndex);
@@ -417,13 +417,87 @@
       }).join("");
       return `${who}${packs}`;
     }).join("");
-    const next = `<button type="button" class="next" data-act="next" ${msg.over || msg.acked ? "disabled" : ""}>${msg.over ? "おわり" : msg.acked ? "確認済み" : "次へ"}</button>`;
+    const next = `<button type="button" class="next" data-act="next" ${msg.acked ? "disabled" : ""}>${msg.acked ? "確認済み" : "次へ"}</button>`;
     return `<div class="end-log">
       ${honorLine()}
       <div class="end-scroll">
         <div class="end-grid" style="--packs:${ranges.length}">${head}${body}</div>
       </div>
       ${next}
+    </div>`;
+  }
+
+  const MIX_COLORS = ["#c45c26", "#2e6b3a", "#1e4f86", "#6b3d8a"];
+
+  function cropOrder() {
+    return (msg.board.cropsInGame || []).map((c) => c.shortName || c.name);
+  }
+
+  function mixColor(label, order) {
+    if (label === "パス") return "#c8c8c8";
+    const i = order.indexOf(label);
+    return MIX_COLORS[i >= 0 ? i % MIX_COLORS.length : 0];
+  }
+
+  function mixShares(cells, order) {
+    const counts = new Map();
+    for (const c of cells) counts.set(c, (counts.get(c) || 0) + 1);
+    const out = [];
+    for (const label of order) {
+      const n = counts.get(label);
+      if (n) out.push({ label, count: n, pass: false });
+    }
+    for (const [label, n] of counts) {
+      if (label === "パス" || order.includes(label)) continue;
+      out.push({ label, count: n, pass: false });
+    }
+    if (counts.get("パス")) out.push({ label: "パス", count: counts.get("パス"), pass: true });
+    return out;
+  }
+
+  function mixHtml() {
+    const rows = msg.seasonLog || [];
+    const order = cropOrder();
+    const coins = shownCoins();
+    const total = Math.max(1, msg.view.lastRound || 0);
+    const body = rows.map((row, ri) => {
+      const p = msg.board.players.find((x) => x.seat === row.seat);
+      const who = p ? whoCard(p, coins) : `<div class="who"><div class="id">席${row.seat}</div></div>`;
+      const shares = mixShares(row.cells, order);
+      const segs = shares.map((s) => {
+        const pct = (s.count / total) * 100;
+        const text = pct >= 8 ? `${esc(shortActionLabel(s.label))} ${s.count}` : "";
+        return `<div class="mix-seg${s.pass ? " pass" : ""}" style="width:${pct}%;background:${mixColor(s.label, order)}" title="${esc(s.label)} ${s.count}">${text}</div>`;
+      }).join("");
+      return `<div class="mix-row" style="--i:${ri}">${who}<div class="mix-bar">${segs}</div></div>`;
+    }).join("");
+    const legendItems = [...order.map((label, i) => ({ label, color: MIX_COLORS[i % MIX_COLORS.length] })), { label: "パス", color: "#c8c8c8" }];
+    const legend = legendItems.map((item) =>
+      `<span class="mix-key"><i class="mix-swatch" style="background:${item.color}"></i>${esc(shortActionLabel(item.label))}</span>`
+    ).join("");
+    const next = `<button type="button" class="next" data-act="next" ${msg.acked ? "disabled" : ""}>${msg.acked ? "確認済み" : "次へ"}</button>`;
+    return `<div class="end-log">
+      ${honorLine()}
+      <p class="mix-head">今シーズンの手</p>
+      <div class="mix-list">${body}</div>
+      <div class="mix-legend">${legend}</div>
+      ${next}
+    </div>`;
+  }
+
+  function honorHtml() {
+    const board = msg.board;
+    const sheet = msg.scoreSheet || [];
+    const totals = new Map();
+    for (const p of board.players) {
+      totals.set(p.seat, sheet.reduce((n, row) => n + (row[p.seat] ?? 0), 0));
+    }
+    const ranked = board.players.slice().sort((a, b) => (totals.get(b.seat) ?? 0) - (totals.get(a.seat) ?? 0));
+    const cards = ranked.map((p) => whoCard(p, totals)).join("");
+    return `<div class="end-log honor-pane">
+      ${honorLine()}
+      <div class="honor-seats">${cards}</div>
+      <button type="button" class="next" data-act="next" disabled>おわり</button>
     </div>`;
   }
 
@@ -498,9 +572,14 @@
         ${introPane()}
       </div>`;
     }
-    const ending = msg.hold === "season" || msg.over;
-    if (ending) {
+    if (msg.hold === "season") {
       return `<div class="layout is-end">${seasonEndHtml()}</div>`;
+    }
+    if (msg.hold === "mix") {
+      return `<div class="layout is-end">${mixHtml()}</div>`;
+    }
+    if (msg.hold === "honor" || msg.over) {
+      return `<div class="layout is-end">${honorHtml()}</div>`;
     }
     const waiting = !msg.hold && view.actingSeat !== youSeat && view.phase === "turn";
     const actor = board.players.find((p) => p.isActing);

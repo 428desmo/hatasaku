@@ -37,3 +37,26 @@ export function shortActionLabel(label: string): string {
 export function packRangeLabel(range: ActionPackRange): string {
   return range.from === range.to ? `R${range.from}` : `R${range.from}-${range.to}`;
 }
+
+export type MixShare = {
+  label: string;
+  count: number;
+  pass: boolean;
+};
+
+export function mixShares(cells: string[], cropOrder: string[]): MixShare[] {
+  const counts = new Map<string, number>();
+  for (const c of cells) counts.set(c, (counts.get(c) ?? 0) + 1);
+  const out: MixShare[] = [];
+  for (const label of cropOrder) {
+    const n = counts.get(label);
+    if (n) out.push({ label, count: n, pass: false });
+  }
+  for (const [label, n] of counts) {
+    if (label === "パス" || cropOrder.includes(label)) continue;
+    out.push({ label, count: n, pass: false });
+  }
+  const pass = counts.get("パス");
+  if (pass) out.push({ label: "パス", count: pass, pass: true });
+  return out;
+}

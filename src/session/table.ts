@@ -43,7 +43,7 @@ export type TableConfig = {
   seasonCount?: number;
 };
 
-export type UiHold = "intro" | "result" | "season" | null;
+export type UiHold = "intro" | "result" | "season" | "mix" | "honor" | null;
 
 type HumanSlot = { seat: number; connected: boolean };
 
@@ -81,7 +81,11 @@ export class Table {
   }
 
   get matchOver(): boolean {
-    return this.state?.phase === "gameOver" && this.seasonIndex >= this.seasonCount && this.hold === null;
+    return (
+      this.state?.phase === "gameOver" &&
+      this.seasonIndex >= this.seasonCount &&
+      (this.hold === "honor" || this.hold === null)
+    );
   }
 
   assignHuman(): number | null {
@@ -211,16 +215,19 @@ export class Table {
     }
     const view = getPublicView(this.state, this.hold ? "spectator" : seat);
     if (this.hold === "result") view.message = "内容を確認して［次へ］を押してください。";
-    if (this.hold === "season") view.message = "シーズンが終わりました。確認して［次へ］で次のシーズンに進みます。";
+    if (this.hold === "season") view.message = "シーズンが終わりました。行動を見て［次へ］。";
+    if (this.hold === "mix") view.message = "今シーズンの手の内訳を見て［次へ］。";
+    if (this.hold === "honor") view.message = "総合優勝です。";
     if (this.hold === "intro") view.message = "今シーズンの作物を見て［開始］。";
     const you = seat === "spectator" ? null : seat;
     const board = toPresentation(view, you);
     const names = this.state.players.map((p) => p.name);
     const seasonDone = this.state.phase === "gameOver";
     const matchDone = this.matchOver;
-    const showSeasonSummary = this.hold === "season" || matchDone;
+    const recap = this.hold === "season" || this.hold === "mix" || this.hold === "honor";
+    const showSeasonSummary = recap || matchDone;
     const sheet = showSeasonSummary ? this.scoreSheet : [];
-    const winners = matchDone ? this.matchWinnerSeats : this.state.winnerSeats;
+    const winners = matchDone || this.hold === "honor" ? this.matchWinnerSeats : this.state.winnerSeats;
     const scoreText = sheet.length > 0 ? `\n\n${renderScoreSheetText(names, sheet, winners, matchDone)}` : "";
     const scoreHtml = sheet.length > 0 ? renderScoreSheetHtml(names, sheet, winners, matchDone) : "";
     const summaryHtml =
@@ -236,10 +243,10 @@ export class Table {
           ? `${renderGameSummaryText(this.state)}${scoreText}`
           : "";
     const finalBoard = seasonDone && !this.hold;
-    const textBody = finalBoard || this.hold === "season" ? `最終盤面\n${renderText(board)}` : renderText(board);
+    const textBody = finalBoard || recap ? `最終盤面\n${renderText(board)}` : renderText(board);
     return {
       text: summaryText ? `${summaryText}\n\n${textBody}` : textBody,
-      html: renderHtml(board, summaryHtml, { finalBoard: finalBoard || this.hold === "season" }),
+      html: renderHtml(board, summaryHtml, { finalBoard: finalBoard || recap }),
       view,
       board,
       harvest: this.state.lastHarvest.map((d) => {
@@ -263,13 +270,14 @@ export class Table {
   private standings(): { crownSeats: number[]; honorSeats: number[]; honorKind: HonorKind } {
     if (!this.state) return { crownSeats: [], honorSeats: [], honorKind: null };
     const n = this.state.players.length;
-    if (this.matchOver) {
+    if (this.hold === "honor" || this.matchOver) {
       return { crownSeats: [], honorSeats: [...this.matchWinnerSeats], honorKind: "match" };
     }
+    const recap = this.hold === "season" || this.hold === "mix";
     return {
       crownSeats: previousSeasonLeaders(this.scoreSheet, this.state.season, n),
-      honorSeats: this.hold === "season" ? [...this.state.winnerSeats] : [],
-      honorKind: this.hold === "season" ? "season" : null,
+      honorSeats: recap ? [...this.state.winnerSeats] : [],
+      honorKind: recap ? "season" : null,
     };
   }
 
@@ -327,10 +335,19 @@ export class Table {
       return;
     }
     if (this.hold === "season") {
-      this.beginNextSeason();
-      this.pauseForIntro();
+      this.hold = "mix";
       return;
     }
+    if (this.hold === "mix") {
+      if (this.seasonIndex < this.seasonCount) {
+        this.beginNextSeason();
+        this.pauseForIntro();
+        return;
+      }
+      this.hold = "honor";
+      return;
+    }
+    if (this.hold === "honor") return;
     this.state = concludeRound(this.state);
     if (this.state.phase !== "gameOver") {
       this.state = applyEventUpdate(this.state, this.rng);
@@ -340,8 +357,7 @@ export class Table {
       return;
     }
     this.recordSeason();
-    this.hold = this.seasonIndex < this.seasonCount ? "season" : null;
-    if (!this.hold) this.flushCpus();
+    this.hold = "season";
   }
 
   private flushCpus(): void {

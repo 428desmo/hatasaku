@@ -105,6 +105,36 @@ describe("table seats", () => {
     expect(view.text).toMatch(/マッチ勝者|マッチ共同勝者/);
   });
 
+  it("shows mix then honor after the last human season", () => {
+    const table = new Table({
+      mode: "basic",
+      humanCount: 1,
+      cpuCount: 2,
+      cpuStrategyId: "irr",
+      seed: "end-mix",
+      seasonCount: 1,
+    });
+    expect(table.assignHuman()).toBe(0);
+    for (let i = 0; i < 4000; i++) {
+      if (table.hold === "intro" || table.hold === "result") {
+        table.nextFromSeat(0);
+        continue;
+      }
+      if (table.hold === "season") {
+        table.nextFromSeat(0);
+        expect(table.hold).toBe("mix");
+        expect(table.matchOver).toBe(false);
+        table.nextFromSeat(0);
+        expect(table.hold).toBe("honor");
+        expect(table.matchOver).toBe(true);
+        expect(table.viewFor(0).honorKind).toBe("match");
+        return;
+      }
+      if (table.state?.actingSeat === 0) table.applyFromSeat(0, { type: "pass" });
+    }
+    throw new Error("did not reach mix");
+  });
+
   it("keeps turn order within a season and shifts start by one next season", () => {
     const table = new Table({
       mode: "basic",
@@ -140,6 +170,11 @@ describe("table seats", () => {
         expect(seasonView.crownSeats).toEqual([]);
         expect(seasonView.seasonLog).toHaveLength(3);
         for (const row of seasonView.seasonLog) expect(row.cells).toHaveLength(10);
+        table.nextFromSeat(0);
+        expect(table.hold).toBe("mix");
+        const mixView = table.viewFor(0);
+        expect(mixView.honorKind).toBe("season");
+        expect(mixView.seasonLog).toHaveLength(3);
         table.nextFromSeat(0);
         expect(table.state!.startSeat).toBe((start1 + 1) % n);
         expect(table.state!.turnOrder).toEqual([(start1 + 1) % n, (start1 + 2) % n, start1]);
