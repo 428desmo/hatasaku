@@ -135,18 +135,7 @@ body {
 .who.honor.you { background: #fff0c2; }
 .who .id { font-weight: 700; font-size: 12px; line-height: 1.2; }
 .who .g { font-size: 12px; color: #555; }
-.crown { font-size: 12px; margin-left: 2px; }
-.curse-mark {
-  display: inline-block;
-  margin-left: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #6b3d8a;
-  border: 1px solid #6b3d8a;
-  border-radius: 3px;
-  padding: 0 3px;
-  line-height: 1.4;
-}
+.crown, .turn-mark, .curse-mark { font-size: 13px; margin-left: 2px; }
 
 .mini {
   display: flex;
@@ -334,21 +323,31 @@ body {
 .harvest-banner {
   position: absolute;
   inset: 0;
-  z-index: 30;
+  z-index: 80;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 28px;
   font-size: clamp(28px, 8vw, 52px);
   font-weight: 800;
   letter-spacing: 0.04em;
-  background: rgba(255, 255, 255, 0.62);
+  background: rgba(255, 255, 255, 0.72);
   cursor: pointer;
+}
+.harvest-banner-done { background: rgba(255, 255, 255, 0.5); }
+.harvest-banner .harvest-next {
+  width: auto;
+  min-width: 200px;
+  font-size: 16px;
+  padding: 10px 28px;
+  z-index: 81;
 }
 
 .harvest-dialog {
   position: absolute;
   inset: 0;
-  z-index: 30;
+  z-index: 80;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -600,4 +599,5 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-top: 12px;
 }
