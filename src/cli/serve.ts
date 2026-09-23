@@ -4,7 +4,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WebSocketServer, type WebSocket } from "ws";
-import { Table } from "../session/table.js";
+import { Table, CPU_STEP_MS } from "../session/table.js";
 import { IllegalActionError, parseMode, type Action } from "../engine/types.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -36,6 +36,7 @@ const table = new Table({
   cpuCount: cpus,
   cpuStrategyId: arg("cpu", "irr"),
   seed,
+  paceCpu: humans > 0,
   ...(seasonsRaw ? { seasonCount: Number(seasonsRaw) } : {}),
 });
 
@@ -61,6 +62,7 @@ function sendView(ws: WebSocket, seat: number): void {
       seasonLog: packed.seasonLog,
       crops: packed.crops,
       trail: packed.trail,
+      cpuShow: packed.cpuShow,
       actions: packed.hold ? [] : packed.actions.map((a) => ({ ...a.action, label: a.label })),
       hold: packed.hold,
       acked: packed.acked,
@@ -75,6 +77,34 @@ function sendView(ws: WebSocket, seat: number): void {
 function broadcast(): void {
   for (const [ws, seat] of seats) {
     if (ws.readyState === ws.OPEN) sendView(ws, seat);
+  }
+}
+
+let cpuTimer: ReturnType<typeof setTimeout> | null = null;
+
+function clearCpuTimer(): void {
+  if (cpuTimer !== null) {
+    clearTimeout(cpuTimer);
+    cpuTimer = null;
+  }
+}
+
+function scheduleCpu(): void {
+  clearCpuTimer();
+  cpuTimer = setTimeout(() => {
+    cpuTimer = null;
+    const again = table.cpuTick();
+    broadcast();
+    if (again) scheduleCpu();
+  }, CPU_STEP_MS);
+}
+
+function kickCpu(): void {
+  if (!table.config.paceCpu) return;
+  const again = table.cpuTick();
+  if (again) {
+    broadcast();
+    scheduleCpu();
   }
 }
 
@@ -142,11 +172,13 @@ wss.on("connection", (ws) => {
       if (msg.type === "next") {
         table.nextFromSeat(s);
         broadcast();
+        kickCpu();
         return;
       }
       if (msg.type !== "action" || !msg.action) return;
       table.applyFromSeat(s, msg.action);
       broadcast();
+      kickCpu();
     } catch (err) {
       const message = err instanceof IllegalActionError ? err.message : "error";
       ws.send(JSON.stringify({ type: "error", message }));

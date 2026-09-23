@@ -249,4 +249,43 @@ describe("table seats", () => {
     }
     throw new Error("did not reach season 2");
   });
+
+  it("paces a cpu plant through turn, market, plot, then coins", () => {
+    const table = new Table({
+      mode: "basic",
+      humanCount: 1,
+      cpuCount: 2,
+      cpuStrategyId: "irr",
+      seed: "cpu-pace-plant",
+      seasonCount: 1,
+      paceCpu: true,
+    });
+    expect(table.assignHuman()).toBe(0);
+    table.nextFromSeat(0);
+    let saw = false;
+    for (let i = 0; i < 120; i++) {
+      if (table.hold === "result") break;
+      const actor = table.state?.actingSeat;
+      if (actor === 0 && !table.cpuShow) {
+        table.applyFromSeat(0, { type: "pass" });
+        continue;
+      }
+      const again = table.cpuTick();
+      if (table.cpuShow?.stage === "market") {
+        expect(table.cpuShow.marketIndex).toEqual(expect.any(Number));
+        expect(table.cpuTick()).toBe(true);
+        expect(table.cpuShow?.stage).toBe("plot");
+        expect(table.cpuShow?.plotIndex).toEqual(expect.any(Number));
+        const seat = table.cpuShow!.seat;
+        const before = table.state!.players[seat]!.coins;
+        expect(table.cpuTick()).toBe(true);
+        expect(table.cpuShow?.stage).toBe("coins");
+        expect(table.state!.players[seat]!.coins).toBeLessThan(before);
+        saw = true;
+        break;
+      }
+      if (!again && table.state?.actingSeat === 0) table.applyFromSeat(0, { type: "pass" });
+    }
+    expect(saw).toBe(true);
+  });
 });
