@@ -460,6 +460,32 @@ body {
   line-height: 1.45;
   color: #444;
 }
+.intro-curse-more {
+  font: inherit;
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid #5a2f78;
+  background: #fff;
+  color: #5a2f78;
+  cursor: pointer;
+}
+.tip-banner {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.tip-banner.proxy {
+  background: #fff3e0;
+  border-bottom: 1px solid #e0a060;
+  color: #5c3a10;
+}
+.tip-banner.final {
+  background: #eef5ee;
+  border-bottom: 1px solid #8aaa8a;
+  color: #1e3d1e;
+}
 .intro-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -733,9 +759,13 @@ body {
   font-weight: 800;
   letter-spacing: 0.02em;
 }
-.lobby-lead, .lobby-window, .lobby-note, .lobby-code {
+.lobby-lead, .lobby-window, .lobby-note, .lobby-code, .lobby-cpu-note {
   margin: 0 0 12px;
   color: #333;
+}
+.lobby-cpu-note {
+  margin-top: -4px;
+  font-size: 13px;
 }
 .lobby-code strong {
   font-size: 1.4em;

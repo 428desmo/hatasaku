@@ -134,13 +134,15 @@ describe("table seats", () => {
         expect(trail.trail?.seasons).toBe(1);
         expect(trail.trail?.series).toHaveLength(3);
         expect(trail.honorKind).toBeNull();
-        expect(trail.honorAnnounce?.kind).toBe("match");
-        expect(trail.honorAnnounce?.award).toContain("総合優勝");
+        expect(trail.honorAnnounce?.kind).toBe("match-trail");
+        expect(trail.honorAnnounce?.award).toBeNull();
+        expect(trail.honorAnnounce?.lead).toContain("推移");
         table.nextFromSeat(0);
         expect(table.hold).toBe("honor");
         expect(table.matchOver).toBe(true);
         expect(table.viewFor(0).honorKind).toBe("match");
         expect(table.viewFor(0).honorAnnounce?.kind).toBe("match");
+        expect(table.viewFor(0).honorAnnounce?.award).toMatch(/総合優勝.*G/);
         return;
       }
       if (table.state?.actingSeat === 0) table.applyFromSeat(0, { type: "pass" });
@@ -224,7 +226,7 @@ describe("table seats", () => {
         expect(seasonView.honorKind).toBe("season");
         expect(seasonView.honorSeats).toEqual(table.state.winnerSeats);
         expect(seasonView.honorAnnounce?.lead).toContain("今シーズンが終了");
-        expect(seasonView.honorAnnounce?.award).toContain("1位");
+        expect(seasonView.honorAnnounce?.award).toMatch(/1位です（\d+G）/);
         expect(seasonView.crownSeats).toEqual([]);
         expect(seasonView.seasonLog).toHaveLength(3);
         for (const row of seasonView.seasonLog) expect(row.cells).toHaveLength(10);

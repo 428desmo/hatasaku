@@ -241,6 +241,11 @@
       localStorage.setItem(LEARN_KEY, learn ? "1" : "0");
       render();
     }
+    if (act === "curse-what") {
+      curseWhatOpen = true;
+      render();
+      return;
+    }
     if (act === "pass") onPass();
     if (act === "next") send({ type: "next" });
     if (act === "curse") {
@@ -281,6 +286,18 @@
     return `　制限 ${left}s`;
   }
 
+  function tipBanners() {
+    const bits = [];
+    if (msg.proxyNote) {
+      bits.push(`<p class="tip-banner proxy">${esc(msg.proxyNote)}</p>`);
+    }
+    const season = msg.view?.season ?? 1;
+    if (msg.finalRoundTip && (learn || season === 1)) {
+      bits.push(`<p class="tip-banner final">${esc(msg.finalRoundTip)}</p>`);
+    }
+    return bits.join("");
+  }
+
   function chrome(board, view) {
     const title = board
       ? `S${view.season}/${view.seasonCount}  R${view.round}/${view.lastRound}`
@@ -299,7 +316,8 @@
         <button type="button" data-act="tab-record" ${tab === "record" ? 'aria-current="true"' : ""}>記録</button>
       </nav>
     </header>
-    <div class="err">${esc(errText)}</div>`;
+    <div class="err">${esc(errText)}</div>
+    ${tipBanners()}`;
   }
 
   function eventHtml() {
@@ -495,7 +513,7 @@
     if (a) {
       return `<div class="honor-announce">
         <p class="honor-announce-lead">${esc(a.lead)}</p>
-        <p class="honor-announce-award">${esc(a.award)}</p>
+        ${a.award ? `<p class="honor-announce-award">${esc(a.award)}</p>` : ""}
       </div>`;
     }
     const seats = msg.honorSeats || [];
@@ -619,8 +637,6 @@
     if (!layout || !layout.series) {
       return `<div class="end-log trail-pane">
         ${honorAnnounceHtml()}
-        <p class="trail-kicker">${n}シーズン完了</p>
-        <p class="trail-head">ゲーム終了</p>
         ${next}
       </div>`;
     }
@@ -648,8 +664,6 @@
     }).join("");
     return `<div class="end-log trail-pane">
       ${honorAnnounceHtml()}
-      <p class="trail-kicker">${n}シーズン完了</p>
-      <p class="trail-head">ゲーム終了</p>
       <svg class="trail-svg" viewBox="0 0 ${layout.width} ${layout.height}" role="img" aria-label="各シーズン終了時点の総合点">${lines}${xLabels}</svg>
       <div class="mix-legend">${legend}</div>
       ${next}
@@ -737,6 +751,9 @@
     }).join("")}</div>`;
   }
 
+  const CURSE_KNOWN_KEY = "hatasaku-curse-known";
+  let curseWhatOpen = false;
+
   function introPane() {
     const announce = msg.seasonIntro;
     const crops = msg.board.cropsInGame || [];
@@ -747,13 +764,22 @@
     const cropLead = announce?.cropLead
       ? `<p class="intro-announce">${esc(announce.cropLead)}</p>`
       : `<p class="intro-head">今シーズンの作物</p>`;
-    const curseBlock = announce?.curse
-      ? `<div class="intro-curse-block">
+    let curseBlock = "";
+    if (announce?.curse) {
+      const known = localStorage.getItem(CURSE_KNOWN_KEY) === "1";
+      const preferFull = announce.curse.detail === "full" && !known;
+      if (announce.curse.detail === "full") localStorage.setItem(CURSE_KNOWN_KEY, "1");
+      const showWhat = preferFull || curseWhatOpen || learn;
+      curseBlock = `<div class="intro-curse-block">
           <p class="intro-curse-lead">${esc(announce.curse.recipientsLead)}</p>
           <p class="intro-curse-go">${esc(announce.curse.encouragement)}</p>
-          <p class="intro-curse-what">${esc(announce.curse.whatIs)}</p>
-        </div>`
-      : "";
+          ${
+            showWhat
+              ? `<p class="intro-curse-what">${esc(announce.curse.whatIs)}</p>`
+              : `<button type="button" class="intro-curse-more" data-act="curse-what">呪いとは？</button>`
+          }
+        </div>`;
+    }
     return `<div class="intro">
       ${cropLead}
       <div class="intro-cards">${cards}</div>
@@ -868,6 +894,7 @@
   function applyView(data) {
     errText = "";
     if (data.seat != null) youSeat = data.seat;
+    if (data.hold === "intro") curseWhatOpen = false;
     msg = data;
     if (data.view?.actingSeat === youSeat) {
       if (selectedMarket != null && !data.board?.market?.[selectedMarket]) selectedMarket = null;

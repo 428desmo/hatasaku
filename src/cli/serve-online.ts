@@ -78,6 +78,8 @@ function packView(room: Room, seat: number) {
     cpuShow: packed.cpuShow,
     seasonIntro: packed.seasonIntro,
     honorAnnounce: packed.honorAnnounce,
+    finalRoundTip: packed.finalRoundTip,
+    proxyNote: packed.proxyNote,
     actions: packed.hold ? [] : packed.actions.map((a) => ({ ...a.action, label: a.label })),
     hold: packed.hold,
     acked: packed.acked,
@@ -120,6 +122,7 @@ function proxyHumanTurn(room: Room): void {
   const seat = table.state.actingSeat;
   const actor = table.state.players[seat];
   if (!actor || actor.kind !== "human") return;
+  table.markTurnProxy(seat);
   const view = getPublicView(table.state, seat);
   const action = chooseById(table.config.cpuStrategyId, view, table.getCpuRng());
   try {
@@ -131,6 +134,8 @@ function proxyHumanTurn(room: Room): void {
       /* ignore */
     }
   }
+  // Re-apply note: applyFromSeat clears it for the acting seat.
+  table.markTurnProxy(seat);
   broadcastRoom(room);
   kickCpu(room);
 }
@@ -138,10 +143,13 @@ function proxyHumanTurn(room: Room): void {
 function proxyHold(room: Room): void {
   const table = room.table;
   if (!table?.hold) return;
+  const pending: number[] = [];
   for (const m of room.members) {
     if (m.seat === null) continue;
-    if (!table.acks.has(m.seat)) table.nextFromSeat(m.seat);
+    if (!table.acks.has(m.seat)) pending.push(m.seat);
   }
+  for (const seat of pending) table.nextFromSeat(seat);
+  table.markHoldProxy(pending);
   broadcastRoom(room);
   kickCpu(room);
 }

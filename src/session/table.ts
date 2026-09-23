@@ -40,6 +40,9 @@ import {
 import {
   buildHonorAnnounce,
   formatHonorAnnounceText,
+  FINAL_ROUND_TIP,
+  PROXY_HOLD_NOTE,
+  PROXY_TURN_NOTE,
   type HonorAnnounce,
 } from "../view/honorAnnounce.js";
 import { renderRoundResultHtml, renderRoundResultText } from "../view/summary.js";
@@ -90,10 +93,27 @@ export class Table {
   private pendingCpu: Action | null = null;
   private cpuStage: CpuShow["stage"] | null = null;
   private cpuActorSeat: number | null = null;
+  /** After the first curse-rights intro of a match, later seasons use short copy. */
+  private curseDetailShown = false;
+  private proxyNotes = new Map<number, string>();
 
   /** Used by the online host to proxy timed-out human turns. */
   getCpuRng(): Rng {
     return this.cpuRng;
+  }
+
+  /** Note that this seat's turn was CPU-proxied due to the turn timer. */
+  markTurnProxy(seat: number): void {
+    this.proxyNotes.set(seat, PROXY_TURN_NOTE);
+  }
+
+  /** Note that hold acknowledgements were advanced due to the turn timer. */
+  markHoldProxy(seats: number[]): void {
+    for (const seat of seats) this.proxyNotes.set(seat, PROXY_HOLD_NOTE);
+  }
+
+  private clearProxyNote(seat: number): void {
+    this.proxyNotes.delete(seat);
   }
 
   constructor(config: TableConfig) {
@@ -166,6 +186,8 @@ export class Table {
     this.startSeat = this.rng.nextInt(n);
     this.scoreSheet = [];
     this.matchWinnerSeats = [];
+    this.curseDetailShown = false;
+    this.proxyNotes.clear();
     this.clearCpuShow();
     this.state = this.createSeasonState();
     this.pauseForIntro();
@@ -173,6 +195,7 @@ export class Table {
 
   applyFromSeat(seat: number, action: Action): void {
     if (!this.state) throw new Error("not started");
+    this.clearProxyNote(seat);
     if (this.hold) throw new IllegalActionError("summary waiting");
     if (this.state.phase === "gameOver") throw new IllegalActionError("game over");
     if (this.state.actingSeat !== seat) throw new IllegalActionError("not your turn");
@@ -186,6 +209,7 @@ export class Table {
 
   nextFromSeat(seat: number): void {
     if (!this.state || !this.hold) return;
+    this.clearProxyNote(seat);
     if (!this.humanSeats.some((h) => h.seat === seat && h.connected)) return;
     this.acks.add(seat);
     const need = Math.max(1, this.connectedHumans);
@@ -212,6 +236,8 @@ export class Table {
     cpuShow: CpuShow | null;
     seasonIntro: SeasonIntroAnnounce | null;
     honorAnnounce: HonorAnnounce | null;
+    finalRoundTip: string | null;
+    proxyNote: string | null;
     hold: UiHold;
     acked: boolean;
     ackNeed: number;
@@ -244,6 +270,8 @@ export class Table {
         cpuShow: null,
         seasonIntro: null,
         honorAnnounce: null,
+        finalRoundTip: null,
+        proxyNote: null,
         crops: cropList,
         view: {
           mode: this.config.mode,
@@ -281,24 +309,50 @@ export class Table {
             playerNames: this.state.players.map((p) => p.name),
             curseReadySeats: this.state.curseReadySeats,
             multiSeason: this.seasonCount > 1,
+            curseDetail: this.curseDetailShown ? "short" : "full",
           })
         : null;
     const standing = this.standings();
     const honorAnnounce = (() => {
       if (this.hold === "season" || this.hold === "mix") {
+        const winners = standing.honorSeats;
+        const row = this.scoreSheet[this.seasonIndex - 1];
+        const score = winners.length && row ? row[winners[0]!] : null;
         return buildHonorAnnounce({
           kind: "season",
-          winnerNames: standing.honorSeats.map((s) => this.state!.players[s]?.name ?? `席${s}`),
+          winnerNames: winners.map((s) => this.state!.players[s]?.name ?? `席${s}`),
+          winnerScore: score,
         });
       }
-      if (this.hold === "trail" || this.hold === "honor" || this.matchOver) {
+      if (this.hold === "trail") {
+        return buildHonorAnnounce({
+          kind: "match-trail",
+          winnerNames: this.matchWinnerSeats.map((s) => this.state!.players[s]?.name ?? `席${s}`),
+        });
+      }
+      if (this.hold === "honor" || this.matchOver) {
+        const n = this.state.players.length;
+        const totals = Array.from({ length: n }, (_, s) =>
+          this.scoreSheet.reduce((sum, row) => sum + (row[s] ?? 0), 0),
+        );
+        const winners = this.matchWinnerSeats;
+        const score = winners.length ? totals[winners[0]!] : null;
         return buildHonorAnnounce({
           kind: "match",
-          winnerNames: this.matchWinnerSeats.map((s) => this.state!.players[s]?.name ?? `席${s}`),
+          winnerNames: winners.map((s) => this.state!.players[s]?.name ?? `席${s}`),
+          winnerScore: score,
         });
       }
       return null;
     })();
+    const last = lastRound(this.config.mode);
+    const onFinalRound =
+      !this.hold &&
+      this.state.phase !== "gameOver" &&
+      this.state.phase !== "lobby" &&
+      this.state.round === last;
+    const finalRoundTip = onFinalRound ? FINAL_ROUND_TIP : null;
+    const proxyNote = seat === "spectator" ? null : (this.proxyNotes.get(seat) ?? null);
     if (this.hold === "result") view.message = "内容を確認して［次へ］を押してください。";
     if (this.hold === "season" || this.hold === "mix") {
       view.message = honorAnnounce
@@ -307,7 +361,7 @@ export class Table {
     }
     if (this.hold === "trail") {
       view.message = honorAnnounce
-        ? `${formatHonorAnnounceText(honorAnnounce)}\n\n推移を見て［次へ］。`
+        ? `${formatHonorAnnounceText(honorAnnounce)}\n\n［次へ］で表彰へ。`
         : "総合点の推移を見て［次へ］。";
     }
     if (this.hold === "honor") {
@@ -366,6 +420,8 @@ export class Table {
       cpuShow: this.cpuShow,
       seasonIntro,
       honorAnnounce,
+      finalRoundTip,
+      proxyNote,
       hold: this.hold,
       acked,
       ackNeed,
@@ -441,6 +497,9 @@ export class Table {
   private advanceHold(): void {
     if (!this.state || !this.hold) return;
     if (this.hold === "intro") {
+      if (this.seasonCount > 1 && (this.state?.curseReadySeats.length ?? 0) > 0) {
+        this.curseDetailShown = true;
+      }
       this.hold = null;
       if (!this.config.paceCpu) this.flushCpus();
       return;
