@@ -349,16 +349,19 @@
       ? `<span class="crown" title="これまでの獲得コイン首位">👑</span>`
       : "";
     const curse = player.curseReady
-      ? `<span class="curse-mark" title="呪いの権利">呪</span>`
+      ? `<span class="curse-mark" title="呪いの権利">🤡</span>`
+      : "";
+    const turn = player.isActing
+      ? `<span class="turn-mark" title="手番">🖐️</span>`
       : "";
     const g = coins.get(player.seat) ?? player.coins;
     const total = opts.totals ? opts.totals.get(player.seat) : undefined;
     const isBest = opts.bestSeason != null && g === opts.bestSeason;
-    let gHtml = `${g}G${player.isActing ? " 手番" : ""}`;
+    let gHtml = `${g}G`;
     if (total != null) {
       gHtml = `<span class="season-g${isBest ? " best" : ""}">${g}G</span><span class="g-arrow"> → </span><span class="total-g">${total}G</span>`;
     }
-    return `<div class="who${you}${acting}${honor}"><div class="id">${esc(displayName(player))}${player.isYou ? "*" : ""}${crown}${curse}</div><div class="g">${gHtml}</div></div>`;
+    return `<div class="who${you}${acting}${honor}"><div class="id">${esc(displayName(player))}${player.isYou ? "*" : ""}${crown}${curse}${turn}</div><div class="g">${gHtml}</div></div>`;
   }
 
   function endWhoCard(player) {
@@ -556,7 +559,7 @@
   }
 
   function harvestPane() {
-    if (harvestPhase !== "done" && harvestPhase !== "empty") return "";
+    if (harvestPhase !== "empty") return "";
     if (msg.acked) {
       return `<div class="harvest-bar"><div class="muted">確認済み（${msg.ackGot}/${msg.ackNeed}）</div></div>`;
     }
@@ -648,8 +651,13 @@
     }
     const waiting = !msg.hold && view.actingSeat !== youSeat && view.phase === "turn";
     const actor = board.players.find((p) => p.isActing);
+    const harvestNext = msg.acked
+      ? `<div class="muted harvest-next">確認済み（${msg.ackGot}/${msg.ackNeed}）</div>`
+      : `<button type="button" class="next harvest-next" data-act="next">次へ</button>`;
     const banner = msg.hold === "result" && harvestPhase === "banner"
       ? `<div class="harvest-banner" data-act="next">収穫タイム</div>`
+      : msg.hold === "result" && harvestPhase === "done"
+        ? `<div class="harvest-banner harvest-banner-done" data-act="next"><div>収穫タイム</div>${harvestNext}</div>`
       : msg.hold === "result" && harvestPhase === "empty"
         ? `<div class="harvest-dialog" data-act="next" role="dialog" aria-label="収穫なし">
             <div class="harvest-dialog-box">
