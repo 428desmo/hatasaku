@@ -105,7 +105,7 @@ export type HarvestDetail = {
 };
 
 export type GameState = {
-  specVersion: "0.14";
+  specVersion: "0.16";
   mode: Mode;
   seed: string;
   season: number;
@@ -199,10 +199,12 @@ export type PublicView = {
   message?: string | null;
 };
 
-export const LAND_ACQUIRE_COST = [0, 1, 2, 3, 4] as const;
+export const LAND_ACQUIRE_COST_BASIC = [0, 1, 2, 4, 8] as const;
+export const LAND_ACQUIRE_COST_ADVANCED = [0, 1, 2, 4, 8, 16] as const;
 export const EVENT_ROW_MAX = 3;
 export const EVENT_DURATION = 2;
-export const PLOT_COUNT = 5;
+export const PLOT_COUNT_BASIC = 5;
+export const PLOT_COUNT_ADVANCED = 6;
 export const EVENT_DELTAS = [4, 2, -2, -4] as const;
 export const CURSE_DELTA = -6;
 export const CURSE_DURATION = 4;
@@ -248,8 +250,16 @@ export function startingCoins(playerCount: number): number[] {
   throw new Error(`unsupported playerCount: ${playerCount}`);
 }
 
-export function acquireCost(ownedCount: number): number {
-  const cost = LAND_ACQUIRE_COST[ownedCount];
+export function plotCount(mode: Mode): number {
+  return mode === "advanced" ? PLOT_COUNT_ADVANCED : PLOT_COUNT_BASIC;
+}
+
+export function landAcquireCosts(mode: Mode): readonly number[] {
+  return mode === "advanced" ? LAND_ACQUIRE_COST_ADVANCED : LAND_ACQUIRE_COST_BASIC;
+}
+
+export function acquireCost(ownedCount: number, mode: Mode): number {
+  const cost = landAcquireCosts(mode)[ownedCount];
   if (cost === undefined) throw new Error(`cannot acquire land ${ownedCount + 1}`);
   return cost;
 }
@@ -268,8 +278,8 @@ export function plotKind(plot: PlotView | Plot): PlotKind {
   return plotKindFromTokens(owned, plot.white, plot.green);
 }
 
-export function emptyPlots(): Plot[] {
-  return Array.from({ length: PLOT_COUNT }, (_, index) => ({
+export function emptyPlots(mode: Mode): Plot[] {
+  return Array.from({ length: plotCount(mode) }, (_, index) => ({
     index,
     owned: false,
     cropCard: null,

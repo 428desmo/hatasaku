@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cropDef, cropShortName, cropList, cropsForMode } from "./catalog.js";
 import { createGame, createRng } from "./index.js";
+import { acquireCost, plotCount } from "./types.js";
 import { threeCpus } from "./testkit.js";
 
 describe("v0.9 crop pools", () => {
@@ -47,10 +48,22 @@ describe("v0.9 crop pools", () => {
       for (let i = 0; i < 40; i++) {
         const seed = `pool-${mode}-${i}`;
         const s = createGame({ mode, seed, seats: threeCpus }, createRng(seed));
-        expect(s.specVersion).toBe("0.14");
+        expect(s.specVersion).toBe("0.16");
         expect(s.cropIdsInGame).toHaveLength(4);
         for (const id of s.cropIdsInGame) expect(allowed.has(id)).toBe(true);
       }
     }
+  });
+
+  it("gives basic 5 plots and advanced 6, with power-of-two land costs", () => {
+    expect(plotCount("basic")).toBe(5);
+    expect(plotCount("advanced")).toBe(6);
+    expect([0, 1, 2, 3, 4].map((n) => acquireCost(n, "basic"))).toEqual([0, 1, 2, 4, 8]);
+    expect([0, 1, 2, 3, 4, 5].map((n) => acquireCost(n, "advanced"))).toEqual([0, 1, 2, 4, 8, 16]);
+    expect(() => acquireCost(5, "basic")).toThrow(/cannot acquire/);
+    const basic = createGame({ mode: "basic", seed: "land-b", seats: threeCpus }, createRng("land-b"));
+    const adv = createGame({ mode: "advanced", seed: "land-a", seats: threeCpus }, createRng("land-a"));
+    expect(basic.players[0]!.plots).toHaveLength(5);
+    expect(adv.players[0]!.plots).toHaveLength(6);
   });
 });

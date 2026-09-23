@@ -37,7 +37,7 @@ export function applyTurn(state: GameState, action: Action, rng: Rng): GameState
       const idx = nextUnownedIndex(player);
       if (idx === null) throw new IllegalActionError("no unowned plot");
       plotIndex = idx;
-      cost = acquireCost(ownedCount(player)) + def.cost;
+      cost = acquireCost(ownedCount(player), s.mode) + def.cost;
     } else {
       plotIndex = action.target.plotIndex;
       cost = def.cost;
