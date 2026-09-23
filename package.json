@@ -7,7 +7,8 @@
     "test": "vitest run",
     "print-board": "tsx src/cli/print-fixture.ts",
     "eval": "tsx src/cli/eval.ts",
-    "serve": "tsx src/cli/serve.ts"
+    "serve": "tsx src/cli/serve.ts",
+    "serve:online": "tsx src/cli/serve-online.ts"
   },
   "dependencies": {
     "ws": "^8.18.0"
