@@ -25,16 +25,25 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 6px;
+  padding: 4px 8px;
   background: #fafafa;
   border-bottom: 1px solid #ccc;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
-.chrome h1 { font-size: 14px; margin: 0; }
-.chrome .sub { font-size: 12px; color: #555; }
-.tabs, .tools { display: flex; gap: 6px; }
-.tabs button, .tools button, .pass, .next {
+.chrome > div:first-child { min-width: 0; flex: 1; }
+.chrome h1 { font-size: 13px; margin: 0; white-space: nowrap; }
+.chrome .sub { font-size: 11px; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tabs, .tools { display: flex; gap: 4px; flex-shrink: 0; }
+.tabs button, .tools button {
+  font: inherit;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid #222;
+  background: #fff;
+  cursor: pointer;
+}
+.pass, .next {
   font: inherit;
   min-height: 40px;
   padding: 6px 10px;
@@ -50,10 +59,11 @@ body {
 .layout {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
-  padding: 8px 10px 16px;
+  gap: 6px;
+  padding: 6px 8px 10px;
   flex: 1;
   position: relative;
+  align-content: start;
 }
 .layout.is-intro {
   grid-template-columns: 84px minmax(0, 1fr);
@@ -67,29 +77,29 @@ body {
 .seats {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
-.seats .who { min-height: 52px; }
+.seats .who { min-height: 44px; }
 
 .events {
   display: flex;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: 4px;
+  margin-bottom: 0;
 }
 .event {
   flex: 1;
-  min-height: 62px;
+  min-height: 0;
   border: 1.3px solid #222;
   border-radius: 6px;
-  padding: 5px 6px;
+  padding: 3px 5px;
   background: #fff;
 }
 .event.preview { border-style: dashed; }
 .event.curse { border-color: #6b3d8a; background: #f7f1fb; }
 .event.curse.hidden { background: #eee8f4; }
-.event .zone { font-size: 11px; font-weight: 700; color: #555; }
-.event .name { font-weight: 700; font-size: 12px; }
-.event .delta { font-size: 16px; font-weight: 700; }
+.event .zone { font-size: 10px; font-weight: 700; color: #555; line-height: 1.2; }
+.event .name { font-weight: 700; font-size: 11px; line-height: 1.2; }
+.event .delta { font-size: 14px; font-weight: 700; line-height: 1.15; }
 .event .span { font-size: 11px; font-weight: 700; margin-top: 2px; }
 .event .plus { color: #2e7d32; }
 .event .minus { color: #c62828; }
@@ -105,19 +115,20 @@ body {
   font-size: 10px;
 }
 
-.farms { display: flex; flex-direction: column; gap: 5px; }
+.farms { display: flex; flex-direction: column; gap: 3px; }
 .farm {
   display: grid;
-  grid-template-columns: 76px repeat(5, minmax(0, 1fr));
-  gap: 4px;
+  grid-template-columns: 68px repeat(5, minmax(0, 1fr));
+  gap: 3px;
   position: relative;
+  align-items: stretch;
 }
 .who, .mini, .market-card, .pass {
   border: 1.3px solid #222;
   border-radius: 6px;
   background: #fff;
 }
-.who { padding: 8px 8px 6px; }
+.who { padding: 4px 6px; }
 .who.you { background: #f7f7f7; }
 .who.acting { border-width: 2px; }
 .who.honor { background: #fff6d8; }
@@ -138,17 +149,24 @@ body {
 }
 
 .mini {
-  min-height: 78px;
-  padding: 4px 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+  min-height: 52px;
+  padding: 2px 3px 3px;
   position: relative;
   cursor: pointer;
+  font: inherit;
+  text-align: left;
+  line-height: 1.15;
 }
 .mini.dash { border-style: dashed; }
 .mini.sel { border-width: 2px; background: #f7f7f7; }
 .mini.dim { background: #eee; color: #888; }
-.mini .nm { font-weight: 700; font-size: 12px; }
-.mini .inc { font-size: 11px; }
-.mini .pip { font-size: 11px; white-space: nowrap; }
+.mini .nm { font-weight: 700; font-size: 11px; }
+.mini .inc { font-size: 10px; }
+.mini .pip { font-size: 10px; white-space: nowrap; }
 .mini .future { color: #888; }
 
 .hand {
@@ -156,24 +174,28 @@ body {
   z-index: 40;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
-.legend { font-size: 11px; color: #555; }
+.legend { font-size: 10px; color: #555; }
 .season-crops {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 4px;
+  gap: 3px;
 }
 .crop-mini {
   position: relative;
-  min-height: 54px;
-  padding: 4px 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+  padding: 3px 4px;
   text-align: left;
   cursor: pointer;
   border: 1.3px solid #222;
   border-radius: 6px;
   background: #fff;
   font: inherit;
+  line-height: 1.15;
 }
 .crop-mini.sel { border-width: 2px; background: #f7f7f7; }
 .crop-mini .head {
@@ -183,10 +205,10 @@ body {
   gap: 2px;
 }
 .crop-mini .head b { font-size: 11px; }
-.crop-mini .cost { font-size: 12px; font-weight: 700; }
+.crop-mini .cost { font-size: 11px; font-weight: 700; }
 .crop-mini .stat {
   font-size: 10px;
-  margin-top: 1px;
+  margin-top: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: clip;
@@ -220,14 +242,15 @@ body {
 .market {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 6px;
 }
 .market-card {
-  min-height: 128px;
-  padding: 8px;
+  min-height: 0;
+  padding: 6px 7px;
   text-align: left;
   cursor: pointer;
   position: relative;
+  line-height: 1.2;
 }
 .market-card.sel { border-width: 2px; background: #f7f7f7; }
 .market-card.dim {
@@ -243,14 +266,14 @@ body {
 }
 .market-card .head b { font-size: 14px; }
 .market-card .cost { font-size: 18px; font-weight: 700; }
-.market-card .stat { font-size: 12px; margin-top: 3px; }
-.market-card .type { font-size: 11px; color: #555; margin-top: 4px; }
+.market-card .stat { font-size: 12px; margin-top: 2px; }
+.market-card .type { font-size: 11px; color: #555; margin-top: 2px; }
 .pass {
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  min-height: 128px;
+  min-height: 0;
   cursor: pointer;
 }
 .pass:disabled { color: #888; cursor: default; background: #eee; }
@@ -260,7 +283,7 @@ body {
   justify-content: center;
   font: inherit;
   font-weight: 700;
-  min-height: 48px;
+  min-height: 40px;
   border: 1.3px solid #6b3d8a;
   border-radius: 6px;
   background: #f7f1fb;
@@ -292,13 +315,13 @@ body {
 
 .figure {
   position: absolute;
-  left: 3px;
-  right: 3px;
+  left: 2px;
+  right: 2px;
   top: auto;
-  bottom: 3px;
+  bottom: 2px;
   font-weight: 800;
-  font-size: 16px;
-  line-height: 1.15;
+  font-size: 14px;
+  line-height: 1.1;
   color: #2e7d32;
   pointer-events: none;
   text-shadow: 0 0 4px #fff, 0 0 6px #fff, 0 1px 0 #fff;
@@ -384,7 +407,7 @@ body {
 .waitbox {
   border: 1.4px dashed #222;
   border-radius: 8px;
-  min-height: 120px;
+  min-height: 72px;
   display: flex;
   align-items: center;
   justify-content: center;
