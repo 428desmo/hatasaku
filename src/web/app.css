@@ -675,3 +675,104 @@ body {
   font-size: 10px;
   fill: #666;
 }
+
+/* Online lobby */
+.lobby-title {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.lobby-lead, .lobby-window, .lobby-note, .lobby-code {
+  margin: 0 0 12px;
+  color: #333;
+}
+.lobby-code strong {
+  font-size: 1.4em;
+  letter-spacing: 0.12em;
+}
+.lobby-h2 {
+  margin: 20px 0 8px;
+  font-size: 15px;
+}
+.lobby-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+.lobby-field input,
+.lobby-field select {
+  font: inherit;
+  padding: 10px 12px;
+  border: 1px solid #222;
+  min-height: 44px;
+}
+.lobby-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 16px 0;
+}
+.lobby-join {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #ddd;
+}
+.lobby-btn {
+  font: inherit;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #222;
+  background: #fff;
+  cursor: pointer;
+}
+.lobby-btn.primary {
+  background: #111;
+  color: #fff;
+}
+.lobby-btn.danger {
+  border-color: #b00020;
+  color: #b00020;
+}
+.lobby-members {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.lobby-tag {
+  color: #666;
+  font-size: 12px;
+}
+.lobby-share {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.lobby-share input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+}
+.lobby-readonly {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+.lobby-readonly > div {
+  display: flex;
+  gap: 12px;
+}
+.lobby-readonly dt {
+  margin: 0;
+  min-width: 5em;
+  color: #555;
+}
+.lobby-readonly dd {
+  margin: 0;
+}
+.lobby-settings {
+  max-width: 360px;
+}

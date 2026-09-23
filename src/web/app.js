@@ -1,7 +1,9 @@
 (() => {
   const app = document.getElementById("app");
-  const proto = location.protocol === "https:" ? "wss" : "ws";
-  const ws = new WebSocket(proto + "//" + location.host);
+  let ws = null;
+  let sendPayload = (payload) => {
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
+  };
 
   const LEARN_KEY = "hatasaku-learn";
   let youSeat = null;
@@ -18,6 +20,7 @@
   let cursePick = false;
   let learn = localStorage.getItem(LEARN_KEY) === "1";
   let errText = "";
+  let deadlineTimer = null;
 
   function esc(s) {
     return String(s ?? "")
@@ -36,7 +39,26 @@
   }
 
   function send(payload) {
-    ws.send(JSON.stringify(payload));
+    sendPayload(payload);
+  }
+
+  function clearDeadlineTimer() {
+    if (deadlineTimer != null) {
+      clearInterval(deadlineTimer);
+      deadlineTimer = null;
+    }
+  }
+
+  function armDeadlineTicker() {
+    clearDeadlineTimer();
+    if (!msg?.turnDeadline) return;
+    deadlineTimer = setInterval(() => {
+      if (!msg?.turnDeadline || Date.now() > msg.turnDeadline + 2000) {
+        clearDeadlineTimer();
+        return;
+      }
+      render();
+    }, 500);
   }
 
   function sendAction(action) {
@@ -252,6 +274,13 @@
     onClick(el);
   });
 
+  function turnClock() {
+    const at = msg?.turnDeadline;
+    if (!at) return "";
+    const left = Math.max(0, Math.ceil((at - Date.now()) / 1000));
+    return `　制限 ${left}s`;
+  }
+
   function chrome(board, view) {
     const title = board
       ? `S${view.season}/${view.seasonCount}  R${view.round}/${view.lastRound}`
@@ -260,7 +289,7 @@
     return `<header class="chrome">
       <div>
         <h1>${esc(title)}</h1>
-        <div class="sub">${esc(sub)}${board ? "　" + esc(board.phaseLine) : ""}</div>
+        <div class="sub">${esc(sub)}${board ? "　" + esc(board.phaseLine) : ""}${esc(turnClock())}</div>
       </div>
       <div class="tools">
         <button type="button" data-act="learn" ${learn ? 'aria-current="true"' : ""}>${learn ? "学習ON" : "学習OFF"}</button>
@@ -815,6 +844,7 @@
       }
       if (!(msg.actions || []).some((a) => a.type === "curse")) cursePick = false;
       app.innerHTML = chrome(board, view) + (tab === "record" ? recordHtml() : playHtml());
+      armDeadlineTicker();
     } catch (e) {
       console.error(e);
       errText = e instanceof Error ? e.message : String(e);
@@ -822,8 +852,19 @@
     }
   }
 
-  ws.onmessage = (ev) => {
-    const data = JSON.parse(ev.data);
+  function applyView(data) {
+    errText = "";
+    if (data.seat != null) youSeat = data.seat;
+    msg = data;
+    if (data.view?.actingSeat === youSeat) {
+      if (selectedMarket != null && !data.board?.market?.[selectedMarket]) selectedMarket = null;
+    } else {
+      selectedMarket = null;
+    }
+    render();
+  }
+
+  function handleServerMessage(data) {
     if (data.type === "assigned") {
       youSeat = data.seat;
       youName = data.name;
@@ -834,20 +875,46 @@
       render();
       return;
     }
-    if (data.type === "view") {
-      errText = "";
-      msg = data;
-      if (data.view?.actingSeat === youSeat) {
-        /* keep selection only if the same market still exists */
-        if (selectedMarket != null && !data.board?.market?.[selectedMarket]) selectedMarket = null;
-      } else {
-        selectedMarket = null;
-      }
+    if (data.type === "view") applyView(data);
+  }
+
+  function attachWs(socket) {
+    ws = socket;
+    ws.onmessage = (ev) => handleServerMessage(JSON.parse(ev.data));
+    ws.onclose = () => {
+      errText = "切断しました";
+      clearDeadlineTimer();
       render();
-    }
+    };
+  }
+
+  window.HatasakuPlay = {
+    attachWs,
+    applyView,
+    handleServerMessage,
+    setYou(seat, name) {
+      youSeat = seat;
+      youName = name || youName;
+    },
+    setSend(fn) {
+      sendPayload = fn;
+    },
+    setError(message) {
+      errText = message;
+      if (msg) render();
+    },
+    show() {
+      app.hidden = false;
+    },
+    hide() {
+      app.hidden = true;
+      clearDeadlineTimer();
+    },
+    render,
   };
-  ws.onclose = () => {
-    errText = "切断しました";
-    render();
-  };
+
+  if (!window.HATASAKU_SKIP_AUTO) {
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    attachWs(new WebSocket(proto + "//" + location.host));
+  }
 })();

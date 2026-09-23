@@ -43,6 +43,8 @@ export type TableConfig = {
   seed: string;
   seasonCount?: number;
   paceCpu?: boolean;
+  /** Optional labels for human seats 0..humanCount-1 (online lobby names). */
+  humanNames?: string[];
 };
 
 export type CpuShow = {
@@ -78,6 +80,11 @@ export class Table {
   private pendingCpu: Action | null = null;
   private cpuStage: CpuShow["stage"] | null = null;
   private cpuActorSeat: number | null = null;
+
+  /** Used by the online host to proxy timed-out human turns. */
+  getCpuRng(): Rng {
+    return this.cpuRng;
+  }
 
   constructor(config: TableConfig) {
     const total = config.humanCount + config.cpuCount;
@@ -120,12 +127,19 @@ export class Table {
     this.acks.delete(seat);
   }
 
+  setHumanConnected(seat: number, connected: boolean): void {
+    const slot = this.humanSeats.find((h) => h.seat === seat);
+    if (!slot) return;
+    slot.connected = connected;
+    if (!connected) this.acks.delete(seat);
+  }
+
   start(): void {
     const n = this.config.humanCount + this.config.cpuCount;
     this.seats = [
       ...Array.from({ length: this.config.humanCount }, (_, i) => ({
         kind: "human" as SeatKind,
-        name: `プレイヤー${i + 1}`,
+        name: (this.config.humanNames?.[i]?.trim() || `プレイヤー${i + 1}`).slice(0, 16),
       })),
       ...Array.from({ length: this.config.cpuCount }, (_, i) => ({
         kind: "cpu" as SeatKind,

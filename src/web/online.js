@@ -1,0 +1,394 @@
+(() => {
+  const lobbyRoot = document.getElementById("lobby-root");
+  const play = window.HatasakuPlay;
+  if (!lobbyRoot || !play) {
+    console.error("online boot failed");
+    return;
+  }
+
+  const DEVICE_KEY = "hatasaku-device-id";
+  const NAME_KEY = "hatasaku-display-name";
+  const SEAT_KEY = "hatasaku-online-seat";
+
+  const params = new URLSearchParams(location.search);
+  const urlCode = (params.get("code") || "").trim().toUpperCase();
+
+  let ws = null;
+  let deviceId = loadDeviceId();
+  let displayName = localStorage.getItem(NAME_KEY) || "";
+  let screen = "boot"; // boot | home | lobby | play
+  let room = null;
+  let errText = "";
+  let joinCodeInput = urlCode;
+  let reconnectTimer = null;
+  let joinTick = null;
+
+  function loadDeviceId() {
+    let id = localStorage.getItem(DEVICE_KEY);
+    if (id && id.length >= 8) return id.slice(0, 64);
+    id =
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID().replaceAll("-", "")
+        : `d${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+    localStorage.setItem(DEVICE_KEY, id);
+    return id;
+  }
+
+  function loadSeatCreds() {
+    try {
+      const raw = localStorage.getItem(SEAT_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed?.code || !parsed?.seatToken) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveSeatCreds(code, seatToken) {
+    if (!code || !seatToken) return;
+    localStorage.setItem(SEAT_KEY, JSON.stringify({ code, seatToken }));
+  }
+
+  function clearSeatCreds() {
+    localStorage.removeItem(SEAT_KEY);
+  }
+
+  function esc(s) {
+    return String(s ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  function send(payload) {
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(payload));
+  }
+
+  play.setSend((payload) => send(payload));
+
+  function showLobby() {
+    screen = room ? "lobby" : "home";
+    play.hide();
+    lobbyRoot.hidden = false;
+    renderLobby();
+  }
+
+  function showPlay(viewMsg) {
+    screen = "play";
+    lobbyRoot.hidden = true;
+    play.show();
+    const you = room?.members?.find((m) => m.isYou);
+    play.setYou(viewMsg.seat, you?.displayName || displayName || `席${viewMsg.seat}`);
+    play.applyView(viewMsg);
+  }
+
+  function formatMs(ms) {
+    const s = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m}:${String(r).padStart(2, "0")}`;
+  }
+
+  function shareUrl(code) {
+    const u = new URL(location.href);
+    u.searchParams.set("code", code);
+    return u.toString();
+  }
+
+  function clearJoinTick() {
+    if (joinTick != null) {
+      clearInterval(joinTick);
+      joinTick = null;
+    }
+  }
+
+  function armJoinTick() {
+    clearJoinTick();
+    if (!room || room.phase !== "lobby") return;
+    joinTick = setInterval(() => {
+      if (!room || room.phase !== "lobby") {
+        clearJoinTick();
+        return;
+      }
+      const rem = Math.max(0, (room.joinRemainingMs || 0) - 1000);
+      room = { ...room, joinRemainingMs: rem, joinOpen: rem > 0 };
+      if (screen === "lobby") renderLobby();
+    }, 1000);
+  }
+
+  function renderLobby() {
+    if (screen === "play") return;
+    if (screen === "boot") {
+      lobbyRoot.innerHTML = `<p class="boot">接続中…</p><div class="err">${esc(errText)}</div>`;
+      return;
+    }
+
+    if (screen === "home" || !room) {
+      lobbyRoot.innerHTML = `
+        <section class="lobby">
+          <h1 class="lobby-title">畑作オンライン</h1>
+          <p class="lobby-lead">友人とコードで卓を共有します。ログインは不要です。</p>
+          <div class="err">${esc(errText)}</div>
+          <label class="lobby-field">表示名
+            <input id="ol-name" type="text" maxlength="16" value="${esc(displayName)}" placeholder="プレイヤー" />
+          </label>
+          <div class="lobby-actions">
+            <button type="button" class="lobby-btn primary" data-ol="create">卓を作る</button>
+          </div>
+          <div class="lobby-join">
+            <label class="lobby-field">参加コード
+              <input id="ol-code" type="text" maxlength="8" value="${esc(joinCodeInput)}" placeholder="ABCDEF" autocomplete="off" />
+            </label>
+            <button type="button" class="lobby-btn" data-ol="join">参加する</button>
+          </div>
+          <p class="lobby-note">LAN単卓は <a href="/lan">/lan</a></p>
+        </section>`;
+      return;
+    }
+
+    const s = room.settings;
+    const members = room.members || [];
+    const empty = Math.max(0, s.playerCount - members.length);
+    const leaderOnly = room.youAreLeader
+      ? ""
+      : `<p class="lobby-note">設定の変更と開始はリーダーだけできます。</p>`;
+    const settingsBlock = room.youAreLeader
+      ? `
+      <div class="lobby-settings">
+        <label class="lobby-field">モード
+          <select id="ol-mode">
+            <option value="basic" ${s.mode === "basic" ? "selected" : ""}>基本</option>
+            <option value="advanced" ${s.mode === "advanced" ? "selected" : ""}>上級</option>
+          </select>
+        </label>
+        <label class="lobby-field">人数（人間＋CPU）
+          <select id="ol-players">
+            ${[3, 4, 5].map((n) => `<option value="${n}" ${s.playerCount === n ? "selected" : ""}>${n}</option>`).join("")}
+          </select>
+        </label>
+        <label class="lobby-field">シーズン数
+          <input id="ol-seasons" type="number" min="1" max="12" value="${s.seasonCount}" />
+        </label>
+        <label class="lobby-field">手番制限（秒）
+          <input id="ol-turn" type="number" min="10" max="600" step="5" value="${Math.round(s.turnMs / 1000)}" />
+        </label>
+        <button type="button" class="lobby-btn" data-ol="save-settings">設定を反映</button>
+      </div>`
+      : `
+      <dl class="lobby-readonly">
+        <div><dt>モード</dt><dd>${s.mode === "advanced" ? "上級" : "基本"}</dd></div>
+        <div><dt>人数</dt><dd>${s.playerCount}（空き ${empty} → 開始時CPU）</dd></div>
+        <div><dt>シーズン</dt><dd>${s.seasonCount}</dd></div>
+        <div><dt>手番制限</dt><dd>${Math.round(s.turnMs / 1000)}秒（人間2人以上のとき）</dd></div>
+      </dl>`;
+
+    const memberList = members
+      .map((m) => {
+        const tags = [
+          m.isYou ? "あなた" : null,
+          m.isLeader ? "リーダー" : null,
+          m.connected ? null : "切断中",
+        ]
+          .filter(Boolean)
+          .join("・");
+        return `<li><strong>${esc(m.displayName)}</strong>${tags ? ` <span class="lobby-tag">${esc(tags)}</span>` : ""}</li>`;
+      })
+      .join("");
+
+    lobbyRoot.innerHTML = `
+      <section class="lobby">
+        <h1 class="lobby-title">ロビー</h1>
+        <p class="lobby-code">コード <strong>${esc(room.code)}</strong></p>
+        <p class="lobby-share"><input readonly value="${esc(shareUrl(room.code))}" id="ol-share" /><button type="button" data-ol="copy">コピー</button></p>
+        <p class="lobby-window">${room.joinOpen ? `入場あと ${esc(formatMs(room.joinRemainingMs))}（空き ${empty}）` : "入場窓終了（再接続のみ）"}</p>
+        <div class="err">${esc(errText)}</div>
+        <h2 class="lobby-h2">参加者</h2>
+        <ul class="lobby-members">${memberList || "<li>（なし）</li>"}</ul>
+        <h2 class="lobby-h2">設定</h2>
+        ${settingsBlock}
+        ${leaderOnly}
+        <div class="lobby-actions">
+          ${
+            room.youAreLeader
+              ? `<button type="button" class="lobby-btn primary" data-ol="start">開始（空きはCPU）</button>
+                 <button type="button" class="lobby-btn danger" data-ol="cancel">卓をキャンセル</button>`
+              : `<button type="button" class="lobby-btn" data-ol="leave">ロビーを出る</button>`
+          }
+        </div>
+      </section>`;
+  }
+
+  function rememberNameFromInput() {
+    const el = document.getElementById("ol-name");
+    if (el) {
+      displayName = el.value.trim().slice(0, 16);
+      if (displayName) localStorage.setItem(NAME_KEY, displayName);
+    }
+  }
+
+  function onLobbyClick(e) {
+    const el = e.target.closest("[data-ol]");
+    if (!el || !lobbyRoot.contains(el)) return;
+    const act = el.getAttribute("data-ol");
+    errText = "";
+
+    if (act === "create") {
+      rememberNameFromInput();
+      send({ type: "create", deviceId, displayName: displayName || "プレイヤー" });
+      return;
+    }
+    if (act === "join") {
+      rememberNameFromInput();
+      const codeEl = document.getElementById("ol-code");
+      const code = (codeEl?.value || joinCodeInput || "").trim().toUpperCase();
+      joinCodeInput = code;
+      if (!code) {
+        errText = "参加コードを入力してください";
+        renderLobby();
+        return;
+      }
+      send({ type: "join", deviceId, displayName: displayName || "プレイヤー", code });
+      return;
+    }
+    if (act === "copy") {
+      const input = document.getElementById("ol-share");
+      if (input) {
+        input.select();
+        navigator.clipboard?.writeText(input.value).catch(() => {});
+      }
+      return;
+    }
+    if (act === "save-settings") {
+      const mode = document.getElementById("ol-mode")?.value;
+      const playerCount = Number(document.getElementById("ol-players")?.value);
+      const seasonCount = Number(document.getElementById("ol-seasons")?.value);
+      const turnSec = Number(document.getElementById("ol-turn")?.value);
+      send({
+        type: "lobby-settings",
+        deviceId,
+        settings: {
+          mode,
+          playerCount,
+          seasonCount,
+          turnMs: Math.round(turnSec * 1000),
+        },
+      });
+      return;
+    }
+    if (act === "start") {
+      send({ type: "start", deviceId });
+      return;
+    }
+    if (act === "cancel") {
+      clearSeatCreds();
+      send({ type: "cancel", deviceId });
+      return;
+    }
+    if (act === "leave") {
+      clearSeatCreds();
+      send({ type: "leave", deviceId });
+      return;
+    }
+  }
+
+  lobbyRoot.addEventListener("click", onLobbyClick);
+
+  function applyRoom(next) {
+    room = next;
+    if (next?.seatToken && next.code) saveSeatCreds(next.code, next.seatToken);
+    armJoinTick();
+  }
+
+  function onMessage(data) {
+    if (data.type === "welcome") {
+      const creds = loadSeatCreds();
+      const hello = { type: "hello", deviceId };
+      if (creds) {
+        hello.code = creds.code;
+        hello.seatToken = creds.seatToken;
+      }
+      send(hello);
+      return;
+    }
+    if (data.type === "hello-ok") {
+      room = null;
+      clearJoinTick();
+      if (urlCode) {
+        screen = "home";
+        joinCodeInput = urlCode;
+        renderLobby();
+        if (displayName) {
+          send({ type: "join", deviceId, displayName: displayName || "プレイヤー", code: urlCode });
+        } else {
+          showLobby();
+        }
+        return;
+      }
+      showLobby();
+      return;
+    }
+    if (data.type === "created" || data.type === "joined") {
+      if (data.seatToken && data.room?.code) saveSeatCreds(data.room.code, data.seatToken);
+      applyRoom(data.room);
+      showLobby();
+      return;
+    }
+    if (data.type === "lobby") {
+      applyRoom(data.room);
+      if (data.room?.phase === "playing") return;
+      if (data.room?.phase === "ended") {
+        clearSeatCreds();
+        room = null;
+        clearJoinTick();
+        showLobby();
+        return;
+      }
+      showLobby();
+      return;
+    }
+    if (data.type === "view") {
+      applyRoom(data.room);
+      showPlay(data);
+      return;
+    }
+    if (data.type === "error") {
+      errText = data.message || "error";
+      if (screen === "play") play.setError(errText);
+      else renderLobby();
+    }
+  }
+
+  function connect() {
+    const proto = location.protocol === "https:" ? "wss" : "ws";
+    ws = new WebSocket(proto + "//" + location.host);
+    ws.onopen = () => {
+      errText = "";
+      screen = "boot";
+      renderLobby();
+    };
+    ws.onmessage = (ev) => {
+      let data;
+      try {
+        data = JSON.parse(ev.data);
+      } catch {
+        return;
+      }
+      onMessage(data);
+    };
+    ws.onclose = () => {
+      clearJoinTick();
+      if (screen === "play") play.setError("切断しました。再接続します…");
+      else {
+        errText = "切断しました。再接続します…";
+        screen = "boot";
+        renderLobby();
+      }
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(connect, 1200);
+    };
+  }
+
+  connect();
+})();
