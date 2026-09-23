@@ -61,14 +61,17 @@ export class Table {
   matchWinnerSeats: number[] = [];
   private cpuRng: Rng;
   private seats: SeatConfig[] = [];
+  private matchSeed: string;
+  private rematchCount = 0;
 
   constructor(config: TableConfig) {
     const total = config.humanCount + config.cpuCount;
     if (total < 3 || total > 5) throw new Error("N+M must be 3-5");
     this.config = config;
     this.seasonCount = config.seasonCount ?? total;
-    this.rng = createRng(config.seed);
-    this.cpuRng = createRng(`${config.seed}-cpu`);
+    this.matchSeed = config.seed;
+    this.rng = createRng(this.matchSeed);
+    this.cpuRng = createRng(`${this.matchSeed}-cpu`);
     this.humanSeats = Array.from({ length: config.humanCount }, (_, i) => ({
       seat: i,
       connected: false,
@@ -115,7 +118,8 @@ export class Table {
         cpuStrategyId: this.config.cpuStrategyId,
       })),
     ];
-    this.rng = createRng(this.config.seed);
+    this.rng = createRng(this.matchSeed);
+    this.cpuRng = createRng(`${this.matchSeed}-cpu`);
     this.hold = null;
     this.acks.clear();
     this.seasonCount = this.config.seasonCount ?? n;
@@ -219,7 +223,7 @@ export class Table {
     if (this.hold === "result") view.message = "内容を確認して［次へ］を押してください。";
     if (this.hold === "season") view.message = "シーズンが終わりました。行動を見て［次へ］。";
     if (this.hold === "mix") view.message = "今シーズンの手の内訳を見て［次へ］。";
-    if (this.hold === "honor") view.message = "総合優勝です。";
+    if (this.hold === "honor") view.message = "［もう一度］で同じ設定の新しいマッチを始めます。";
     if (this.hold === "intro") view.message = "今シーズンの作物を見て［開始］。";
     const you = seat === "spectator" ? null : seat;
     const board = toPresentation(view, you);
@@ -288,7 +292,7 @@ export class Table {
     return createGame(
       {
         mode: this.config.mode,
-        seed: this.config.seed,
+        seed: this.matchSeed,
         seats: this.seats,
         startSeat: this.startSeat,
         evenStartCoins: this.seasonCount % n === 0,
@@ -350,7 +354,10 @@ export class Table {
       this.hold = "honor";
       return;
     }
-    if (this.hold === "honor") return;
+    if (this.hold === "honor") {
+      this.rematch();
+      return;
+    }
     this.state = concludeRound(this.state);
     if (this.state.phase !== "gameOver") {
       this.state = applyEventUpdate(this.state, this.rng);
@@ -361,6 +368,12 @@ export class Table {
     }
     this.recordSeason();
     this.hold = "season";
+  }
+
+  private rematch(): void {
+    this.rematchCount += 1;
+    this.matchSeed = `${this.config.seed}-r${this.rematchCount}`;
+    this.start();
   }
 
   private flushCpus(): void {
