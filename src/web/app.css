@@ -421,16 +421,44 @@ body {
   margin: 8px auto 0;
   gap: 10px;
 }
-.intro-head {
+.intro-head,
+.intro-announce {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
+  line-height: 1.4;
 }
 .intro-curse {
   margin: 0;
   font-size: 13px;
   font-weight: 700;
   color: #6b3d8a;
+}
+.intro-curse-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid #c9b3d9;
+  background: #faf6fc;
+}
+.intro-curse-lead {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #5a2f78;
+}
+.intro-curse-go {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+.intro-curse-what {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #444;
 }
 .intro-cards {
   display: grid;

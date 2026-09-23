@@ -76,6 +76,7 @@ function packView(room: Room, seat: number) {
     crops: packed.crops,
     trail: packed.trail,
     cpuShow: packed.cpuShow,
+    seasonIntro: packed.seasonIntro,
     actions: packed.hold ? [] : packed.actions.map((a) => ({ ...a.action, label: a.label })),
     hold: packed.hold,
     acked: packed.acked,

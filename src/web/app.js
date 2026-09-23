@@ -729,22 +729,26 @@
   }
 
   function introPane() {
+    const announce = msg.seasonIntro;
     const crops = msg.board.cropsInGame || [];
     const cards = crops.map((c) => `<article class="market-card intro-card">${cropFullInner(c)}</article>`).join("");
     const start = msg.acked
       ? `<button type="button" class="next" disabled>確認済み（${msg.ackGot}/${msg.ackNeed}）</button>`
       : `<button type="button" class="next" data-act="next">開始</button>`;
-    const ready = (msg.view.curseReadySeats || []).map((seat) => {
-      const p = msg.board.players.find((x) => x.seat === seat);
-      return p ? displayName(p) : `席${seat}`;
-    });
-    const curseNote = ready.length
-      ? `<p class="intro-curse">呪いの権利　${esc(ready.join("、"))}</p>`
+    const cropLead = announce?.cropLead
+      ? `<p class="intro-announce">${esc(announce.cropLead)}</p>`
+      : `<p class="intro-head">今シーズンの作物</p>`;
+    const curseBlock = announce?.curse
+      ? `<div class="intro-curse-block">
+          <p class="intro-curse-lead">${esc(announce.curse.recipientsLead)}</p>
+          <p class="intro-curse-go">${esc(announce.curse.encouragement)}</p>
+          <p class="intro-curse-what">${esc(announce.curse.whatIs)}</p>
+        </div>`
       : "";
     return `<div class="intro">
-      <p class="intro-head">今シーズンの作物</p>
+      ${cropLead}
       <div class="intro-cards">${cards}</div>
-      ${curseNote}
+      ${curseBlock}
       ${start}
     </div>`;
   }
