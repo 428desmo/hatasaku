@@ -1,19 +1,31 @@
 * { box-sizing: border-box; }
+html {
+  color-scheme: light;
+  height: 100%;
+  margin: 0;
+}
 html, body { height: 100%; margin: 0; }
 body {
   font: 14px/1.35 ui-sans-serif, system-ui, sans-serif;
   color: #111;
   background: #111;
 }
-#app {
+#app,
+#lobby-root {
   min-height: 100%;
   display: flex;
   flex-direction: column;
   background: #fff;
+  color: #111;
   max-width: 980px;
   margin: 0 auto;
 }
-.boot, .lobby { padding: 24px 16px; }
+#app[hidden],
+#lobby-root[hidden] {
+  display: none !important;
+}
+.boot, .lobby { padding: 24px 16px; color: #111; }
+.boot a, .lobby a { color: #0645ad; }
 .err {
   min-height: 0;
   color: #b00020;
@@ -752,12 +764,13 @@ body {
   fill: #666;
 }
 
-/* Online lobby */
+/* Online lobby — always light panel (do not inherit dark-mode canvas colors) */
 .lobby-title {
   margin: 0 0 8px;
   font-size: 28px;
   font-weight: 800;
   letter-spacing: 0.02em;
+  color: #111;
 }
 .lobby-lead, .lobby-window, .lobby-note, .lobby-code, .lobby-cpu-note {
   margin: 0 0 12px;
@@ -770,10 +783,12 @@ body {
 .lobby-code strong {
   font-size: 1.4em;
   letter-spacing: 0.12em;
+  color: #111;
 }
 .lobby-h2 {
   margin: 20px 0 8px;
   font-size: 15px;
+  color: #111;
 }
 .lobby-field {
   display: flex;
@@ -781,6 +796,7 @@ body {
   gap: 4px;
   margin-bottom: 12px;
   font-size: 13px;
+  color: #222;
 }
 .lobby-field input,
 .lobby-field select {
@@ -788,6 +804,9 @@ body {
   padding: 10px 12px;
   border: 1px solid #222;
   min-height: 44px;
+  background: #fff;
+  color: #111;
+  color-scheme: light;
 }
 .lobby-actions {
   display: flex;
@@ -806,6 +825,7 @@ body {
   padding: 10px 16px;
   border: 1px solid #222;
   background: #fff;
+  color: #111;
   cursor: pointer;
 }
 .lobby-btn.primary {
@@ -815,13 +835,15 @@ body {
 .lobby-btn.danger {
   border-color: #b00020;
   color: #b00020;
+  background: #fff;
 }
 .lobby-members {
   margin: 0;
   padding-left: 1.2em;
+  color: #111;
 }
 .lobby-tag {
-  color: #666;
+  color: #555;
   font-size: 12px;
 }
 .lobby-share {
@@ -835,11 +857,24 @@ body {
   font: inherit;
   padding: 8px 10px;
   border: 1px solid #ccc;
+  background: #fff;
+  color: #111;
+  color-scheme: light;
+}
+.lobby-share button {
+  font: inherit;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid #222;
+  background: #fff;
+  color: #111;
+  cursor: pointer;
 }
 .lobby-readonly {
   margin: 0;
   display: grid;
   gap: 8px;
+  color: #111;
 }
 .lobby-readonly > div {
   display: flex;
@@ -852,7 +887,11 @@ body {
 }
 .lobby-readonly dd {
   margin: 0;
+  color: #111;
 }
 .lobby-settings {
   max-width: 360px;
+}
+.lobby-note a {
+  color: #0645ad;
 }
