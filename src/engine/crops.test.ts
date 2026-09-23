@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cropDef, cropsForMode } from "./catalog.js";
+import { cropDef, cropShortName, cropList, cropsForMode } from "./catalog.js";
 import { createGame, createRng } from "./index.js";
 import { threeCpus } from "./testkit.js";
 
@@ -30,13 +30,24 @@ describe("v0.9 crop pools", () => {
     expect(cropDef("watermelon").baseIncome).toBe(13);
   });
 
+  it("keeps vertical short names to 3 characters", () => {
+    expect(cropShortName("komatsuna")).toBe("コマツ");
+    expect(cropShortName("edamame")).toBe("エダマ");
+    expect(cropShortName("corn")).toBe("トウモ");
+    expect(cropShortName("pumpkin")).toBe("カボチ");
+    expect(cropShortName("pepper")).toBe("ピーマ");
+    expect(cropShortName("asparagus")).toBe("アスパ");
+    expect(cropShortName("onion")).toBe("ネギ");
+    for (const c of cropList) expect(cropShortName(c.id).length).toBeLessThanOrEqual(3);
+  });
+
   it("draws a season's four crops only from that mode's pool", () => {
     for (const mode of ["basic", "advanced"] as const) {
       const allowed = new Set(cropsForMode(mode).map((c) => c.id));
       for (let i = 0; i < 40; i++) {
         const seed = `pool-${mode}-${i}`;
         const s = createGame({ mode, seed, seats: threeCpus }, createRng(seed));
-        expect(s.specVersion).toBe("0.11");
+        expect(s.specVersion).toBe("0.12");
         expect(s.cropIdsInGame).toHaveLength(4);
         for (const id of s.cropIdsInGame) expect(allowed.has(id)).toBe(true);
       }

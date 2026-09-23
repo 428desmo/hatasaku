@@ -230,9 +230,10 @@ describe("table seats", () => {
         expect(intro.crownSeats).toEqual(
           table.scoreSheet[0]!.flatMap((c, seat) => (c === best ? [seat] : [])),
         );
-        const worst = Math.min(...table.scoreSheet[0]!);
+        const scores = table.scoreSheet[0]!;
+        const worst = Math.min(...scores);
         expect(table.state!.curseReadySeats).toEqual(
-          table.scoreSheet[0]!.flatMap((c, seat) => (c === worst ? [seat] : [])),
+          worst === best ? [] : scores.flatMap((c, seat) => (c === worst ? [seat] : [])),
         );
         expect(intro.view.curseReadySeats).toEqual(table.state!.curseReadySeats);
         return;

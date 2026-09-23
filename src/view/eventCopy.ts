@@ -11,7 +11,7 @@ export type EventChip = {
   lingering: boolean;
   from: number;
   to: number;
-  kind?: "event" | "curse";
+  kind?: "event" | "curse" | "curse-hidden";
 };
 
 export type BoardEvents = {
@@ -130,5 +130,19 @@ export function describeBoardEvents(view: PublicView): BoardEvents {
         kind: "curse" as const,
       };
     });
+  for (let i = 0; i < (view.hiddenCurseCount ?? 0); i++) {
+    curseEvents.push({
+      cropName: "伏せ",
+      cropId: "",
+      delta: 0,
+      text: "呪い（伏せ）",
+      span: "伏せ",
+      role: "preview",
+      lingering: false,
+      from: R,
+      to: R,
+      kind: "curse-hidden",
+    });
+  }
   return { harvestEvents, previewEvents, curseEvents, harvestLine, previewLine };
 }

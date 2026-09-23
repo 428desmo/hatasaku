@@ -29,18 +29,18 @@ export const CROP_TYPE_LABEL: Record<CropType, string> = {
 
 const CROP_SHORT: Record<string, string> = {
   radish: "ラディ",
-  komatsuna: "コマツナ",
+  komatsuna: "コマツ",
   potato: "ジャガ",
-  corn: "トウモロ",
+  corn: "トウモ",
   onion: "ネギ",
-  edamame: "エダマメ",
+  edamame: "エダマ",
   sweetpotato: "サツマ",
-  pumpkin: "カボチャ",
+  pumpkin: "カボチ",
   tomato: "トマト",
   watermelon: "スイカ",
-  asparagus: "アスパラ",
+  asparagus: "アスパ",
   burdock: "ゴボウ",
-  pepper: "ピーマン",
+  pepper: "ピーマ",
   melon: "メロン",
 };
 
@@ -64,7 +64,8 @@ export function cropBlurb(id: CropId): string {
 }
 
 export function cropShortName(id: CropId): string {
-  return CROP_SHORT[id] ?? cropName(id);
+  const s = CROP_SHORT[id] ?? cropName(id);
+  return s.length > 3 ? s.slice(0, 3) : s;
 }
 
 export function cropSpec(id: CropId): string {

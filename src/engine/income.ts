@@ -1,5 +1,5 @@
 import { cropDef } from "./catalog.js";
-import { curseHits } from "./curse.js";
+import { curseHits, revealPendingCurses } from "./curse.js";
 import { effectiveEvents, eventSumFor } from "./events.js";
 import { cloneState, CURSE_DELTA, type GameState, type HarvestDetail, type Plot, type RoundSnapshot } from "./types.js";
 
@@ -51,6 +51,7 @@ export function applyHarvest(state: GameState): GameState {
   }
   s.lastPayouts = payouts;
   s.lastHarvest = details;
+  revealPendingCurses(s);
   recordRoundSnapshot(s);
   return s;
 }
