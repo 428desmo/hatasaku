@@ -417,7 +417,7 @@ body {
 }
 .end-grid {
   display: grid;
-  grid-template-columns: 84px repeat(var(--packs, 4), max-content);
+  grid-template-columns: 124px repeat(var(--packs, 4), max-content);
   gap: 10px 12px;
   align-items: stretch;
   min-width: max-content;
@@ -436,10 +436,15 @@ body {
   justify-content: center;
 }
 .end-grid .who .g {
-  font-size: 15px;
-  font-weight: 700;
-  color: #111;
+  font-size: 13px;
+  font-weight: 400;
+  color: #333;
+  white-space: nowrap;
 }
+.season-g { font-weight: 400; }
+.season-g.best { font-weight: 800; color: #111; }
+.g-arrow { font-weight: 400; color: #888; }
+.total-g { font-weight: 400; }
 .act-pack {
   display: flex;
   flex-direction: column;
@@ -485,7 +490,7 @@ body {
 }
 .mix-row {
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
+  grid-template-columns: 124px minmax(0, 1fr);
   gap: 8px;
   align-items: center;
   opacity: 0;
@@ -531,10 +536,16 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-width: 280px;
+  max-width: 320px;
 }
 .honor-pane .who { min-height: 64px; }
-.honor-pane .who .g { font-size: 16px; font-weight: 700; color: #111; }
+.honor-pane .who .g,
+.mix-row .who .g {
+  font-size: 13px;
+  font-weight: 400;
+  color: #333;
+  white-space: nowrap;
+}
 @keyframes act-in {
   to { opacity: 1; }
 }

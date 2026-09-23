@@ -325,7 +325,26 @@
     return `<button type="button" class="${cls}" data-act="plot" data-seat="${player.seat}" data-i="${plot.index}">${body}${overlay}</button>`;
   }
 
-  function whoCard(player, coins) {
+  function lastSeasonScores() {
+    const sheet = msg.scoreSheet || [];
+    const last = sheet[sheet.length - 1] || [];
+    const map = new Map();
+    for (const p of msg.board.players) {
+      map.set(p.seat, last[p.seat] ?? p.coins);
+    }
+    return map;
+  }
+
+  function matchTotals() {
+    const sheet = msg.scoreSheet || [];
+    const map = new Map();
+    for (const p of msg.board.players) {
+      map.set(p.seat, sheet.reduce((n, row) => n + (row[p.seat] ?? 0), 0));
+    }
+    return map;
+  }
+
+  function whoCard(player, coins, opts = {}) {
     const acting = player.isActing ? " acting" : "";
     const you = player.isYou ? " you" : "";
     const honor = (msg.honorSeats || []).includes(player.seat) ? " honor" : "";
@@ -336,7 +355,21 @@
       ? `<span class="curse-mark" title="呪いの権利">呪</span>`
       : "";
     const g = coins.get(player.seat) ?? player.coins;
-    return `<div class="who${you}${acting}${honor}"><div class="id">${esc(displayName(player))}${player.isYou ? "*" : ""}${crown}${curse}</div><div class="g">${g}G${player.isActing ? " 手番" : ""}</div></div>`;
+    const total = opts.totals ? opts.totals.get(player.seat) : undefined;
+    const isBest = opts.bestSeason != null && g === opts.bestSeason;
+    let gHtml = `${g}G${player.isActing ? " 手番" : ""}`;
+    if (total != null) {
+      gHtml = `<span class="season-g${isBest ? " best" : ""}">${g}G</span><span class="g-arrow"> → </span><span class="total-g">${total}G</span>`;
+    }
+    return `<div class="who${you}${acting}${honor}"><div class="id">${esc(displayName(player))}${player.isYou ? "*" : ""}${crown}${curse}</div><div class="g">${gHtml}</div></div>`;
+  }
+
+  function endWhoCard(player) {
+    const season = lastSeasonScores();
+    const totals = matchTotals();
+    const scores = [...season.values()];
+    const bestSeason = scores.length ? Math.max(...scores) : null;
+    return whoCard(player, season, { totals, bestSeason });
   }
 
   function seatsHtml() {
@@ -425,14 +458,13 @@
     const rows = msg.seasonLog || [];
     const last = msg.view.lastRound || Math.max(0, ...rows.map((r) => r.cells.length));
     const ranges = actionPackRanges(last);
-    const coins = shownCoins();
     const head = `<div class="end-ph"></div>${ranges.map((r) => {
       const label = r.from === r.to ? `R${r.from}` : `R${r.from}-${r.to}`;
       return `<div class="act-pack-h">${label}</div>`;
     }).join("")}`;
     const body = rows.map((row) => {
       const p = msg.board.players.find((x) => x.seat === row.seat);
-      const who = p ? whoCard(p, coins) : `<div class="who"><div class="id">席${row.seat}</div></div>`;
+      const who = p ? endWhoCard(p) : `<div class="who"><div class="id">席${row.seat}</div></div>`;
       const packs = ranges.map((r, pi) => {
         const cells = row.cells.slice(r.from - 1, r.to);
         const nodes = cells.map((v, ni) => {
@@ -485,11 +517,10 @@
   function mixHtml() {
     const rows = msg.seasonLog || [];
     const order = cropOrder();
-    const coins = shownCoins();
     const total = Math.max(1, msg.view.lastRound || 0);
     const body = rows.map((row, ri) => {
       const p = msg.board.players.find((x) => x.seat === row.seat);
-      const who = p ? whoCard(p, coins) : `<div class="who"><div class="id">席${row.seat}</div></div>`;
+      const who = p ? endWhoCard(p) : `<div class="who"><div class="id">席${row.seat}</div></div>`;
       const shares = mixShares(row.cells, order);
       const segs = shares.map((s) => {
         const pct = (s.count / total) * 100;
@@ -514,13 +545,9 @@
 
   function honorHtml() {
     const board = msg.board;
-    const sheet = msg.scoreSheet || [];
-    const totals = new Map();
-    for (const p of board.players) {
-      totals.set(p.seat, sheet.reduce((n, row) => n + (row[p.seat] ?? 0), 0));
-    }
+    const totals = matchTotals();
     const ranked = board.players.slice().sort((a, b) => (totals.get(b.seat) ?? 0) - (totals.get(a.seat) ?? 0));
-    const cards = ranked.map((p) => whoCard(p, totals)).join("");
+    const cards = ranked.map((p) => endWhoCard(p)).join("");
     return `<div class="end-log honor-pane">
       ${honorLine()}
       <div class="honor-seats">${cards}</div>
