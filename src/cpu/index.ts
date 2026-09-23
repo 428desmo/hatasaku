@@ -76,7 +76,7 @@ function scoreAction(view: PublicView, action: Action): number {
   const player = view.players.find((p) => p.seat === view.actingSeat);
   const owned = player?.plots.filter((p) => p.owned).length ?? 0;
   const cost =
-    action.target === "newLand" ? acquireCost(owned) + def.cost : def.cost;
+    action.target === "newLand" ? acquireCost(owned, view.mode) + def.cost : def.cost;
   return harvestRounds * def.baseIncome - cost * 2;
 }
 

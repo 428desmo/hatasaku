@@ -52,7 +52,7 @@ function describeAction(state: GameState, action: Action): ActionLog {
   const cropId = card?.cropId;
   if (action.target === "newLand") {
     const player = state.players[seat]!;
-    const cost = cropId ? acquireCost(ownedCount(player)) + cropDef(cropId).cost : 0;
+    const cost = cropId ? acquireCost(ownedCount(player), state.mode) + cropDef(cropId).cost : 0;
     return {
       seat,
       kind: "plant",

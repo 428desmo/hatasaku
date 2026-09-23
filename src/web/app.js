@@ -298,7 +298,7 @@
     if (!plot.owned) {
       const owned = player.plots.filter((p) => p.owned).length;
       const next = player.plots.find((p) => !p.owned);
-      const cost = [0, 1, 2, 3, 4][owned] ?? "";
+      const cost = landCosts()[owned] ?? "";
       const label = next && next.index === plot.index ? `次 ${cost}G` : "—";
       body = `<div class="nm">${label}</div>`;
     } else if (plot.kind === "ready") {
@@ -360,9 +360,6 @@
     const curse = player.curseReady
       ? `<span class="curse-mark" title="呪いの権利">👿</span>`
       : "";
-    const turn = !recap && actingNow
-      ? `<span class="turn-mark" title="手番">🖐️</span>`
-      : "";
     const g = coins.get(player.seat) ?? player.coins;
     const total = opts.totals ? opts.totals.get(player.seat) : undefined;
     const isBest = opts.bestSeason != null && g === opts.bestSeason;
@@ -376,7 +373,7 @@
     if (total != null) {
       gHtml = `<span class="season-g${isBest ? " best" : ""}">${g}G</span><span class="g-arrow"> → </span><span class="total-g">${total}G</span>`;
     }
-    return `<div class="who${you}${acting}${honor}"><div class="id">${esc(displayName(player))}${player.isYou ? "*" : ""}${crown}${peace}${shock}${curse}${turn}</div><div class="g">${gHtml}</div></div>`;
+    return `<div class="who${you}${acting}${honor}"><div class="id">${esc(displayName(player))}${player.isYou ? "*" : ""}${crown}${peace}${shock}${curse}</div><div class="g">${gHtml}</div></div>`;
   }
 
   function endWhoCard(player, recapMarks = true) {
@@ -393,6 +390,10 @@
     return `<aside class="seats">${msg.board.players.map((p) => whoCard(p, coins)).join("")}</aside>`;
   }
 
+  function landCosts() {
+    return msg.view?.mode === "advanced" ? [0, 1, 2, 4, 8, 16] : [0, 1, 2, 4, 8];
+  }
+
   function farmsHtml() {
     const coins = shownCoins();
     const walk = msg.hold === "result" && (harvestPhase === "walk" || harvestPhase === "done")
@@ -400,7 +401,7 @@
       : [];
     const shown = harvestPhase === "done" ? walk.length - 1 : harvestStep;
     return `<div class="farms">${msg.board.players.map((p) => {
-      return `<div class="farm">
+      return `<div class="farm" style="--plots:${p.plots.length}">
         ${whoCard(p, coins)}
         ${p.plots.map((plot) => {
           const cpu = cpuShow();

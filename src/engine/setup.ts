@@ -70,7 +70,7 @@ export function createGame(config: StartConfig, rng: Rng): GameState {
     kind: seat.kind,
     name: seat.name,
     coins: 0,
-    plots: emptyPlots(),
+    plots: emptyPlots(config.mode),
     ...(seat.cpuStrategyId !== undefined ? { cpuStrategyId: seat.cpuStrategyId } : {}),
   }));
   for (let i = 0; i < turnOrder.length; i++) {
@@ -79,7 +79,7 @@ export function createGame(config: StartConfig, rng: Rng): GameState {
   }
 
   return {
-    specVersion: "0.14",
+    specVersion: "0.16",
     mode: config.mode,
     seed: config.seed,
     season: config.season ?? 1,

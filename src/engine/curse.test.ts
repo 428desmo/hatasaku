@@ -27,7 +27,7 @@ const crops = ["potato", "corn", "onion", "pumpkin"] as const;
 describe("curse event", () => {
   it("is not offered in season 1", () => {
     const { state } = startForced({ mode: "basic", crops: [...crops] });
-    expect(state.specVersion).toBe("0.14");
+    expect(state.specVersion).toBe("0.16");
     expect(state.curseReadySeats).toEqual([]);
     expect(listLegalActions(state).every((a) => a.type !== "curse")).toBe(true);
   });

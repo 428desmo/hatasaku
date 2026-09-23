@@ -32,7 +32,7 @@ export function listLegalActions(state: GameState): Action[] {
 
     const unowned = nextUnownedIndex(player);
     if (unowned !== null) {
-      const cost = acquireCost(ownedCount(player)) + grow;
+      const cost = acquireCost(ownedCount(player), state.mode) + grow;
       if (player.coins >= cost) {
         actions.push({ type: "plant", marketIndex, target: "newLand" });
       }

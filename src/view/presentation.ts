@@ -103,7 +103,7 @@ function actionLabel(view: PublicView, action: Action, youSeat: number | null): 
   const name = card ? cropName(card.cropId) : "?";
   const grow = card ? cropDef(card.cropId).cost : 0;
   if (action.target === "newLand") {
-    const acq = youSeat === null ? 0 : acquireCost(ownedCount(view, youSeat));
+    const acq = youSeat === null ? 0 : acquireCost(ownedCount(view, youSeat), view.mode);
     return `${name}を新しい農地へ（取得${acq}G+栽培${grow}G=${acq + grow}G）`;
   }
   return `${name}を農地${action.target.plotIndex + 1}へ（${grow}G）`;
