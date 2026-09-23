@@ -1,9 +1,5 @@
 * { box-sizing: border-box; }
-html {
-  color-scheme: light;
-  height: 100%;
-  margin: 0;
-}
+html { color-scheme: light; }
 html, body { height: 100%; margin: 0; }
 body {
   font: 14px/1.35 ui-sans-serif, system-ui, sans-serif;
