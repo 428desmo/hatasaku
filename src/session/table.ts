@@ -30,6 +30,7 @@ import {
 } from "../view/endSummary.js";
 import { formatHarvestFigure } from "../view/harvestCopy.js";
 import { previousSeasonLeaders, previousSeasonTrailers, type HonorKind } from "../view/standings.js";
+import { trailLayout } from "../view/trailChart.js";
 import { seasonActionRows, type SeasonActionRow } from "../view/seasonLog.js";
 import { renderRoundResultHtml, renderRoundResultText } from "../view/summary.js";
 import { renderText } from "../view/text.js";
@@ -43,7 +44,7 @@ export type TableConfig = {
   seasonCount?: number;
 };
 
-export type UiHold = "intro" | "result" | "season" | "mix" | "honor" | null;
+export type UiHold = "intro" | "result" | "season" | "mix" | "trail" | "honor" | null;
 
 type HumanSlot = { seat: number; connected: boolean };
 
@@ -164,6 +165,7 @@ export class Table {
     honorKind: HonorKind;
     seasonLog: SeasonActionRow[];
     crops: typeof cropList;
+    trail: ReturnType<typeof trailLayout> | null;
     hold: UiHold;
     acked: boolean;
     ackNeed: number;
@@ -192,6 +194,7 @@ export class Table {
         honorSeats: [],
         honorKind: null,
         seasonLog: [],
+        trail: null,
         crops: cropList,
         view: {
           mode: this.config.mode,
@@ -224,6 +227,7 @@ export class Table {
     if (this.hold === "result") view.message = "内容を確認して［次へ］を押してください。";
     if (this.hold === "season") view.message = "シーズンが終わりました。行動を見て［次へ］。";
     if (this.hold === "mix") view.message = "今シーズンの手の内訳を見て［次へ］。";
+    if (this.hold === "trail") view.message = "総合点の推移を見て［次へ］。";
     if (this.hold === "honor") view.message = "［もう一度］で同じ設定の新しいマッチを始めます。";
     if (this.hold === "intro") view.message = "今シーズンの作物を見て［開始］。";
     const you = seat === "spectator" ? null : seat;
@@ -231,7 +235,8 @@ export class Table {
     const names = this.state.players.map((p) => p.name);
     const seasonDone = this.state.phase === "gameOver";
     const matchDone = this.matchOver;
-    const recap = this.hold === "season" || this.hold === "mix" || this.hold === "honor";
+    const recap =
+      this.hold === "season" || this.hold === "mix" || this.hold === "trail" || this.hold === "honor";
     const showSeasonSummary = recap || matchDone;
     const sheet = showSeasonSummary ? this.scoreSheet : [];
     const winners = matchDone || this.hold === "honor" ? this.matchWinnerSeats : this.state.winnerSeats;
@@ -266,6 +271,7 @@ export class Table {
       ...this.standings(),
       seasonLog: seasonActionRows(this.state),
       crops: cropList,
+      trail: this.hold === "trail" ? trailLayout(this.scoreSheet) : null,
       hold: this.hold,
       acked,
       ackNeed,
@@ -279,6 +285,9 @@ export class Table {
     const n = this.state.players.length;
     if (this.hold === "honor" || this.matchOver) {
       return { crownSeats: [], honorSeats: [...this.matchWinnerSeats], honorKind: "match" };
+    }
+    if (this.hold === "trail") {
+      return { crownSeats: [], honorSeats: [], honorKind: null };
     }
     const recap = this.hold === "season" || this.hold === "mix";
     return {
@@ -352,6 +361,10 @@ export class Table {
         this.pauseForIntro();
         return;
       }
+      this.hold = "trail";
+      return;
+    }
+    if (this.hold === "trail") {
       this.hold = "honor";
       return;
     }

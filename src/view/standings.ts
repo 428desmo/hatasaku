@@ -6,6 +6,14 @@ export function topSeats(scores: number[]): number[] {
   return scores.flatMap((n, seat) => (n === best ? [seat] : []));
 }
 
+export function bottomSeats(scores: number[]): number[] {
+  if (scores.length === 0) return [];
+  const worst = Math.min(...scores);
+  const best = Math.max(...scores);
+  if (worst === best) return [];
+  return scores.flatMap((n, seat) => (n === worst ? [seat] : []));
+}
+
 export function previousSeasonTotals(
   scoreSheet: number[][],
   season: number,
