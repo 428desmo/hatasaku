@@ -37,6 +37,11 @@ import {
   formatSeasonIntroText,
   type SeasonIntroAnnounce,
 } from "../view/seasonIntro.js";
+import {
+  buildHonorAnnounce,
+  formatHonorAnnounceText,
+  type HonorAnnounce,
+} from "../view/honorAnnounce.js";
 import { renderRoundResultHtml, renderRoundResultText } from "../view/summary.js";
 import { renderText } from "../view/text.js";
 
@@ -206,6 +211,7 @@ export class Table {
     trail: ReturnType<typeof trailLayout> | null;
     cpuShow: CpuShow | null;
     seasonIntro: SeasonIntroAnnounce | null;
+    honorAnnounce: HonorAnnounce | null;
     hold: UiHold;
     acked: boolean;
     ackNeed: number;
@@ -237,6 +243,7 @@ export class Table {
         trail: null,
         cpuShow: null,
         seasonIntro: null,
+        honorAnnounce: null,
         crops: cropList,
         view: {
           mode: this.config.mode,
@@ -276,11 +283,41 @@ export class Table {
             multiSeason: this.seasonCount > 1,
           })
         : null;
+    const standing = this.standings();
+    const honorAnnounce = (() => {
+      if (this.hold === "season" || this.hold === "mix") {
+        return buildHonorAnnounce({
+          kind: "season",
+          winnerNames: standing.honorSeats.map((s) => this.state!.players[s]?.name ?? `席${s}`),
+        });
+      }
+      if (this.hold === "trail" || this.hold === "honor" || this.matchOver) {
+        return buildHonorAnnounce({
+          kind: "match",
+          winnerNames: this.matchWinnerSeats.map((s) => this.state!.players[s]?.name ?? `席${s}`),
+        });
+      }
+      return null;
+    })();
     if (this.hold === "result") view.message = "内容を確認して［次へ］を押してください。";
-    if (this.hold === "season") view.message = "シーズンが終わりました。行動を見て［次へ］。";
-    if (this.hold === "mix") view.message = "今シーズンの手の内訳を見て［次へ］。";
-    if (this.hold === "trail") view.message = "総合点の推移を見て［次へ］。";
-    if (this.hold === "honor") view.message = "［もう一度］で同じ設定の新しいマッチを始めます。";
+    if (this.hold === "season" || this.hold === "mix") {
+      view.message = honorAnnounce
+        ? `${formatHonorAnnounceText(honorAnnounce)}\n\n確認したら［次へ］。`
+        : "シーズンが終わりました。行動を見て［次へ］。";
+    }
+    if (this.hold === "trail") {
+      view.message = honorAnnounce
+        ? `${formatHonorAnnounceText(honorAnnounce)}\n\n推移を見て［次へ］。`
+        : "総合点の推移を見て［次へ］。";
+    }
+    if (this.hold === "honor") {
+      view.message = honorAnnounce
+        ? `${formatHonorAnnounceText(honorAnnounce)}\n\n［もう一度］で同じ設定の新しいマッチを始めます。`
+        : "［もう一度］で同じ設定の新しいマッチを始めます。";
+    }
+    if (!this.hold && this.matchOver && honorAnnounce) {
+      view.message = formatHonorAnnounceText(honorAnnounce);
+    }
     if (this.hold === "intro" && seasonIntro) {
       view.message = `${formatSeasonIntroText(seasonIntro)}\n\n確認したら［開始］。`;
     }
@@ -322,12 +359,13 @@ export class Table {
       lastPayouts: this.state.lastPayouts,
       scoreSheet: this.scoreSheet,
       matchWinnerSeats: this.matchWinnerSeats,
-      ...this.standings(),
+      ...standing,
       seasonLog: seasonActionRows(this.state),
       crops: cropList,
       trail: this.hold === "trail" ? trailLayout(this.scoreSheet) : null,
       cpuShow: this.cpuShow,
       seasonIntro,
+      honorAnnounce,
       hold: this.hold,
       acked,
       ackNeed,

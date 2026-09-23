@@ -495,6 +495,28 @@ body {
   font-size: 14px;
   font-weight: 700;
 }
+.honor-announce {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid #d4c48a;
+  background: #fffbeb;
+}
+.honor-announce-lead {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+}
+.honor-announce-award {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #111;
+  line-height: 1.35;
+}
 .layout.is-end {
   grid-template-columns: minmax(0, 1fr);
   align-content: start;
