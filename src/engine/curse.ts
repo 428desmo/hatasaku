@@ -91,6 +91,11 @@ export function visibleCurses(state: GameState, viewerSeat: number | "spectator"
   });
 }
 
+export function hiddenCurses(state: GameState, viewerSeat: number | "spectator"): CurseEffect[] {
+  const visible = visibleCurses(state, viewerSeat);
+  return state.curses.filter((c) => !visible.includes(c));
+}
+
 export function hiddenCurseCount(state: GameState, viewerSeat: number | "spectator"): number {
-  return state.curses.length - visibleCurses(state, viewerSeat).length;
+  return hiddenCurses(state, viewerSeat).length;
 }

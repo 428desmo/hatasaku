@@ -54,6 +54,7 @@ describe("describeBoardEvents", () => {
     expect(lines.previewLine).toContain("R4 コマツナ -2（R4〜R5）");
     expect(lines.previewLine).not.toContain("R5 ネギ");
     expect(lines.harvestEvents[0]?.span).toBe("R1-2");
+    expect(lines.harvestEvents[0]?.shortName).toBe("ラディ");
     expect(lines.harvestEvents[1]?.span).toBe("R2-3");
     expect(lines.previewEvents[0]?.span).toBe("R3-4");
     expect(lines.previewEvents[1]?.span).toBe("R4-5");

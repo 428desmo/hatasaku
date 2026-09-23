@@ -194,6 +194,7 @@ export type PublicView = {
   cropIdsInGame: CropId[];
   curseReadySeats: number[];
   curses: CurseEffect[];
+  hiddenCurses: { bySeat: number }[];
   hiddenCurseCount: number;
   legalActions?: Action[];
   message?: string | null;

@@ -1,8 +1,9 @@
-import { cropName, formatDelta } from "../engine/catalog.js";
+import { cropName, cropShortName, formatDelta } from "../engine/catalog.js";
 import { CURSE_DELTA, eventEffectEnd, type PublicEvent, type PublicView } from "../engine/types.js";
 
 export type EventChip = {
   cropName: string;
+  shortName: string;
   cropId: string;
   delta: number;
   text: string;
@@ -12,6 +13,7 @@ export type EventChip = {
   from: number;
   to: number;
   kind?: "event" | "curse" | "curse-hidden";
+  bySeat?: number;
 };
 
 export type BoardEvents = {
@@ -61,6 +63,7 @@ export function describeBoardEvents(view: PublicView): BoardEvents {
     const { to, span } = windowOf(from, last);
     harvestEvents.push({
       cropName: cropName(e.cropId),
+      shortName: cropShortName(e.cropId),
       cropId: e.cropId,
       delta: e.delta,
       text: `${body(e)}（継続・${spanPhrase(from, to)}）`,
@@ -79,6 +82,7 @@ export function describeBoardEvents(view: PublicView): BoardEvents {
       const { to, span } = windowOf(from, last);
       harvestEvents.push({
         cropName: cropName(left.cropId),
+        shortName: cropShortName(left.cropId),
         cropId: left.cropId,
         delta: left.delta,
         text: `${body(left)}（${spanPhrase(from, to)}）`,
@@ -98,6 +102,7 @@ export function describeBoardEvents(view: PublicView): BoardEvents {
     return [
       {
         cropName: cropName(e.cropId),
+        shortName: cropShortName(e.cropId),
         cropId: e.cropId,
         delta: e.delta,
         text: `R${from} ${body(e)}（${spanPhrase(from, to)}）`,
@@ -119,6 +124,7 @@ export function describeBoardEvents(view: PublicView): BoardEvents {
       const { to, span } = clipEventWindow(c.from, c.to, last);
       return {
         cropName: cropName(c.cropId),
+        shortName: cropShortName(c.cropId),
         cropId: c.cropId,
         delta: CURSE_DELTA,
         text: `${cropName(c.cropId)} ${formatDelta(CURSE_DELTA)}（呪い・${spanPhrase(c.from, to)}）`,
@@ -128,11 +134,13 @@ export function describeBoardEvents(view: PublicView): BoardEvents {
         from: c.from,
         to,
         kind: "curse" as const,
+        bySeat: c.bySeat,
       };
     });
-  for (let i = 0; i < (view.hiddenCurseCount ?? 0); i++) {
+  for (const hidden of view.hiddenCurses ?? []) {
     curseEvents.push({
       cropName: "伏せ",
+      shortName: "伏せ",
       cropId: "",
       delta: 0,
       text: "呪い（伏せ）",
@@ -142,6 +150,7 @@ export function describeBoardEvents(view: PublicView): BoardEvents {
       from: R,
       to: R,
       kind: "curse-hidden",
+      bySeat: hidden.bySeat,
     });
   }
   return { harvestEvents, previewEvents, curseEvents, harvestLine, previewLine };

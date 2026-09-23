@@ -76,6 +76,7 @@ describe("curse event", () => {
     const other = getPublicView(state, 1);
     expect(other.curses).toEqual([]);
     expect(other.hiddenCurseCount).toBe(1);
+    expect(other.hiddenCurses).toEqual([{ bySeat: 0 }]);
 
     state = replaceMarket(state, ["potato", "onion", "radish"]);
     state = plant(state, rng, { type: "plant", marketIndex: 0, target: "newLand" });
