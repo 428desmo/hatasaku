@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getPublicView } from "../engine/index.js";
 import { passAllUntil, startForced } from "../engine/testkit.js";
-import { describeBoardEvents } from "./eventCopy.js";
+import { clipEventWindow, describeBoardEvents } from "./eventCopy.js";
 
 describe("describeBoardEvents", () => {
   it("treats the leftmost card as this round's harvest event", () => {
@@ -57,5 +57,22 @@ describe("describeBoardEvents", () => {
     expect(lines.harvestEvents[1]?.span).toBe("R2-3");
     expect(lines.previewEvents[0]?.span).toBe("R3-4");
     expect(lines.previewEvents[1]?.span).toBe("R4-5");
+  });
+
+  it("clips event spans that would run past the last round", () => {
+    expect(clipEventWindow(18, 19, 18)).toEqual({ from: 18, to: 18, span: "R18" });
+    expect(clipEventWindow(17, 18, 18)).toEqual({ from: 17, to: 18, span: "R17-18" });
+    const { state } = startForced({
+      mode: "advanced",
+      crops: ["radish", "corn", "komatsuna", "asparagus"],
+    });
+    const left = state.event.row[0];
+    state.round = 18;
+    if (left) state.activatedRound[left.instanceId] = 18;
+    const lines = describeBoardEvents(getPublicView(state, "spectator"));
+    const now = lines.harvestEvents.find((e) => !e.lingering);
+    expect(now?.span).toBe("R18");
+    expect(now?.to).toBe(18);
+    expect(lines.previewEvents.every((e) => e.from <= 18)).toBe(true);
   });
 });

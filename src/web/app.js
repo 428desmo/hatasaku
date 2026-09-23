@@ -270,10 +270,9 @@
       const sign = e.delta > 0 ? "plus" : e.delta < 0 ? "minus" : "";
       const d = e.delta > 0 ? `+${e.delta}` : `${e.delta}`;
       return `<article class="event${e.live ? "" : " preview"}${e.zone === "呪い" ? " curse" : ""}">
-        <div class="zone">${esc(e.zone)}</div>
+        <div class="zone">${esc(e.zone)}　${esc(e.span || `R${e.from}-${e.to}`)}</div>
         <div class="name">${esc(e.cropName)}</div>
         <div class="delta ${sign}">${d}</div>
-        <div class="span">${esc(e.span || `R${e.from}-${e.to}`)}</div>
       </article>`;
     }).join("");
     return `<div class="events">${inner}<div class="deck">山${msg.view.eventDeckCount}</div></div>`;
@@ -299,13 +298,10 @@
       body = `<div class="nm">${esc(plot.shortName)}</div><div class="inc">${plot.base}/${plot.floor}</div><div class="pip">空</div>`;
     } else if (plot.kind === "wait") {
       body = `<div class="nm">${esc(plot.shortName)}</div><div class="inc">${plot.base}/${plot.floor}</div>
-        <div class="pip">待 ${pips(plot.white, "○")}</div>
-        <div class="pip future">収 ${pips(plot.harvest, "☆")}</div>
-        ${plot.cooldown ? `<div class="pip future">休 ${pips(plot.cooldown, "▽")}</div>` : ""}`;
+        <div class="pip">待 ${pips(plot.white, "○")}</div>`;
     } else if (plot.kind === "harvest") {
       body = `<div class="nm">${esc(plot.shortName)}</div><div class="inc">${plot.base}/${plot.floor}</div>
-        <div class="pip">収 ${pips(plot.green, "★")}</div>
-        ${plot.cooldown ? `<div class="pip future">休 ${pips(plot.cooldown, "▽")}</div>` : ""}`;
+        <div class="pip">収 ${pips(plot.green, "★")}</div>`;
     } else if (plot.kind === "cooldown") {
       body = `<div class="nm">${esc(plot.shortName)}</div>
         <div class="pip">休 ${pips(plot.red, "▼")}</div>`;
@@ -415,7 +411,7 @@
         <div class="stat">${esc(harv)}</div>
         <div class="stat">${esc(cool)}</div>
         <div class="stat">基本${c.base}　最低${c.floor}</div>
-        <div class="type">${esc(c.typeLabel)}${dim ? "　所持不足または不可" : ""}</div>
+        ${dim ? `<div class="type">所持不足または不可</div>` : ""}
         ${assist}
       </button>`;
     }).join("");
@@ -670,7 +666,7 @@
       <section class="hand">
         ${eventHtml()}
         ${seasonCropsHtml()}
-        <div class="legend">待○　収★　休▼　灰☆▽はこれから　基本/最低</div>
+        <div class="legend">待○　収★　休▼　基本/最低</div>
         ${right}
       </section>
     </div>`;
