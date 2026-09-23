@@ -140,6 +140,10 @@
     return events;
   }
 
+  function cpuShow() {
+    return msg.cpuShow || null;
+  }
+
   function displayName(p) {
     if (p.isYou) return "あなた";
     return p.name.replace("プレイヤー", "P");
@@ -281,7 +285,9 @@
 
   function miniHtml(player, plot, coins, plantable, harvestHit) {
     const sel = plantable || harvestHit || (peek && peek.seat === player.seat && peek.index === plot.index);
-    const dim = selectedMarket != null && !plantable;
+    const cpu = cpuShow();
+    const dim = (selectedMarket != null && !plantable)
+      || (cpu && cpu.plotIndex != null && !(cpu.seat === player.seat && cpu.plotIndex === plot.index));
     const cls = [
       "mini",
       !plot.owned || plot.kind === "cooldown" || plot.kind === "ready" ? "dash" : "",
@@ -342,17 +348,19 @@
   }
 
   function whoCard(player, coins, opts = {}) {
-    const acting = player.isActing ? " acting" : "";
     const you = player.isYou ? " you" : "";
     const honor = (msg.honorSeats || []).includes(player.seat) ? " honor" : "";
     const recap = !!opts.recapMarks;
+    const cpu = cpuShow();
+    const actingNow = cpu ? cpu.seat === player.seat : player.isActing;
+    const acting = actingNow ? " acting" : "";
     const crown = !recap && (msg.crownSeats || []).includes(player.seat)
       ? `<span class="crown" title="これまでの獲得コイン首位">👑</span>`
       : "";
     const curse = player.curseReady
       ? `<span class="curse-mark" title="呪いの権利">👿</span>`
       : "";
-    const turn = !recap && player.isActing
+    const turn = !recap && actingNow
       ? `<span class="turn-mark" title="手番">🖐️</span>`
       : "";
     const g = coins.get(player.seat) ?? player.coins;
@@ -395,7 +403,9 @@
       return `<div class="farm">
         ${whoCard(p, coins)}
         ${p.plots.map((plot) => {
-          const plantable = selectedMarket != null && p.isYou && !!plotAction(selectedMarket, plot.index);
+          const cpu = cpuShow();
+          const plantable = (selectedMarket != null && p.isYou && !!plotAction(selectedMarket, plot.index))
+            || !!(cpu && cpu.seat === p.seat && cpu.plotIndex === plot.index);
           const harvestHit = walk.find((h, i) => i <= shown && h.seat === p.seat && h.plotIndex === plot.index) || null;
           return miniHtml(p, plot, coins, plantable, harvestHit);
         }).join("")}
@@ -406,9 +416,10 @@
   function marketHtml() {
     const cards = msg.board.market || [];
     const isTurn = msg.view.actingSeat === youSeat && !msg.hold;
+    const cpu = cpuShow();
     const items = cards.map((c, i) => {
-      const dim = !c.enabled;
-      const sel = selectedMarket === i;
+      const dim = !c.enabled && !(cpu && cpu.marketIndex === i);
+      const sel = selectedMarket === i || (cpu && cpu.marketIndex === i);
       const wait = pipLine("待", c.wait, "○", "なし");
       const harv = pipLine("収", c.harvest, "★");
       const cool = c.cooldown ? pipLine("休", c.cooldown, "△") : "休 なし";
@@ -417,7 +428,7 @@
         const lines = [c.harvestOutlook, ...(c.eventLines || [])].filter(Boolean);
         assist = `<div class="overlay"><b>学習</b>${lines.map((ln) => `<div>${esc(ln)}</div>`).join("")}</div>`;
       }
-      return `<button type="button" class="market-card${dim ? " dim" : ""}${sel ? " sel" : ""}" data-act="market" data-i="${i}" ${dim ? "disabled" : ""}>
+      return `<button type="button" class="market-card${dim ? " dim" : ""}${sel ? " sel" : ""}" data-act="market" data-i="${i}" ${!isTurn || dim ? "disabled" : ""}>
         <div class="head"><b>${esc(c.cropName)}</b><span class="cost">${c.cost}G</span></div>
         <div class="stat">${esc(wait)}</div>
         <div class="stat">${esc(harv)}</div>
@@ -662,11 +673,12 @@
     return `<div class="season-crops">${crops.map((c, i) => {
       const open = cropPeek === i;
       const taken = cursePick && !curseIds.has(c.id);
+      const cpuCurse = cpuShow() && cpuShow().cropId === c.id;
       const overlay = open && !cursePick
         ? `<div class="overlay crop-full ${i < 2 ? "left" : "right"}" data-act="close-crop">${cropFullInner(c)}</div>`
         : "";
       const act = cursePick ? (taken ? "noop" : "curse-crop") : "crop";
-      return `<button type="button" class="crop-mini${open || (cursePick && !taken) ? " sel" : ""}${cursePick && !taken ? " curse-pick" : ""}${taken ? " dim" : ""}" data-act="${act}" data-i="${i}" data-id="${esc(c.id)}">
+      return `<button type="button" class="crop-mini${open || cpuCurse || (cursePick && !taken) ? " sel" : ""}${cursePick && !taken ? " curse-pick" : ""}${taken ? " dim" : ""}" data-act="${act}" data-i="${i}" data-id="${esc(c.id)}">
         <div class="head"><b>${esc(c.shortName || c.name)}</b><span class="cost">${c.cost}G</span></div>
         <div class="stat">${c.wait ? `待 ${pips(c.wait, "○")}` : "待 なし"}</div>
         <div class="stat">${taken ? "今シーズン対象済" : `収 ${pips(c.harvest, "★")} ${c.base}/${c.floor}`}</div>
@@ -720,13 +732,7 @@
     if (msg.hold === "honor" || msg.over) {
       return `<div class="layout is-end">${honorHtml()}</div>`;
     }
-    const waiting = !msg.hold && view.actingSeat !== youSeat && view.phase === "turn";
-    const actor = board.players.find((p) => p.isActing);
-    const right = msg.hold === "result"
-      ? ""
-      : waiting
-        ? `<div class="waitbox">${esc(actor ? actor.name + " の手番…" : "待ち")}</div>`
-        : `${marketHtml()}`;
+    const right = msg.hold === "result" ? "" : `${marketHtml()}`;
     return `<div class="layout">
       ${harvestOverlay()}
       <section>${farmsHtml()}</section>

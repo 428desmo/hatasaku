@@ -42,7 +42,18 @@ export type TableConfig = {
   cpuStrategyId: string;
   seed: string;
   seasonCount?: number;
+  paceCpu?: boolean;
 };
+
+export type CpuShow = {
+  seat: number;
+  stage: "turn" | "market" | "plot" | "coins" | "curse";
+  marketIndex: number | null;
+  plotIndex: number | null;
+  cropId: string | null;
+};
+
+export const CPU_STEP_MS = 200;
 
 export type UiHold = "intro" | "result" | "season" | "mix" | "trail" | "honor" | null;
 
@@ -64,6 +75,9 @@ export class Table {
   private seats: SeatConfig[] = [];
   private matchSeed: string;
   private rematchCount = 0;
+  private pendingCpu: Action | null = null;
+  private cpuStage: CpuShow["stage"] | null = null;
+  private cpuActorSeat: number | null = null;
 
   constructor(config: TableConfig) {
     const total = config.humanCount + config.cpuCount;
@@ -128,6 +142,7 @@ export class Table {
     this.startSeat = this.rng.nextInt(n);
     this.scoreSheet = [];
     this.matchWinnerSeats = [];
+    this.clearCpuShow();
     this.state = this.createSeasonState();
     this.pauseForIntro();
   }
@@ -138,6 +153,7 @@ export class Table {
     if (this.state.phase === "gameOver") throw new IllegalActionError("game over");
     if (this.state.actingSeat !== seat) throw new IllegalActionError("not your turn");
     this.state = applyPlayerAction(this.state, action, this.rng);
+    if (this.config.paceCpu) return;
     this.flushCpus();
   }
 
@@ -166,6 +182,7 @@ export class Table {
     seasonLog: SeasonActionRow[];
     crops: typeof cropList;
     trail: ReturnType<typeof trailLayout> | null;
+    cpuShow: CpuShow | null;
     hold: UiHold;
     acked: boolean;
     ackNeed: number;
@@ -195,6 +212,7 @@ export class Table {
         honorKind: null,
         seasonLog: [],
         trail: null,
+        cpuShow: null,
         crops: cropList,
         view: {
           mode: this.config.mode,
@@ -272,6 +290,7 @@ export class Table {
       seasonLog: seasonActionRows(this.state),
       crops: cropList,
       trail: this.hold === "trail" ? trailLayout(this.scoreSheet) : null,
+      cpuShow: this.cpuShow,
       hold: this.hold,
       acked,
       ackNeed,
@@ -348,7 +367,7 @@ export class Table {
     if (!this.state || !this.hold) return;
     if (this.hold === "intro") {
       this.hold = null;
-      this.flushCpus();
+      if (!this.config.paceCpu) this.flushCpus();
       return;
     }
     if (this.hold === "season") {
@@ -377,11 +396,129 @@ export class Table {
       this.state = applyEventUpdate(this.state, this.rng);
       this.state.phase = "turn";
       this.hold = null;
-      this.flushCpus();
+      if (!this.config.paceCpu) this.flushCpus();
       return;
     }
     this.recordSeason();
     this.hold = "season";
+  }
+
+  get cpuShow(): CpuShow | null {
+    if (this.cpuStage == null || this.cpuActorSeat == null) return null;
+    const action = this.pendingCpu;
+    const plant = action?.type === "plant" ? action : null;
+    const showMarket = this.cpuStage === "market" || this.cpuStage === "plot";
+    const showPlot = this.cpuStage === "plot";
+    return {
+      seat: this.cpuActorSeat,
+      stage: this.cpuStage,
+      marketIndex: plant && showMarket ? plant.marketIndex : null,
+      plotIndex: plant && showPlot ? this.plotIndexFor(this.cpuActorSeat, plant) : null,
+      cropId: action?.type === "curse" && this.cpuStage === "curse" ? action.cropId : null,
+    };
+  }
+
+  cpuTick(): boolean {
+    if (!this.config.paceCpu) {
+      this.flushCpus();
+      return false;
+    }
+    if (!this.state || this.hold) {
+      this.clearCpuShow();
+      return false;
+    }
+    if (this.state.phase === "gameOver") {
+      this.clearCpuShow();
+      this.recordSeason();
+      if (this.seasonIndex < this.seasonCount) {
+        this.beginNextSeason();
+        this.pauseForIntro();
+      }
+      return false;
+    }
+    if (this.state.phase === "income") {
+      this.clearCpuShow();
+      this.state = applyHarvest(this.state);
+      this.hold = "result";
+      return false;
+    }
+    if (this.state.phase !== "turn" || this.state.actingSeat === null) {
+      this.clearCpuShow();
+      return false;
+    }
+    const actor = this.state.players[this.state.actingSeat];
+    if (!actor || actor.kind !== "cpu") {
+      this.clearCpuShow();
+      return false;
+    }
+    if (this.cpuStage === "coins") {
+      this.clearCpuShow();
+      return this.cpuTick();
+    }
+    if (!this.pendingCpu) {
+      this.armCpu();
+      return true;
+    }
+    const action = this.pendingCpu;
+    if (action.type === "plant") {
+      if (this.cpuStage === "turn") {
+        this.cpuStage = "market";
+        return true;
+      }
+      if (this.cpuStage === "market") {
+        this.cpuStage = "plot";
+        return true;
+      }
+      if (this.cpuStage === "plot") {
+        this.commitCpu();
+        this.cpuStage = "coins";
+        return true;
+      }
+    } else if (action.type === "curse") {
+      if (this.cpuStage === "turn") {
+        this.cpuStage = "curse";
+        return true;
+      }
+      this.commitCpu();
+      return this.cpuTick();
+    } else {
+      this.commitCpu();
+      return this.cpuTick();
+    }
+    this.clearCpuShow();
+    return false;
+  }
+
+  private armCpu(): void {
+    if (!this.state || this.state.actingSeat === null) return;
+    const actor = this.state.players[this.state.actingSeat];
+    if (!actor || actor.kind !== "cpu") return;
+    const view = getPublicView(this.state, actor.seat);
+    this.pendingCpu = chooseById(actor.cpuStrategyId, view, this.cpuRng);
+    this.cpuActorSeat = actor.seat;
+    this.cpuStage = "turn";
+  }
+
+  private commitCpu(): void {
+    if (!this.state || !this.pendingCpu) return;
+    try {
+      this.state = applyPlayerAction(this.state, this.pendingCpu, this.rng);
+    } catch {
+      this.state = applyPlayerAction(this.state, { type: "pass" }, this.rng);
+    }
+    this.pendingCpu = null;
+  }
+
+  private plotIndexFor(seat: number, action: Extract<Action, { type: "plant" }>): number {
+    if (action.target !== "newLand") return action.target.plotIndex;
+    const next = this.state?.players[seat]?.plots.find((plot) => !plot.owned);
+    return next?.index ?? 0;
+  }
+
+  private clearCpuShow(): void {
+    this.pendingCpu = null;
+    this.cpuStage = null;
+    this.cpuActorSeat = null;
   }
 
   private rematch(): void {
