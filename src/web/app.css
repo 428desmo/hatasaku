@@ -120,8 +120,8 @@ body {
   text-align: center;
 }
 @media (max-width: 759px) {
-  .event .name-full { display: none; }
-  .event .name-short { display: block; }
+  .events.has-curse .event .name-full { display: none; }
+  .events.has-curse .event .name-short { display: block; }
   .event .name, .event .zone { white-space: nowrap; }
   .deck {
     width: 22px;

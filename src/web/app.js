@@ -290,7 +290,8 @@
       </article>`;
     }).join("");
     const deck = msg.view.eventDeckCount;
-    return `<div class="events">${inner}<div class="deck"><span class="lab">山</span><span class="n">${deck}</span></div></div>`;
+    const hasCurse = cards.some((e) => e.zone === "呪い");
+    return `<div class="events${hasCurse ? " has-curse" : ""}">${inner}<div class="deck"><span class="lab">山</span><span class="n">${deck}</span></div></div>`;
   }
 
   function miniHtml(player, plot, coins, plantable, harvestHit) {
