@@ -37,8 +37,9 @@ export function previousSeasonTrailers(
   const prior = scoreSheet.slice(0, season - 1);
   if (prior.length === 0) return [];
   const totals = previousSeasonTotals(scoreSheet, season, playerCount);
-  const worst = Math.min(...totals);
   const best = Math.max(...totals);
-  if (worst === best) return [];
-  return totals.flatMap((n, seat) => (n === worst ? [seat] : []));
+  const rest = totals.flatMap((n, seat) => (n === best ? [] : [{ n, seat }]));
+  if (rest.length === 0) return [];
+  const worst = Math.min(...rest.map((x) => x.n));
+  return rest.filter((x) => x.n === worst).map((x) => x.seat);
 }
