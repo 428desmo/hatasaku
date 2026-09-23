@@ -26,7 +26,7 @@ describe("buildSeasonIntroAnnounce", () => {
     expect(a.curse).toBeNull();
   });
 
-  it("adds curse copy only for multi-season holders", () => {
+  it("adds short or full curse copy", () => {
     const none = buildSeasonIntroAnnounce({
       cropIds: ["radish", "komatsuna", "potato", "corn"],
       playerNames: ["Alice", "Bob", "Carol"],
@@ -35,18 +35,26 @@ describe("buildSeasonIntroAnnounce", () => {
     });
     expect(none.curse).toBeNull();
 
-    const yes = buildSeasonIntroAnnounce({
+    const full = buildSeasonIntroAnnounce({
       cropIds: ["radish", "komatsuna", "potato", "corn"],
       playerNames: ["Alice", "Bob", "Carol"],
       curseReadySeats: [2],
       multiSeason: true,
+      curseDetail: "full",
     });
-    expect(yes.curse?.recipientsLead).toBe("Carolが「呪い」の権利を得ました。");
-    expect(yes.curse?.encouragement).toContain("頑張って");
-    expect(yes.curse?.whatIs).toContain("作物から1種類");
+    expect(full.curse?.detail).toBe("full");
+    expect(full.curse?.encouragement).toContain("［呪い］");
+    expect(formatSeasonIntroText(full)).toContain("作物から1種類");
 
-    const text = formatSeasonIntroText(yes);
-    expect(text).toContain("Carolが「呪い」の権利を得ました。");
-    expect(text).toContain("・ラディッシュ");
+    const short = buildSeasonIntroAnnounce({
+      cropIds: ["radish", "komatsuna", "potato", "corn"],
+      playerNames: ["Alice", "Bob", "Carol"],
+      curseReadySeats: [2],
+      multiSeason: true,
+      curseDetail: "short",
+    });
+    expect(short.curse?.detail).toBe("short");
+    expect(formatSeasonIntroText(short)).not.toContain("作物から1種類");
+    expect(formatSeasonIntroText(short)).toContain("［呪い］");
   });
 });

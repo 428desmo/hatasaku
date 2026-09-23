@@ -65,6 +65,8 @@ function sendView(ws: WebSocket, seat: number): void {
       cpuShow: packed.cpuShow,
       seasonIntro: packed.seasonIntro,
       honorAnnounce: packed.honorAnnounce,
+      finalRoundTip: packed.finalRoundTip,
+      proxyNote: packed.proxyNote,
       actions: packed.hold ? [] : packed.actions.map((a) => ({ ...a.action, label: a.label })),
       hold: packed.hold,
       acked: packed.acked,

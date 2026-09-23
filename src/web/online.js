@@ -202,7 +202,12 @@
         <h1 class="lobby-title">ロビー</h1>
         <p class="lobby-code">コード <strong>${esc(room.code)}</strong></p>
         <p class="lobby-share"><input readonly value="${esc(shareUrl(room.code))}" id="ol-share" /><button type="button" data-ol="copy">コピー</button></p>
-        <p class="lobby-window">${room.joinOpen ? `入場あと ${esc(formatMs(room.joinRemainingMs))}（空き ${empty}）` : "入場窓終了（再接続のみ）"}</p>
+        <p class="lobby-window">${
+      room.joinOpen
+        ? `入場あと ${esc(formatMs(room.joinRemainingMs))}で締切（その後は新規参加不可）`
+        : "入場窓終了（再接続のみ）"
+    }</p>
+    <p class="lobby-cpu-note">空き ${empty} → 開始時は CPU が入ります（人間 ${members.length} / ${s.playerCount}）</p>
         <div class="err">${esc(errText)}</div>
         <h2 class="lobby-h2">参加者</h2>
         <ul class="lobby-members">${memberList || "<li>（なし）</li>"}</ul>
