@@ -135,6 +135,49 @@ describe("table seats", () => {
     throw new Error("did not reach mix");
   });
 
+  it("starts the same settings again after every human presses rematch", () => {
+    const table = new Table({
+      mode: "basic",
+      humanCount: 2,
+      cpuCount: 1,
+      cpuStrategyId: "irr",
+      seed: "rematch-ack",
+      seasonCount: 1,
+    });
+    expect(table.assignHuman()).toBe(0);
+    expect(table.assignHuman()).toBe(1);
+    for (let i = 0; i < 8000; i++) {
+      if (table.hold === "honor") break;
+      if (table.hold) {
+        table.nextFromSeat(0);
+        table.nextFromSeat(1);
+        continue;
+      }
+      const actor = table.state?.actingSeat;
+      if (actor === 0 || actor === 1) table.applyFromSeat(actor, { type: "pass" });
+      else throw new Error(`stuck acting=${actor} hold=${table.hold}`);
+    }
+    expect(table.hold).toBe("honor");
+    expect(table.matchOver).toBe(true);
+    const mode = table.config.mode;
+    const seasons = table.seasonCount;
+    table.nextFromSeat(0);
+    expect(table.hold).toBe("honor");
+    expect(table.viewFor(0).acked).toBe(true);
+    expect(table.viewFor(1).acked).toBe(false);
+    expect(table.matchOver).toBe(true);
+    table.nextFromSeat(1);
+    expect(table.hold).toBe("intro");
+    expect(table.matchOver).toBe(false);
+    expect(table.seasonIndex).toBe(1);
+    expect(table.scoreSheet).toEqual([]);
+    expect(table.state?.mode).toBe(mode);
+    expect(table.state?.seasonCount).toBe(seasons);
+    expect(table.state?.round).toBe(1);
+    expect(table.state?.seed).toBe("rematch-ack-r1");
+    expect(table.humanSeats.every((h) => h.connected)).toBe(true);
+  });
+
   it("keeps turn order within a season and shifts start by one next season", () => {
     const table = new Table({
       mode: "basic",

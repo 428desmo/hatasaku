@@ -548,10 +548,13 @@
     const totals = matchTotals();
     const ranked = board.players.slice().sort((a, b) => (totals.get(b.seat) ?? 0) - (totals.get(a.seat) ?? 0));
     const cards = ranked.map((p) => endWhoCard(p)).join("");
+    const again = msg.acked
+      ? `<button type="button" class="next" disabled>確認済み（${msg.ackGot}/${msg.ackNeed}）</button>`
+      : `<button type="button" class="next" data-act="next">${msg.ackNeed > 1 ? `もう一度（${msg.ackGot}/${msg.ackNeed}）` : "もう一度"}</button>`;
     return `<div class="end-log honor-pane">
       ${honorLine()}
       <div class="honor-seats">${cards}</div>
-      <button type="button" class="next" data-act="next" disabled>おわり</button>
+      ${again}
     </div>`;
   }
 
