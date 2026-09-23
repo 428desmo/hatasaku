@@ -25,6 +25,7 @@ describe("standings", () => {
     expect(previousSeasonTrailers([[90, 80, 70]], 1, 3)).toEqual([]);
     expect(previousSeasonTrailers([[80, 90, 70]], 2, 3)).toEqual([2]);
     expect(previousSeasonTrailers([[80, 70, 70]], 2, 3)).toEqual([1, 2]);
+    expect(previousSeasonTrailers([[80, 80, 80]], 2, 3)).toEqual([]);
     const sheet = [
       [80, 90, 70],
       [10, 10, 100],

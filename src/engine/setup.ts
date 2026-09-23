@@ -79,7 +79,7 @@ export function createGame(config: StartConfig, rng: Rng): GameState {
   }
 
   return {
-    specVersion: "0.11",
+    specVersion: "0.12",
     mode: config.mode,
     seed: config.seed,
     season: config.season ?? 1,

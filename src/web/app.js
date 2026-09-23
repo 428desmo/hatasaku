@@ -267,9 +267,10 @@
   function eventHtml() {
     const cards = eventCards();
     const inner = cards.map((e) => {
-      const sign = e.delta > 0 ? "plus" : e.delta < 0 ? "minus" : "";
-      const d = e.delta > 0 ? `+${e.delta}` : `${e.delta}`;
-      return `<article class="event${e.live ? "" : " preview"}${e.zone === "呪い" ? " curse" : ""}">
+      const hidden = e.kind === "curse-hidden";
+      const sign = hidden ? "" : e.delta > 0 ? "plus" : e.delta < 0 ? "minus" : "";
+      const d = hidden ? "？" : e.delta > 0 ? `+${e.delta}` : `${e.delta}`;
+      return `<article class="event${e.live ? "" : " preview"}${e.zone === "呪い" ? " curse" : ""}${hidden ? " hidden" : ""}">
         <div class="zone">${esc(e.zone)}　${esc(e.span || `R${e.from}-${e.to}`)}</div>
         <div class="name">${esc(e.cropName)}</div>
         <div class="delta ${sign}">${d}</div>
@@ -447,7 +448,7 @@
   }
 
   function shortActionLabel(label) {
-    return label.length > 3 ? `${label.slice(0, 3)}..` : label;
+    return label.length > 3 ? label.slice(0, 3) : label;
   }
 
   function seasonEndHtml() {
@@ -586,16 +587,18 @@
   function seasonCropsHtml() {
     const crops = msg.board.cropsInGame || [];
     if (!crops.length) return "";
+    const curseIds = new Set((msg.actions || []).filter((a) => a.type === "curse").map((a) => a.cropId));
     return `<div class="season-crops">${crops.map((c, i) => {
       const open = cropPeek === i;
+      const taken = cursePick && !curseIds.has(c.id);
       const overlay = open && !cursePick
         ? `<div class="overlay crop-full ${i < 2 ? "left" : "right"}" data-act="close-crop">${cropFullInner(c)}</div>`
         : "";
-      const act = cursePick ? "curse-crop" : "crop";
-      return `<button type="button" class="crop-mini${open || cursePick ? " sel" : ""}${cursePick ? " curse-pick" : ""}" data-act="${act}" data-i="${i}" data-id="${esc(c.id)}">
+      const act = cursePick ? (taken ? "noop" : "curse-crop") : "crop";
+      return `<button type="button" class="crop-mini${open || (cursePick && !taken) ? " sel" : ""}${cursePick && !taken ? " curse-pick" : ""}${taken ? " dim" : ""}" data-act="${act}" data-i="${i}" data-id="${esc(c.id)}">
         <div class="head"><b>${esc(c.shortName || c.name)}</b><span class="cost">${c.cost}G</span></div>
         <div class="stat">${c.wait ? `待 ${pips(c.wait, "○")}` : "待 なし"}</div>
-        <div class="stat">収 ${pips(c.harvest, "★")} ${c.base}/${c.floor}</div>
+        <div class="stat">${taken ? "このラウンド対象済" : `収 ${pips(c.harvest, "★")} ${c.base}/${c.floor}`}</div>
         ${overlay}
       </button>`;
     }).join("")}</div>`;

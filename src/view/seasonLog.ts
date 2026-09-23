@@ -31,7 +31,7 @@ export function actionPackRanges(lastRound: number): ActionPackRange[] {
 }
 
 export function shortActionLabel(label: string): string {
-  return label.length > 3 ? `${label.slice(0, 3)}..` : label;
+  return label.length > 3 ? label.slice(0, 3) : label;
 }
 
 export function packRangeLabel(range: ActionPackRange): string {

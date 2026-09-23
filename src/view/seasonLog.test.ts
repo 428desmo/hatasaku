@@ -40,7 +40,7 @@ describe("season action log", () => {
     expect(actionPackRanges(10).map(packRangeLabel)).toEqual(["R1-3", "R4-6", "R7-9", "R10"]);
     expect(actionPackRanges(18)).toHaveLength(6);
     expect(packRangeLabel(actionPackRanges(18)[5]!)).toBe("R16-18");
-    expect(shortActionLabel("トウモロ")).toBe("トウモ..");
+    expect(shortActionLabel("トウモロ")).toBe("トウモ");
     expect(shortActionLabel("トマト")).toBe("トマト");
     expect(shortActionLabel("パス")).toBe("パス");
   });

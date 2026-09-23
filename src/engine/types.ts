@@ -51,6 +51,7 @@ export type CurseEffect = {
   from: number;
   to: number;
   bySeat: number;
+  revealed: boolean;
 };
 
 export type SeatConfig = {
@@ -104,7 +105,7 @@ export type HarvestDetail = {
 };
 
 export type GameState = {
-  specVersion: "0.11";
+  specVersion: "0.12";
   mode: Mode;
   seed: string;
   season: number;
@@ -193,6 +194,7 @@ export type PublicView = {
   cropIdsInGame: CropId[];
   curseReadySeats: number[];
   curses: CurseEffect[];
+  hiddenCurseCount: number;
   legalActions?: Action[];
   message?: string | null;
 };

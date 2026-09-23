@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { chooseIrr } from "../cpu/index.js";
 import {
   applyAction,
+  applyHarvest,
   applyPlayerAction,
   createGame,
   createRng,
@@ -25,7 +26,7 @@ const crops = ["potato", "corn", "onion", "pumpkin"] as const;
 describe("curse event", () => {
   it("is not offered in season 1", () => {
     const { state } = startForced({ mode: "basic", crops: [...crops] });
-    expect(state.specVersion).toBe("0.11");
+    expect(state.specVersion).toBe("0.12");
     expect(state.curseReadySeats).toEqual([]);
     expect(listLegalActions(state).every((a) => a.type !== "curse")).toBe(true);
   });
@@ -47,7 +48,7 @@ describe("curse event", () => {
     expect(state.round).toBe(before.round);
     expect(state.roundActions).toHaveLength(before.actions);
     expect(state.curseReadySeats).toEqual([]);
-    expect(state.curses).toEqual([{ cropId: "potato", from: 2, to: 5, bySeat: 0 }]);
+    expect(state.curses).toEqual([{ cropId: "potato", from: 2, to: 5, bySeat: 0, revealed: false }]);
     expect(listLegalActions(state).some((a) => a.type === "curse")).toBe(false);
     expect(() => applyPlayerAction(state, { type: "curse", cropId: "corn" }, rng)).toThrow(IllegalActionError);
 
@@ -60,7 +61,51 @@ describe("curse event", () => {
     expect(CURSE_DURATION).toBe(4);
   });
 
-  it("stacks when two players curse the same crop and keeps the floor", () => {
+  it("hides the target until harvest and blocks the same crop in the same round", () => {
+    let { state, rng } = startForced({
+      mode: "basic",
+      crops: [...crops],
+      curseSeats: [0, 1],
+      events: onionEvents(16),
+    });
+    state = applyPlayerAction(state, { type: "curse", cropId: "potato" }, rng);
+    const self = getPublicView(state, 0);
+    expect(self.curses).toEqual([{ cropId: "potato", from: 2, to: 5, bySeat: 0, revealed: false }]);
+    expect(self.hiddenCurseCount).toBe(0);
+    const other = getPublicView(state, 1);
+    expect(other.curses).toEqual([]);
+    expect(other.hiddenCurseCount).toBe(1);
+
+    state = replaceMarket(state, ["potato", "onion", "radish"]);
+    state = plant(state, rng, { type: "plant", marketIndex: 0, target: "newLand" });
+    expect(state.actingSeat).toBe(1);
+    expect(listLegalActions(state).some((a) => a.type === "curse" && a.cropId === "potato")).toBe(false);
+    expect(listLegalActions(state)).toEqual(
+      expect.arrayContaining(["corn", "onion", "pumpkin"].map((cropId) => ({ type: "curse", cropId }))),
+    );
+    expect(() => applyPlayerAction(state, { type: "curse", cropId: "potato" }, rng)).toThrow(IllegalActionError);
+    const second = getPublicView(state, 1);
+    expect(second.curses).toEqual([]);
+    expect(second.hiddenCurseCount).toBe(1);
+
+    state = applyPlayerAction(state, { type: "curse", cropId: "corn" }, rng);
+    const afterSecond = getPublicView(state, 1);
+    expect(afterSecond.curses.map((c) => c.cropId).sort()).toEqual(["corn", "potato"]);
+    expect(afterSecond.hiddenCurseCount).toBe(0);
+    expect(getPublicView(state, 2).curses).toEqual([]);
+    expect(getPublicView(state, 2).hiddenCurseCount).toBe(2);
+
+    state = applyPlayerAction(state, { type: "pass" }, rng);
+    state = applyPlayerAction(state, { type: "pass" }, rng);
+    expect(state.phase).toBe("income");
+    state = applyHarvest(state);
+    expect(state.curses.every((c) => c.revealed)).toBe(true);
+    const revealed = getPublicView(state, 2);
+    expect(revealed.curses.map((c) => c.cropId).sort()).toEqual(["corn", "potato"]);
+    expect(revealed.hiddenCurseCount).toBe(0);
+  });
+
+  it("still stacks when the same crop is cursed in different rounds", () => {
     let { state, rng } = startForced({
       mode: "basic",
       crops: [...crops],
@@ -70,6 +115,8 @@ describe("curse event", () => {
     state = applyPlayerAction(state, { type: "curse", cropId: "potato" }, rng);
     state = replaceMarket(state, ["potato", "onion", "radish"]);
     state = plant(state, rng, { type: "plant", marketIndex: 0, target: "newLand" });
+    state = applyAction(state, { type: "pass" }, rng);
+    state = passAllUntil(state, rng, (s) => s.round === 2 && s.phase === "turn" && s.actingSeat === 1);
     expect(state.actingSeat).toBe(1);
     state = applyPlayerAction(state, { type: "curse", cropId: "potato" }, rng);
     expect(state.curses).toHaveLength(2);
@@ -79,6 +126,33 @@ describe("curse event", () => {
     expect(harvest?.eventSum[0]).toBe(CURSE_DELTA * 2);
     expect(harvest?.harvested[0]).toBe(harvestIncome(9, 4, 0, CURSE_DELTA * 2));
     expect(harvestIncome(9, 4, 0, CURSE_DELTA * 2)).toBe(4);
+  });
+
+  it("keeps the right when every crop is already taken this round", () => {
+    const seats = [
+      { kind: "cpu" as const, name: "A", cpuStrategyId: "random" },
+      { kind: "cpu" as const, name: "B", cpuStrategyId: "random" },
+      { kind: "cpu" as const, name: "C", cpuStrategyId: "random" },
+      { kind: "cpu" as const, name: "D", cpuStrategyId: "random" },
+      { kind: "cpu" as const, name: "E", cpuStrategyId: "random" },
+    ];
+    let { state, rng } = startForced({
+      mode: "basic",
+      seats,
+      crops: [...crops],
+      curseSeats: [0, 1, 2, 3, 4],
+      events: onionEvents(16),
+    });
+    for (const cropId of crops) {
+      state = applyPlayerAction(state, { type: "curse", cropId }, rng);
+      state = applyPlayerAction(state, { type: "pass" }, rng);
+    }
+    expect(state.actingSeat).toBe(4);
+    expect(state.curseReadySeats).toEqual([4]);
+    expect(listLegalActions(state).some((a) => a.type === "curse")).toBe(false);
+    state = applyPlayerAction(state, { type: "pass" }, rng);
+    expect(state.phase).toBe("income");
+    expect(state.curseReadySeats).toEqual([4]);
   });
 
   it("still counts as all-pass for a market sweep", () => {

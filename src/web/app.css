@@ -86,6 +86,7 @@ body {
 }
 .event.preview { border-style: dashed; }
 .event.curse { border-color: #6b3d8a; background: #f7f1fb; }
+.event.curse.hidden { background: #eee8f4; }
 .event .zone { font-size: 11px; font-weight: 700; color: #555; }
 .event .name { font-weight: 700; font-size: 12px; }
 .event .delta { font-size: 16px; font-weight: 700; }
@@ -269,6 +270,7 @@ body {
 }
 .curse-btn.sel { background: #6b3d8a; color: #fff; }
 .crop-mini.curse-pick { border-color: #6b3d8a; background: #f7f1fb; }
+.crop-mini.dim { background: #eee; color: #888; }
 
 .overlay {
   position: absolute;

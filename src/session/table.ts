@@ -215,6 +215,7 @@ export class Table {
           cropIdsInGame: [],
           curseReadySeats: [],
           curses: [],
+          hiddenCurseCount: 0,
           message: waiting,
         },
       };
