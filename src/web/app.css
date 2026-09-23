@@ -336,6 +336,32 @@ body {
 }
 .harvest-overlay.is-walk { background: rgba(255, 255, 255, 0.4); }
 .harvest-overlay.is-wait { background: rgba(255, 255, 255, 0.5); }
+@media (max-width: 759px) {
+  .harvest-overlay {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: auto;
+    padding: 10px 8px 12px;
+    gap: 10px;
+    justify-content: flex-end;
+    background: rgba(255, 255, 255, 0.96);
+    border-top: 1.3px solid #222;
+  }
+  .harvest-overlay.is-walk,
+  .harvest-overlay.is-wait {
+    background: rgba(255, 255, 255, 0.96);
+  }
+  .harvest-overlay .harvest-dialog-box {
+    width: 100%;
+    max-width: none;
+    padding: 12px 16px;
+  }
+  .harvest-overlay .harvest-dialog-box .title {
+    font-size: 22px;
+  }
+}
 .harvest-overlay .harvest-next {
   align-self: stretch;
   width: 100%;

@@ -153,7 +153,10 @@ export class Table {
     if (this.state.phase === "gameOver") throw new IllegalActionError("game over");
     if (this.state.actingSeat !== seat) throw new IllegalActionError("not your turn");
     this.state = applyPlayerAction(this.state, action, this.rng);
-    if (this.config.paceCpu) return;
+    if (this.config.paceCpu) {
+      this.finishIncomeIfDue();
+      return;
+    }
     this.flushCpus();
   }
 
@@ -437,9 +440,7 @@ export class Table {
       return false;
     }
     if (this.state.phase === "income") {
-      this.clearCpuShow();
-      this.state = applyHarvest(this.state);
-      this.hold = "result";
+      this.finishIncomeIfDue();
       return false;
     }
     if (this.state.phase !== "turn" || this.state.actingSeat === null) {
@@ -521,6 +522,14 @@ export class Table {
     this.cpuActorSeat = null;
   }
 
+  private finishIncomeIfDue(): void {
+    if (!this.state || this.hold) return;
+    if (this.state.phase !== "income") return;
+    this.clearCpuShow();
+    this.state = applyHarvest(this.state);
+    this.hold = "result";
+  }
+
   private rematch(): void {
     this.rematchCount += 1;
     this.matchSeed = `${this.config.seed}-r${this.rematchCount}`;
@@ -549,8 +558,7 @@ export class Table {
           }
           continue;
         }
-        this.state = applyHarvest(this.state);
-        this.hold = "result";
+        this.finishIncomeIfDue();
         return;
       }
       if (this.state.phase !== "turn" || this.state.actingSeat === null) return;

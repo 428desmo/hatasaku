@@ -288,4 +288,33 @@ describe("table seats", () => {
     }
     expect(saw).toBe(true);
   });
+
+  it("opens harvest as soon as the last paced human action ends the round", () => {
+    const table = new Table({
+      mode: "basic",
+      humanCount: 1,
+      cpuCount: 2,
+      cpuStrategyId: "random",
+      seed: "pace-income-hang",
+      seasonCount: 1,
+      paceCpu: true,
+    });
+    expect(table.assignHuman()).toBe(0);
+    table.nextFromSeat(0);
+    for (let i = 0; i < 250; i++) {
+      if (table.hold === "result") break;
+      const actor = table.state?.actingSeat;
+      if (actor === 0 && !table.cpuShow) {
+        table.applyFromSeat(0, { type: "pass" });
+        if (table.state?.phase === "income") expect(table.hold).toBe("result");
+        continue;
+      }
+      const again = table.cpuTick();
+      if (!again && table.state?.phase === "income") expect(table.hold).toBe("result");
+      if (!again && table.state?.actingSeat === 0) table.applyFromSeat(0, { type: "pass" });
+    }
+    expect(table.hold).toBe("result");
+    expect(table.state?.phase).toBe("income");
+    expect(table.viewFor(0).view.message).toContain("次へ");
+  });
 });

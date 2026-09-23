@@ -102,10 +102,8 @@ function scheduleCpu(): void {
 function kickCpu(): void {
   if (!table.config.paceCpu) return;
   const again = table.cpuTick();
-  if (again) {
-    broadcast();
-    scheduleCpu();
-  }
+  broadcast();
+  if (again) scheduleCpu();
 }
 
 function sendFile(res: http.ServerResponse, filePath: string): void {
