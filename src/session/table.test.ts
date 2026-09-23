@@ -99,6 +99,9 @@ describe("table seats", () => {
     expect(view.honorKind).toBe("match");
     expect(view.honorSeats).toEqual(table.matchWinnerSeats);
     expect(view.crownSeats).toEqual([]);
+    expect(view.honorAnnounce?.kind).toBe("match");
+    expect(view.honorAnnounce?.award).toContain("総合優勝");
+    expect(view.view.message).toContain("総合優勝");
     expect(view.text).toContain("得点表");
     expect(view.text).toContain("S1");
     expect(view.text).toContain("合計");
@@ -131,10 +134,13 @@ describe("table seats", () => {
         expect(trail.trail?.seasons).toBe(1);
         expect(trail.trail?.series).toHaveLength(3);
         expect(trail.honorKind).toBeNull();
+        expect(trail.honorAnnounce?.kind).toBe("match");
+        expect(trail.honorAnnounce?.award).toContain("総合優勝");
         table.nextFromSeat(0);
         expect(table.hold).toBe("honor");
         expect(table.matchOver).toBe(true);
         expect(table.viewFor(0).honorKind).toBe("match");
+        expect(table.viewFor(0).honorAnnounce?.kind).toBe("match");
         return;
       }
       if (table.state?.actingSeat === 0) table.applyFromSeat(0, { type: "pass" });
@@ -217,6 +223,8 @@ describe("table seats", () => {
         const seasonView = table.viewFor(0);
         expect(seasonView.honorKind).toBe("season");
         expect(seasonView.honorSeats).toEqual(table.state.winnerSeats);
+        expect(seasonView.honorAnnounce?.lead).toContain("今シーズンが終了");
+        expect(seasonView.honorAnnounce?.award).toContain("1位");
         expect(seasonView.crownSeats).toEqual([]);
         expect(seasonView.seasonLog).toHaveLength(3);
         for (const row of seasonView.seasonLog) expect(row.cells).toHaveLength(10);
@@ -224,6 +232,7 @@ describe("table seats", () => {
         expect(table.hold).toBe("mix");
         const mixView = table.viewFor(0);
         expect(mixView.honorKind).toBe("season");
+        expect(mixView.honorAnnounce?.kind).toBe("season");
         expect(mixView.seasonLog).toHaveLength(3);
         table.nextFromSeat(0);
         expect(table.state!.startSeat).toBe((start1 + 1) % n);

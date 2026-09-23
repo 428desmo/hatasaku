@@ -490,7 +490,14 @@
     return `<div class="market">${items}${pass}${curseBtn}</div>`;
   }
 
-  function honorLine() {
+  function honorAnnounceHtml() {
+    const a = msg.honorAnnounce;
+    if (a) {
+      return `<div class="honor-announce">
+        <p class="honor-announce-lead">${esc(a.lead)}</p>
+        <p class="honor-announce-award">${esc(a.award)}</p>
+      </div>`;
+    }
     const seats = msg.honorSeats || [];
     if (!seats.length || !msg.board) return "";
     const names = seats.map((seat) => {
@@ -538,7 +545,7 @@
     }).join("");
     const next = `<button type="button" class="next" data-act="next" ${msg.acked ? "disabled" : ""}>${msg.acked ? "確認済み" : "次へ"}</button>`;
     return `<div class="end-log">
-      ${honorLine()}
+      ${honorAnnounceHtml()}
       <div class="end-scroll">
         <div class="end-grid" style="--packs:${ranges.length}">${head}${body}</div>
       </div>
@@ -595,7 +602,7 @@
     ).join("");
     const next = `<button type="button" class="next" data-act="next" ${msg.acked ? "disabled" : ""}>${msg.acked ? "確認済み" : "次へ"}</button>`;
     return `<div class="end-log">
-      ${honorLine()}
+      ${honorAnnounceHtml()}
       <p class="mix-head">今シーズンの手</p>
       <div class="mix-list">${body}</div>
       <div class="mix-legend">${legend}</div>
@@ -611,6 +618,7 @@
     const next = `<button type="button" class="next" data-act="next" ${msg.acked ? "disabled" : ""}>${msg.acked ? "確認済み" : "次へ"}</button>`;
     if (!layout || !layout.series) {
       return `<div class="end-log trail-pane">
+        ${honorAnnounceHtml()}
         <p class="trail-kicker">${n}シーズン完了</p>
         <p class="trail-head">ゲーム終了</p>
         ${next}
@@ -639,6 +647,7 @@
       return `<span class="mix-key"><i class="mix-swatch" style="background:${color}"></i>${esc(p ? displayName(p) : `席${s.seat}`)}</span>`;
     }).join("");
     return `<div class="end-log trail-pane">
+      ${honorAnnounceHtml()}
       <p class="trail-kicker">${n}シーズン完了</p>
       <p class="trail-head">ゲーム終了</p>
       <svg class="trail-svg" viewBox="0 0 ${layout.width} ${layout.height}" role="img" aria-label="各シーズン終了時点の総合点">${lines}${xLabels}</svg>
@@ -656,7 +665,7 @@
       ? `<button type="button" class="next" disabled>確認済み（${msg.ackGot}/${msg.ackNeed}）</button>`
       : `<button type="button" class="next" data-act="next">${msg.ackNeed > 1 ? `もう一度（${msg.ackGot}/${msg.ackNeed}）` : "もう一度"}</button>`;
     return `<div class="end-log honor-pane">
-      ${honorLine()}
+      ${honorAnnounceHtml()}
       <div class="honor-seats">${cards}</div>
       ${again}
     </div>`;
