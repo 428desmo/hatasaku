@@ -1,6 +1,6 @@
 # hatasaku
 
-畑作ボードゲームの模擬プレイ。ルールは `hatasaku_rules_v0.12.md`。ソフトウェア仕様は `hatasaku_software_spec_v0.12.md`。
+畑作ボードゲームの模擬プレイ。ルールは `hatasaku_rules_v0.14.md`。ソフトウェア仕様は `hatasaku_software_spec_v0.14.md`。
 
 初版の盤面はカードUI。同じ Mac でブラウザを N 窓開くと人間 N 人になる。テキストUIは `/text`。
 

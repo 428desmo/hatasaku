@@ -22,12 +22,8 @@ export function curseIsLive(curse: CurseEffect, round: number): boolean {
   return round >= curse.from && round <= curse.to;
 }
 
-export function cursesDeclaredOn(state: GameState, round: number): CurseEffect[] {
-  return state.curses.filter((c) => curseUsedOnRound(c) === round);
-}
-
 export function curseTakenCropIds(state: GameState): CropId[] {
-  return cursesDeclaredOn(state, state.round).map((c) => c.cropId);
+  return state.curses.map((c) => c.cropId);
 }
 
 export function curseSumFor(state: GameState, cropId: string): number {
@@ -64,7 +60,7 @@ export function applyCurse(state: GameState, action: Extract<Action, { type: "cu
     throw new IllegalActionError("crop not in season");
   }
   if (curseTakenCropIds(state).includes(action.cropId)) {
-    throw new IllegalActionError("crop already cursed this round");
+    throw new IllegalActionError("crop already cursed this season");
   }
   const s = cloneState(state);
   s.curseReadySeats = s.curseReadySeats.filter((x) => x !== seat);
@@ -86,15 +82,11 @@ export function revealPendingCurses(state: GameState): void {
 
 export function visibleCurses(state: GameState, viewerSeat: number | "spectator"): CurseEffect[] {
   const ownIdx =
-    viewerSeat === "spectator"
-      ? -1
-      : state.curses.findIndex(
-          (c) => c.bySeat === viewerSeat && curseUsedOnRound(c) === state.round && !c.revealed,
-        );
+    viewerSeat === "spectator" ? -1 : state.curses.findIndex((c) => c.bySeat === viewerSeat);
   return state.curses.filter((c, i) => {
     if (c.revealed || curseIsLive(c, state.round) || c.from <= state.round) return true;
     if (viewerSeat !== "spectator" && c.bySeat === viewerSeat) return true;
-    if (ownIdx >= 0 && curseUsedOnRound(c) === state.round && i <= ownIdx) return true;
+    if (ownIdx >= 0 && i <= ownIdx) return true;
     return false;
   });
 }

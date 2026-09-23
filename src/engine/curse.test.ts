@@ -3,6 +3,7 @@ import { chooseIrr } from "../cpu/index.js";
 import {
   applyAction,
   applyHarvest,
+  applyIncome,
   applyPlayerAction,
   createGame,
   createRng,
@@ -26,7 +27,7 @@ const crops = ["potato", "corn", "onion", "pumpkin"] as const;
 describe("curse event", () => {
   it("is not offered in season 1", () => {
     const { state } = startForced({ mode: "basic", crops: [...crops] });
-    expect(state.specVersion).toBe("0.12");
+    expect(state.specVersion).toBe("0.14");
     expect(state.curseReadySeats).toEqual([]);
     expect(listLegalActions(state).every((a) => a.type !== "curse")).toBe(true);
   });
@@ -61,7 +62,7 @@ describe("curse event", () => {
     expect(CURSE_DURATION).toBe(4);
   });
 
-  it("hides the target until harvest and blocks the same crop in the same round", () => {
+  it("hides the target until harvest and blocks the same crop for the rest of the season", () => {
     let { state, rng } = startForced({
       mode: "basic",
       crops: [...crops],
@@ -105,7 +106,7 @@ describe("curse event", () => {
     expect(revealed.hiddenCurseCount).toBe(0);
   });
 
-  it("still stacks when the same crop is cursed in different rounds", () => {
+  it("does not allow the same crop to be cursed again later in the season", () => {
     let { state, rng } = startForced({
       mode: "basic",
       crops: [...crops],
@@ -118,17 +119,14 @@ describe("curse event", () => {
     state = applyAction(state, { type: "pass" }, rng);
     state = passAllUntil(state, rng, (s) => s.round === 2 && s.phase === "turn" && s.actingSeat === 1);
     expect(state.actingSeat).toBe(1);
-    state = applyPlayerAction(state, { type: "curse", cropId: "potato" }, rng);
-    expect(state.curses).toHaveLength(2);
-    state = applyAction(state, { type: "pass" }, rng);
-    state = passAllUntil(state, rng, (s) => s.round === 4 && s.phase === "turn" && s.turnIndex === 0);
-    const harvest = state.roundLog.find((r) => r.round === 3);
-    expect(harvest?.eventSum[0]).toBe(CURSE_DELTA * 2);
-    expect(harvest?.harvested[0]).toBe(harvestIncome(9, 4, 0, CURSE_DELTA * 2));
-    expect(harvestIncome(9, 4, 0, CURSE_DELTA * 2)).toBe(4);
+    expect(state.curses[0]?.revealed).toBe(true);
+    expect(listLegalActions(state).some((a) => a.type === "curse" && a.cropId === "potato")).toBe(false);
+    expect(() => applyPlayerAction(state, { type: "curse", cropId: "potato" }, rng)).toThrow(IllegalActionError);
+    state = applyPlayerAction(state, { type: "curse", cropId: "corn" }, rng);
+    expect(state.curses.map((c) => c.cropId)).toEqual(["potato", "corn"]);
   });
 
-  it("keeps the right when every crop is already taken this round", () => {
+  it("keeps the unused right when every crop is already taken this season", () => {
     const seats = [
       { kind: "cpu" as const, name: "A", cpuStrategyId: "random" },
       { kind: "cpu" as const, name: "B", cpuStrategyId: "random" },
@@ -153,6 +151,11 @@ describe("curse event", () => {
     state = applyPlayerAction(state, { type: "pass" }, rng);
     expect(state.phase).toBe("income");
     expect(state.curseReadySeats).toEqual([4]);
+    state = applyIncome(state);
+    expect(state.round).toBe(2);
+    state = passAllUntil(state, rng, (s) => s.actingSeat === 4);
+    expect(state.curseReadySeats).toEqual([4]);
+    expect(listLegalActions(state).some((a) => a.type === "curse")).toBe(false);
   });
 
   it("still counts as all-pass for a market sweep", () => {

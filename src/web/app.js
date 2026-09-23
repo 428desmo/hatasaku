@@ -598,7 +598,7 @@
       return `<button type="button" class="crop-mini${open || (cursePick && !taken) ? " sel" : ""}${cursePick && !taken ? " curse-pick" : ""}${taken ? " dim" : ""}" data-act="${act}" data-i="${i}" data-id="${esc(c.id)}">
         <div class="head"><b>${esc(c.shortName || c.name)}</b><span class="cost">${c.cost}G</span></div>
         <div class="stat">${c.wait ? `待 ${pips(c.wait, "○")}` : "待 なし"}</div>
-        <div class="stat">${taken ? "このラウンド対象済" : `収 ${pips(c.harvest, "★")} ${c.base}/${c.floor}`}</div>
+        <div class="stat">${taken ? "今シーズン対象済" : `収 ${pips(c.harvest, "★")} ${c.base}/${c.floor}`}</div>
         ${overlay}
       </button>`;
     }).join("")}</div>`;
