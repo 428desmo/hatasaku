@@ -243,6 +243,15 @@ describe("table seats", () => {
           worst === best ? [] : scores.flatMap((c, seat) => (c === worst ? [seat] : [])),
         );
         expect(intro.view.curseReadySeats).toEqual(table.state!.curseReadySeats);
+        expect(intro.seasonIntro?.cropLead).toContain("4種類");
+        expect(intro.seasonIntro?.cropNames).toHaveLength(4);
+        if (table.state!.curseReadySeats.length > 0) {
+          expect(intro.seasonIntro?.curse?.recipientsLead).toContain("呪い");
+          expect(intro.seasonIntro?.curse?.whatIs).toContain("1種類");
+          expect(intro.view.message).toContain("呪い");
+        } else {
+          expect(intro.seasonIntro?.curse).toBeNull();
+        }
         return;
       }
       if (table.state.actingSeat === 0) table.applyFromSeat(0, { type: "pass" });

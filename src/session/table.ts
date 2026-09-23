@@ -32,6 +32,11 @@ import { formatHarvestFigure } from "../view/harvestCopy.js";
 import { previousSeasonLeaders, previousSeasonTrailers, type HonorKind } from "../view/standings.js";
 import { trailLayout } from "../view/trailChart.js";
 import { seasonActionRows, type SeasonActionRow } from "../view/seasonLog.js";
+import {
+  buildSeasonIntroAnnounce,
+  formatSeasonIntroText,
+  type SeasonIntroAnnounce,
+} from "../view/seasonIntro.js";
 import { renderRoundResultHtml, renderRoundResultText } from "../view/summary.js";
 import { renderText } from "../view/text.js";
 
@@ -200,6 +205,7 @@ export class Table {
     crops: typeof cropList;
     trail: ReturnType<typeof trailLayout> | null;
     cpuShow: CpuShow | null;
+    seasonIntro: SeasonIntroAnnounce | null;
     hold: UiHold;
     acked: boolean;
     ackNeed: number;
@@ -230,6 +236,7 @@ export class Table {
         seasonLog: [],
         trail: null,
         cpuShow: null,
+        seasonIntro: null,
         crops: cropList,
         view: {
           mode: this.config.mode,
@@ -260,12 +267,23 @@ export class Table {
       };
     }
     const view = getPublicView(this.state, this.hold ? "spectator" : seat);
+    const seasonIntro =
+      this.hold === "intro"
+        ? buildSeasonIntroAnnounce({
+            cropIds: this.state.cropIdsInGame,
+            playerNames: this.state.players.map((p) => p.name),
+            curseReadySeats: this.state.curseReadySeats,
+            multiSeason: this.seasonCount > 1,
+          })
+        : null;
     if (this.hold === "result") view.message = "内容を確認して［次へ］を押してください。";
     if (this.hold === "season") view.message = "シーズンが終わりました。行動を見て［次へ］。";
     if (this.hold === "mix") view.message = "今シーズンの手の内訳を見て［次へ］。";
     if (this.hold === "trail") view.message = "総合点の推移を見て［次へ］。";
     if (this.hold === "honor") view.message = "［もう一度］で同じ設定の新しいマッチを始めます。";
-    if (this.hold === "intro") view.message = "今シーズンの作物を見て［開始］。";
+    if (this.hold === "intro" && seasonIntro) {
+      view.message = `${formatSeasonIntroText(seasonIntro)}\n\n確認したら［開始］。`;
+    }
     const you = seat === "spectator" ? null : seat;
     const board = toPresentation(view, you);
     const names = this.state.players.map((p) => p.name);
@@ -309,6 +327,7 @@ export class Table {
       crops: cropList,
       trail: this.hold === "trail" ? trailLayout(this.scoreSheet) : null,
       cpuShow: this.cpuShow,
+      seasonIntro,
       hold: this.hold,
       acked,
       ackNeed,

@@ -1,6 +1,6 @@
 # hatasaku
 
-畑作ボードゲームの模擬プレイ。ルールは `hatasaku_rules_v0.16.md`。ソフトウェア仕様は `hatasaku_software_spec_v0.16.md`。オンライン対戦は `hatasaku_online_play_spec_v0.4.md`。
+畑作ボードゲームの模擬プレイ。ルールは `hatasaku_rules_v0.17.md`。ソフトウェア仕様は `hatasaku_software_spec_v0.17.md`。オンライン対戦は `hatasaku_online_play_spec_v0.4.md`。
 
 ## LAN（同じ Wi‑Fi）
 
