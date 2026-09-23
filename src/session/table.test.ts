@@ -125,6 +125,13 @@ describe("table seats", () => {
         expect(table.hold).toBe("mix");
         expect(table.matchOver).toBe(false);
         table.nextFromSeat(0);
+        expect(table.hold).toBe("trail");
+        expect(table.matchOver).toBe(false);
+        const trail = table.viewFor(0);
+        expect(trail.trail?.seasons).toBe(1);
+        expect(trail.trail?.series).toHaveLength(3);
+        expect(trail.honorKind).toBeNull();
+        table.nextFromSeat(0);
         expect(table.hold).toBe("honor");
         expect(table.matchOver).toBe(true);
         expect(table.viewFor(0).honorKind).toBe("match");

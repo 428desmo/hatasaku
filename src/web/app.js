@@ -169,7 +169,7 @@
       ackHarvestNext();
       return;
     }
-    if (msg.hold === "season" || msg.hold === "intro" || msg.hold === "mix" || msg.hold === "honor") return;
+    if (msg.hold === "season" || msg.hold === "intro" || msg.hold === "mix" || msg.hold === "trail" || msg.hold === "honor") return;
     cropPeek = null;
     if (selectedMarket != null && msg.board.players.find((p) => p.seat === seat)?.isYou) {
       const action = plotAction(selectedMarket, plotIndex);
@@ -345,31 +345,39 @@
     const acting = player.isActing ? " acting" : "";
     const you = player.isYou ? " you" : "";
     const honor = (msg.honorSeats || []).includes(player.seat) ? " honor" : "";
-    const crown = (msg.crownSeats || []).includes(player.seat)
+    const recap = !!opts.recapMarks;
+    const crown = !recap && (msg.crownSeats || []).includes(player.seat)
       ? `<span class="crown" title="これまでの獲得コイン首位">👑</span>`
       : "";
     const curse = player.curseReady
-      ? `<span class="curse-mark" title="呪いの権利">🤡</span>`
+      ? `<span class="curse-mark" title="呪いの権利">👿</span>`
       : "";
-    const turn = player.isActing
+    const turn = !recap && player.isActing
       ? `<span class="turn-mark" title="手番">🖐️</span>`
       : "";
     const g = coins.get(player.seat) ?? player.coins;
     const total = opts.totals ? opts.totals.get(player.seat) : undefined;
     const isBest = opts.bestSeason != null && g === opts.bestSeason;
+    const peace = recap && isBest && opts.bestSeason !== opts.worstSeason
+      ? `<span class="peace-mark" title="今シーズン最多">✌️</span>`
+      : "";
+    const shock = recap && opts.worstSeason != null && g === opts.worstSeason && opts.bestSeason !== opts.worstSeason
+      ? `<span class="shock-mark" title="今シーズン最少">😱</span>`
+      : "";
     let gHtml = `${g}G`;
     if (total != null) {
       gHtml = `<span class="season-g${isBest ? " best" : ""}">${g}G</span><span class="g-arrow"> → </span><span class="total-g">${total}G</span>`;
     }
-    return `<div class="who${you}${acting}${honor}"><div class="id">${esc(displayName(player))}${player.isYou ? "*" : ""}${crown}${curse}${turn}</div><div class="g">${gHtml}</div></div>`;
+    return `<div class="who${you}${acting}${honor}"><div class="id">${esc(displayName(player))}${player.isYou ? "*" : ""}${crown}${peace}${shock}${curse}${turn}</div><div class="g">${gHtml}</div></div>`;
   }
 
-  function endWhoCard(player) {
+  function endWhoCard(player, recapMarks = true) {
     const season = lastSeasonScores();
     const totals = matchTotals();
     const scores = [...season.values()];
     const bestSeason = scores.length ? Math.max(...scores) : null;
-    return whoCard(player, season, { totals, bestSeason });
+    const worstSeason = scores.length ? Math.min(...scores) : null;
+    return whoCard(player, season, { totals, bestSeason, worstSeason, recapMarks });
   }
 
   function seatsHtml() {
@@ -543,11 +551,55 @@
     </div>`;
   }
 
+  const TRAIL_COLORS = ["#c45c26", "#2e6b3a", "#1e4f86", "#6b3d8a", "#b45309"];
+
+  function trailHtml() {
+    const layout = msg.trail;
+    const n = msg.view.seasonCount || (msg.scoreSheet || []).length;
+    const next = `<button type="button" class="next" data-act="next" ${msg.acked ? "disabled" : ""}>${msg.acked ? "確認済み" : "次へ"}</button>`;
+    if (!layout || !layout.series) {
+      return `<div class="end-log trail-pane">
+        <p class="trail-kicker">${n}シーズン完了</p>
+        <p class="trail-head">ゲーム終了</p>
+        ${next}
+      </div>`;
+    }
+    const winners = new Set(msg.matchWinnerSeats || []);
+    const lines = layout.series.map((s) => {
+      const color = TRAIL_COLORS[s.seat % TRAIL_COLORS.length];
+      const thick = winners.has(s.seat);
+      const pts = (s.points || []).map((pt) => `${pt.x},${pt.y}`).join(" ");
+      const line = (s.points || []).length > 1
+        ? `<polyline fill="none" stroke="${color}" stroke-width="${thick ? 2.8 : 1.6}" stroke-linejoin="round" stroke-linecap="round" points="${pts}" />`
+        : "";
+      const dots = (s.points || []).map((pt) =>
+        `<circle cx="${pt.x}" cy="${pt.y}" r="${thick ? 4 : 3}" fill="${color}" />` +
+        `<text class="trail-val" x="${pt.x}" y="${pt.y - 8}" text-anchor="middle">${pt.total}</text>`
+      ).join("");
+      return `${line}${dots}`;
+    }).join("");
+    const xLabels = (layout.xLabels || []).map((l) =>
+      `<text class="trail-x" x="${l.x}" y="${l.y}" text-anchor="middle">${esc(l.label)}</text>`
+    ).join("");
+    const legend = layout.series.map((s) => {
+      const p = msg.board.players.find((x) => x.seat === s.seat);
+      const color = TRAIL_COLORS[s.seat % TRAIL_COLORS.length];
+      return `<span class="mix-key"><i class="mix-swatch" style="background:${color}"></i>${esc(p ? displayName(p) : `席${s.seat}`)}</span>`;
+    }).join("");
+    return `<div class="end-log trail-pane">
+      <p class="trail-kicker">${n}シーズン完了</p>
+      <p class="trail-head">ゲーム終了</p>
+      <svg class="trail-svg" viewBox="0 0 ${layout.width} ${layout.height}" role="img" aria-label="各シーズン終了時点の総合点">${lines}${xLabels}</svg>
+      <div class="mix-legend">${legend}</div>
+      ${next}
+    </div>`;
+  }
+
   function honorHtml() {
     const board = msg.board;
     const totals = matchTotals();
     const ranked = board.players.slice().sort((a, b) => (totals.get(b.seat) ?? 0) - (totals.get(a.seat) ?? 0));
-    const cards = ranked.map((p) => endWhoCard(p)).join("");
+    const cards = ranked.map((p) => endWhoCard(p, false)).join("");
     const again = msg.acked
       ? `<button type="button" class="next" disabled>確認済み（${msg.ackGot}/${msg.ackNeed}）</button>`
       : `<button type="button" class="next" data-act="next">${msg.ackNeed > 1 ? `もう一度（${msg.ackGot}/${msg.ackNeed}）` : "もう一度"}</button>`;
@@ -558,13 +610,29 @@
     </div>`;
   }
 
-  function harvestPane() {
-    if (harvestPhase !== "empty") return "";
-    if (msg.acked) {
-      return `<div class="harvest-bar"><div class="muted">確認済み（${msg.ackGot}/${msg.ackNeed}）</div></div>`;
-    }
-    return `<div class="harvest-bar">
-      <button type="button" class="next" data-act="next">次へ</button>
+  function harvestOverlay() {
+    if (msg.hold !== "result") return "";
+    const empty = harvestPhase === "empty";
+    const waitNext = harvestPhase === "done" || harvestPhase === "empty";
+    const walking = harvestPhase === "walk" || harvestPhase === "banner";
+    const title = empty ? "収穫なし" : "収穫タイム";
+    const sub = empty ? "<p>今ラウンドは誰も収穫しませんでした。</p>" : "";
+    const next = waitNext
+      ? (msg.acked
+        ? `<div class="muted harvest-next">確認済み（${msg.ackGot}/${msg.ackNeed}）</div>`
+        : `<button type="button" class="next harvest-next" data-act="next">次へ</button>`)
+      : "";
+    const cls = [
+      "harvest-overlay",
+      waitNext ? "is-wait" : "",
+      walking ? "is-walk" : "",
+    ].filter(Boolean).join(" ");
+    return `<div class="${cls}" data-act="next">
+      <div class="harvest-dialog-box">
+        <p class="title">${title}</p>
+        ${sub}
+      </div>
+      ${next}
     </div>`;
   }
 
@@ -646,33 +714,21 @@
     if (msg.hold === "mix") {
       return `<div class="layout is-end">${mixHtml()}</div>`;
     }
+    if (msg.hold === "trail") {
+      return `<div class="layout is-end">${trailHtml()}</div>`;
+    }
     if (msg.hold === "honor" || msg.over) {
       return `<div class="layout is-end">${honorHtml()}</div>`;
     }
     const waiting = !msg.hold && view.actingSeat !== youSeat && view.phase === "turn";
     const actor = board.players.find((p) => p.isActing);
-    const harvestNext = msg.acked
-      ? `<div class="muted harvest-next">確認済み（${msg.ackGot}/${msg.ackNeed}）</div>`
-      : `<button type="button" class="next harvest-next" data-act="next">次へ</button>`;
-    const banner = msg.hold === "result" && harvestPhase === "banner"
-      ? `<div class="harvest-banner" data-act="next">収穫タイム</div>`
-      : msg.hold === "result" && harvestPhase === "done"
-        ? `<div class="harvest-banner harvest-banner-done" data-act="next"><div>収穫タイム</div>${harvestNext}</div>`
-      : msg.hold === "result" && harvestPhase === "empty"
-        ? `<div class="harvest-dialog" data-act="next" role="dialog" aria-label="収穫なし">
-            <div class="harvest-dialog-box">
-              <p class="title">収穫なし</p>
-              <p>今ラウンドは誰も収穫しませんでした。</p>
-            </div>
-          </div>`
-        : "";
     const right = msg.hold === "result"
-      ? harvestPane()
+      ? ""
       : waiting
         ? `<div class="waitbox">${esc(actor ? actor.name + " の手番…" : "待ち")}</div>`
         : `${marketHtml()}`;
     return `<div class="layout">
-      ${banner}
+      ${harvestOverlay()}
       <section>${farmsHtml()}</section>
       <section class="hand">
         ${eventHtml()}
@@ -728,8 +784,11 @@
         harvestStep = -1;
         harvestPhase = "idle";
         if (msg.hold === "result") {
-          harvestPhase = "banner";
-          queueHarvest(beginHarvestWalk, 1000);
+          if (harvestWalk().length === 0) harvestPhase = "empty";
+          else {
+            harvestPhase = "banner";
+            queueHarvest(beginHarvestWalk, 1000);
+          }
         }
       }
       if (view.actingSeat !== youSeat) {

@@ -1,10 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { previousSeasonLeaders, previousSeasonTrailers, topSeats } from "./standings.js";
+import { bottomSeats, previousSeasonLeaders, previousSeasonTrailers, topSeats } from "./standings.js";
 
 describe("standings", () => {
   it("marks every seat tied at the top", () => {
     expect(topSeats([12, 20, 20])).toEqual([1, 2]);
     expect(topSeats([])).toEqual([]);
+  });
+
+  it("marks last place unless everyone is tied", () => {
+    expect(bottomSeats([12, 20, 8])).toEqual([2]);
+    expect(bottomSeats([10, 10, 10])).toEqual([]);
+    expect(bottomSeats([5, 9, 5])).toEqual([0, 2]);
   });
 
   it("has no crown before season 2", () => {
