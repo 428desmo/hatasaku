@@ -18,11 +18,8 @@ export function deviationScores(values: number[]): number[] {
   return values.map((x) => 50 + (10 * (x - mean)) / sd);
 }
 
-export function pooledDeviationGrid(cum: number[][]): number[][] {
-  const flat = cum.flat();
-  const t = deviationScores(flat);
-  let k = 0;
-  return cum.map((row) => row.map(() => t[k++] ?? 50));
+export function seasonDeviationGrid(cum: number[][]): number[][] {
+  return cum.map((row) => deviationScores(row));
 }
 
 export type TrailPoint = { x: number; y: number; total: number; t: number };
@@ -41,7 +38,7 @@ export function trailLayout(
   xLabels: { x: number; y: number; label: string }[];
 } {
   const cum = cumulativeTotals(scoreSheet);
-  const grid = pooledDeviationGrid(cum);
+  const grid = seasonDeviationGrid(cum);
   const seasons = cum.length;
   const pad = { l: 18, r: 28, t: 24, b: 40 };
   const innerW = width - pad.l - pad.r;

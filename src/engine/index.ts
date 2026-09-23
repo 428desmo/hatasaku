@@ -1,5 +1,5 @@
 import { cropDef } from "./catalog.js";
-import { hiddenCurseCount, visibleCurses } from "./curse.js";
+import { hiddenCurseCount, hiddenCurses, visibleCurses } from "./curse.js";
 import { applyEventUpdate, effectiveEvents, eventSumFor } from "./events.js";
 import { applyHarvest, applyIncome, concludeRound, harvestIncome } from "./income.js";
 import { listLegalActions, nextUnownedIndex, ownedCount } from "./legal.js";
@@ -137,6 +137,7 @@ export function getPublicView(
     cropIdsInGame: [...state.cropIdsInGame],
     curseReadySeats: [...state.curseReadySeats],
     curses: visibleCurses(state, viewerSeat).map((c) => ({ ...c })),
+    hiddenCurses: hiddenCurses(state, viewerSeat).map((c) => ({ bySeat: c.bySeat })),
     hiddenCurseCount: hiddenCurseCount(state, viewerSeat),
   };
   if (viewerSeat !== "spectator" && viewerSeat === state.actingSeat) {

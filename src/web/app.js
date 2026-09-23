@@ -149,6 +149,11 @@
     return p.name.replace("プレイヤー", "P");
   }
 
+  function nameOfSeat(seat) {
+    const p = msg.board?.players?.find((x) => x.seat === seat);
+    return p ? displayName(p) : `席${seat}`;
+  }
+
   function onMarket(index) {
     const card = msg.board.market[index];
     if (!card || !card.enabled) return;
@@ -274,13 +279,18 @@
       const hidden = e.kind === "curse-hidden";
       const sign = hidden ? "" : e.delta > 0 ? "plus" : e.delta < 0 ? "minus" : "";
       const d = hidden ? "？" : e.delta > 0 ? `+${e.delta}` : `${e.delta}`;
+      const who = e.bySeat != null ? nameOfSeat(e.bySeat) : "";
+      const fullName = hidden ? (who || "伏せ") : e.cropName;
+      const shortName = hidden ? (who || "伏せ") : (e.shortName || e.cropName);
       return `<article class="event${e.live ? "" : " preview"}${e.zone === "呪い" ? " curse" : ""}${hidden ? " hidden" : ""}">
-        <div class="zone">${esc(e.zone)}　${esc(e.span || `R${e.from}-${e.to}`)}</div>
-        <div class="name">${esc(e.cropName)}</div>
+        <div class="zone">${esc(e.zone)} ${esc(e.span || `R${e.from}-${e.to}`)}</div>
+        <div class="name name-full">${esc(fullName)}</div>
+        <div class="name name-short">${esc(shortName)}</div>
         <div class="delta ${sign}">${d}</div>
       </article>`;
     }).join("");
-    return `<div class="events">${inner}<div class="deck">山${msg.view.eventDeckCount}</div></div>`;
+    const deck = msg.view.eventDeckCount;
+    return `<div class="events">${inner}<div class="deck"><span class="lab">山</span><span class="n">${deck}</span></div></div>`;
   }
 
   function miniHtml(player, plot, coins, plantable, harvestHit) {
@@ -680,7 +690,7 @@
         : "";
       const act = cursePick ? (taken ? "noop" : "curse-crop") : "crop";
       return `<button type="button" class="crop-mini${open || cpuCurse || (cursePick && !taken) ? " sel" : ""}${cursePick && !taken ? " curse-pick" : ""}${taken ? " dim" : ""}" data-act="${act}" data-i="${i}" data-id="${esc(c.id)}">
-        <div class="head"><b>${esc(c.shortName || c.name)}</b><span class="cost">${c.cost}G</span></div>
+        <div class="head"><b>${esc(c.name)}</b><span class="cost">${c.cost}G</span></div>
         <div class="stat">${c.wait ? `待 ${pips(c.wait, "○")}` : "待 なし"}</div>
         <div class="stat">${taken ? "今シーズン対象済" : `収 ${pips(c.harvest, "★")} ${c.base}/${c.floor}`}</div>
         ${overlay}

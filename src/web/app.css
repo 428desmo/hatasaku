@@ -99,6 +99,7 @@ body {
 .event.curse.hidden { background: #eee8f4; }
 .event .zone { font-size: 10px; font-weight: 700; color: #555; line-height: 1.2; }
 .event .name { font-weight: 700; font-size: 11px; line-height: 1.2; }
+.event .name-short { display: none; }
 .event .delta { font-size: 14px; font-weight: 700; line-height: 1.15; }
 .event .span { font-size: 11px; font-weight: 700; margin-top: 2px; }
 .event .plus { color: #2e7d32; }
@@ -110,9 +111,25 @@ body {
   border-radius: 6px;
   background: #eee;
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
+  gap: 0;
   font-size: 10px;
+  line-height: 1.15;
+  text-align: center;
+}
+@media (max-width: 759px) {
+  .event .name-full { display: none; }
+  .event .name-short { display: block; }
+  .event .name, .event .zone { white-space: nowrap; }
+  .deck {
+    width: 22px;
+    min-width: 22px;
+    flex-direction: column;
+    padding: 2px 0;
+  }
+  .crop-mini .head b, .crop-mini .cost { font-size: 10px; }
 }
 
 .farms { display: flex; flex-direction: column; gap: 3px; }
@@ -193,8 +210,14 @@ body {
   justify-content: space-between;
   align-items: baseline;
   gap: 2px;
+  min-width: 0;
 }
-.crop-mini .head b { font-size: 11px; }
+.crop-mini .head b {
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  min-width: 0;
+}
 .crop-mini .cost { font-size: 11px; font-weight: 700; }
 .crop-mini .stat {
   font-size: 10px;

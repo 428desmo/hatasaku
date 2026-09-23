@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cumulativeTotals,
   deviationScores,
-  pooledDeviationGrid,
+  seasonDeviationGrid,
   trailLayout,
 } from "./trailChart.js";
 
@@ -23,13 +23,26 @@ describe("trail chart", () => {
     expect(deviationScores([10, 10, 10])).toEqual([50, 50, 50]);
   });
 
-  it("puts the pooled leader above 50", () => {
-    const grid = pooledDeviationGrid([
-      [80, 70, 60],
-      [100, 110, 150],
+  it("scores each season on its own so a later total is not automatically higher", () => {
+    const grid = seasonDeviationGrid([
+      [100, 50, 50, 50],
+      [110, 140, 140, 140],
     ]);
-    expect(grid[1]![2]!).toBeGreaterThan(50);
-    expect(grid[0]![2]!).toBeLessThan(50);
+    expect(grid[0]![0]!).toBeGreaterThan(50);
+    expect(grid[0]![1]!).toBeLessThan(50);
+    expect(grid[1]![0]!).toBeLessThan(50);
+    expect(grid[1]![1]!).toBeGreaterThan(50);
+    for (const row of grid) {
+      const mean = row.reduce((sum, x) => sum + x, 0) / row.length;
+      expect(mean).toBeCloseTo(50);
+    }
+    const { series } = trailLayout([
+      [100, 50, 50, 50],
+      [10, 90, 90, 90],
+    ]);
+    expect(series[0]!.points[0]!.t).toBeGreaterThan(50);
+    expect(series[0]!.points[1]!.t).toBeLessThan(50);
+    expect(series[0]!.points[1]!.y).toBeGreaterThan(series[0]!.points[0]!.y);
   });
 
   it("lays out one x per season", () => {
