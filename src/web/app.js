@@ -53,6 +53,15 @@
   function armDeadlineTicker() {
     clearDeadlineTimer();
     if (!msg?.turnDeadline) return;
+    // End-of-season recap screens must not keep re-rendering on the clock.
+    if (
+      msg.hold === "season" ||
+      msg.hold === "mix" ||
+      msg.hold === "trail" ||
+      msg.hold === "honor"
+    ) {
+      return;
+    }
     deadlineTimer = setInterval(() => {
       if (!msg?.turnDeadline || Date.now() > msg.turnDeadline + 2000) {
         clearDeadlineTimer();
@@ -317,7 +326,7 @@
       : "ロビー";
     const sub = youName ? `${youName}${youSeat != null ? `（席${youSeat}）` : ""}` : "";
     const quitBtn =
-      msg.mode === "online"
+      typeof quitHandler === "function" && msg.role !== "observer"
         ? `<button type="button" data-act="quit" class="quit-btn">やめる</button>`
         : "";
     return `<header class="chrome">
