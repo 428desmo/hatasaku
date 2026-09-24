@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { Room, RoomHub, JOIN_WINDOW_MS, normalizeSettings } from "./room.js";
+import {
+  Room,
+  RoomHub,
+  JOIN_WINDOW_MS,
+  MATCH_MAX_MS,
+  normalizeSettings,
+} from "./room.js";
 
 describe("online room lobby", () => {
   it("makes the first joiner the leader and hands off when they leave", () => {
@@ -34,6 +40,7 @@ describe("online room lobby", () => {
     expect(table.config.cpuCount).toBe(3);
     expect(table.state).not.toBeNull();
     expect(room.members.map((m) => m.seat).sort()).toEqual([0, 1]);
+    expect(room.startedAt).not.toBeNull();
   });
 
   it("closes join after the window", () => {
@@ -55,6 +62,61 @@ describe("online room lobby", () => {
     const b = hub.create({ playerCount: 4 });
     expect(a.code).not.toBe(b.code);
     expect(hub.get(a.code)).toBe(a);
+  });
+});
+
+describe("quit, pause, observe, expiry", () => {
+  it("pauses when the last seated human quits and resumes on rejoin", () => {
+    const room = new Room("QUIT1", { playerCount: 3, seasonCount: 1 }, "q1");
+    room.join("dev-a", "A");
+    room.join("dev-b", "B");
+    room.start("dev-a");
+    expect(room.paused).toBe(false);
+    room.quitMatch("dev-a");
+    expect(room.paused).toBe(false);
+    expect(room.connectedSeatedHumans()).toHaveLength(1);
+    room.quitMatch("dev-b");
+    expect(room.paused).toBe(true);
+    expect(room.turnTimerApplies()).toBe(false);
+    room.join("dev-a", "A");
+    expect(room.paused).toBe(false);
+    expect(room.connectedSeatedHumans()).toHaveLength(1);
+  });
+
+  it("marks forceProxy when quitting on your own turn", () => {
+    const room = new Room("QUIT2", { playerCount: 3, seasonCount: 1 }, "q2");
+    room.join("dev-a", "A");
+    room.start("dev-a");
+    const human = room.members[0]!;
+    const seat = human.seat!;
+    room.table!.nextFromSeat(seat);
+    while (room.table!.hold) room.table!.nextFromSeat(seat);
+    room.table!.state!.phase = "turn";
+    room.table!.state!.actingSeat = seat;
+    room.quitMatch("dev-a");
+    expect(human.forceProxy).toBe(true);
+    expect(room.shouldProxySeat(seat)).toBe(true);
+  });
+
+  it("lets outsiders observe a started match", () => {
+    const room = new Room("OBS1", { playerCount: 3, seasonCount: 1 }, "o1");
+    room.join("dev-a", "A");
+    room.start("dev-a");
+    room.observe("dev-watch");
+    expect(room.observers.has("dev-watch")).toBe(true);
+    expect(room.snapshot("dev-watch").role).toBe("observer");
+    expect(() => room.join("dev-new", "X")).toThrow(/started/);
+  });
+
+  it("GCs playing rooms older than 24h", () => {
+    const hub = new RoomHub();
+    const room = hub.create({ playerCount: 3, seasonCount: 1 }, "old");
+    room.join("dev-a", "A");
+    room.start("dev-a");
+    room.startedAt = Date.now() - MATCH_MAX_MS - 1;
+    const removed = hub.gc();
+    expect(removed).toContain(room.code);
+    expect(hub.get(room.code)).toBeUndefined();
   });
 });
 

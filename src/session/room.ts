@@ -5,6 +5,8 @@ import { Table, CPU_STEP_MS, type UiHold } from "./table.js";
 export const JOIN_WINDOW_MS = 10 * 60 * 1000;
 export const DEFAULT_TURN_MS = 60_000;
 export const LOBBY_DISCONNECT_GRACE_MS = 60_000;
+/** Playing matches are discarded after this age (from start). */
+export const MATCH_MAX_MS = 24 * 60 * 60 * 1000;
 
 export type RoomSettings = {
   mode: Mode;
@@ -22,11 +24,17 @@ export type LobbyMember = {
   disconnectAt: number | null;
   /** Assigned when the match starts (0..humanCount-1). */
   seat: number | null;
+  /**
+   * Quit mid-own-turn: keep seat, but this turn is CPU-proxied; rejoiner watches only
+   * until the acting seat changes.
+   */
+  forceProxy: boolean;
 };
 
 export type LobbySnapshot = {
   code: string;
   phase: "lobby" | "playing" | "ended";
+  paused: boolean;
   joinOpen: boolean;
   joinRemainingMs: number;
   settings: RoomSettings;
@@ -41,6 +49,7 @@ export type LobbySnapshot = {
   youAreLeader: boolean;
   seatToken: string | null;
   seat: number | null;
+  role: "player" | "observer" | "none";
 };
 
 function randomToken(bytes = 16): string {
@@ -88,7 +97,12 @@ export class Room {
   readonly joinUntil: number;
   settings: RoomSettings;
   phase: "lobby" | "playing" | "ended" = "lobby";
+  /** True when every human seat is away; match timers/CPU freeze until someone returns. */
+  paused = false;
+  startedAt: number | null = null;
   members: LobbyMember[] = [];
+  /** Devices watching a started match without a seat. */
+  observers = new Set<string>();
   table: Table | null = null;
   private seed: string;
 
@@ -119,6 +133,14 @@ export class Room {
     return this.members.filter((m) => m.connected || m.seat !== null);
   }
 
+  seatedMembers(): LobbyMember[] {
+    return this.members.filter((m) => m.seat !== null);
+  }
+
+  connectedSeatedHumans(): LobbyMember[] {
+    return this.members.filter((m) => m.seat !== null && m.connected);
+  }
+
   lobbyHumans(): LobbyMember[] {
     return this.members.filter((m) => {
       if (m.seat !== null) return true;
@@ -146,6 +168,14 @@ export class Room {
     return this.members.find((m) => m.seatToken === seatToken);
   }
 
+  clearForceProxyIfTurnMoved(): void {
+    if (!this.table?.state) return;
+    const acting = this.table.state.actingSeat;
+    for (const m of this.members) {
+      if (m.forceProxy && m.seat !== null && m.seat !== acting) m.forceProxy = false;
+    }
+  }
+
   join(deviceId: string, displayName: string): LobbyMember {
     this.pruneLobbyAbandoned();
     const existing = this.findByDevice(deviceId);
@@ -153,6 +183,11 @@ export class Room {
       existing.connected = true;
       existing.disconnectAt = null;
       if (displayName.trim()) existing.displayName = displayName.trim().slice(0, 16);
+      if (this.table && existing.seat !== null) {
+        this.table.setHumanConnected(existing.seat, !existing.forceProxy);
+      }
+      this.observers.delete(deviceId);
+      this.tryResume();
       return existing;
     }
     if (this.phase !== "lobby") throw new Error("match already started");
@@ -166,17 +201,32 @@ export class Room {
       connected: true,
       disconnectAt: null,
       seat: null,
+      forceProxy: false,
     };
     this.members.push(member);
     return member;
   }
 
+  /** Watch a started match without taking a seat. */
+  observe(deviceId: string): void {
+    if (this.phase !== "playing" || !this.table) throw new Error("no match to observe");
+    const existing = this.findByDevice(deviceId);
+    if (existing?.seat != null) throw new Error("already a player; rejoin instead");
+    this.observers.add(deviceId);
+  }
+
+  removeObserver(deviceId: string): void {
+    this.observers.delete(deviceId);
+  }
+
   markDisconnected(deviceId: string): void {
+    this.observers.delete(deviceId);
     const m = this.findByDevice(deviceId);
     if (!m) return;
     m.connected = false;
     m.disconnectAt = Date.now();
     if (this.table && m.seat !== null) this.table.setHumanConnected(m.seat, false);
+    this.maybePause();
   }
 
   markConnected(deviceId: string): LobbyMember | null {
@@ -184,16 +234,52 @@ export class Room {
     if (!m) return null;
     m.connected = true;
     m.disconnectAt = null;
-    if (this.table && m.seat !== null) this.table.setHumanConnected(m.seat, true);
+    this.observers.delete(deviceId);
+    if (this.table && m.seat !== null) {
+      if (m.forceProxy) this.table.setHumanConnected(m.seat, false);
+      else this.table.setHumanConnected(m.seat, true);
+    }
+    this.tryResume();
     return m;
   }
 
+  /**
+   * Explicit quit from a playing match: same as leave for others, pause if last human,
+   * and if it is currently this seat's turn, force CPU proxy for the rest of the turn.
+   */
+  quitMatch(deviceId: string): void {
+    if (this.phase !== "playing") {
+      this.leaveLobby(deviceId);
+      return;
+    }
+    const m = this.findByDevice(deviceId);
+    if (!m || m.seat === null) {
+      this.removeObserver(deviceId);
+      return;
+    }
+    if (this.table?.state?.actingSeat === m.seat && this.table.state.phase === "turn") {
+      m.forceProxy = true;
+    }
+    this.markDisconnected(deviceId);
+  }
+
   leaveLobby(deviceId: string): void {
+    this.observers.delete(deviceId);
     if (this.phase !== "lobby") {
       this.markDisconnected(deviceId);
       return;
     }
     this.members = this.members.filter((m) => m.deviceId !== deviceId);
+  }
+
+  maybePause(): void {
+    if (this.phase !== "playing") return;
+    if (this.connectedSeatedHumans().length === 0) this.paused = true;
+  }
+
+  tryResume(): void {
+    if (this.phase !== "playing" || !this.paused) return;
+    if (this.connectedSeatedHumans().length > 0) this.paused = false;
   }
 
   updateSettings(deviceId: string, partial: Partial<RoomSettings> & { mode?: string }): RoomSettings {
@@ -233,10 +319,14 @@ export class Room {
       humans[i]!.seat = seat;
       humans[i]!.connected = true;
       humans[i]!.disconnectAt = null;
+      humans[i]!.forceProxy = false;
     }
     this.members = humans;
+    this.observers.clear();
     this.table = table;
     this.phase = "playing";
+    this.paused = false;
+    this.startedAt = Date.now();
     return table;
   }
 
@@ -245,15 +335,22 @@ export class Room {
     if (deviceId !== this.leaderDeviceId) throw new Error("not lobby leader");
     this.phase = "ended";
     this.members = [];
+    this.observers.clear();
   }
 
   snapshot(forDeviceId: string): LobbySnapshot {
     this.pruneLobbyAbandoned();
     const leader = this.leaderDeviceId;
     const you = this.findByDevice(forDeviceId);
+    const isObserver = this.observers.has(forDeviceId);
+    let role: LobbySnapshot["role"] = "none";
+    if (you?.seat != null) role = "player";
+    else if (isObserver) role = "observer";
+    else if (you) role = "player";
     return {
       code: this.code,
       phase: this.phase,
+      paused: this.paused,
       joinOpen: this.joinOpen,
       joinRemainingMs: this.joinRemainingMs,
       settings: { ...this.settings },
@@ -270,11 +367,23 @@ export class Room {
       youAreLeader: forDeviceId === leader,
       seatToken: you?.seatToken ?? null,
       seat: you?.seat ?? null,
+      role,
     };
   }
 
+  /** Turn timer when 2+ human seats exist and the match is not paused. */
   turnTimerApplies(): boolean {
-    return this.phase === "playing" && this.members.filter((m) => m.seat !== null).length >= 2;
+    return this.phase === "playing" && !this.paused && this.seatedMembers().length >= 2;
+  }
+
+  shouldProxySeat(seat: number): boolean {
+    const m = this.members.find((x) => x.seat === seat);
+    if (!m) return false;
+    return !m.connected || m.forceProxy;
+  }
+
+  isExpiredMatch(now = Date.now()): boolean {
+    return this.phase === "playing" && this.startedAt != null && now - this.startedAt > MATCH_MAX_MS;
   }
 }
 
@@ -296,15 +405,24 @@ export class RoomHub {
     this.rooms.delete(code.toUpperCase());
   }
 
-  /** Drop empty ended / abandoned lobby rooms. */
-  gc(): void {
+  /** Drop ended / abandoned lobby / expired playing rooms. */
+  gc(now = Date.now()): string[] {
+    const removed: string[] = [];
     for (const [code, room] of this.rooms) {
-      if (room.phase === "ended") this.rooms.delete(code);
-      else if (room.phase === "lobby") {
+      if (room.phase === "ended" || room.isExpiredMatch(now)) {
+        room.phase = "ended";
+        room.table = null;
+        this.rooms.delete(code);
+        removed.push(code);
+      } else if (room.phase === "lobby") {
         room.pruneLobbyAbandoned();
-        if (room.members.length === 0 && Date.now() > room.joinUntil) this.rooms.delete(code);
+        if (room.members.length === 0 && now > room.joinUntil) {
+          this.rooms.delete(code);
+          removed.push(code);
+        }
       }
     }
+    return removed;
   }
 }
 

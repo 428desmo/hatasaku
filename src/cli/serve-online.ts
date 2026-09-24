@@ -32,6 +32,7 @@ type Client = {
   ws: WebSocket;
   deviceId: string | null;
   roomCode: string | null;
+  role: "player" | "observer" | null;
 };
 
 const clients = new Map<WebSocket, Client>();
@@ -52,14 +53,21 @@ function send(ws: WebSocket, payload: unknown): void {
   if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(payload));
 }
 
-function packView(room: Room, seat: number) {
+function packView(room: Room, seat: number, forDeviceId: string) {
+  room.clearForceProxyIfTurnMoved();
   const table = room.table!;
   const packed = table.viewFor(seat);
   const member = room.members.find((m) => m.seat === seat)!;
+  const forceProxy = member.forceProxy && table.state?.actingSeat === seat;
+  const actions =
+    packed.hold || forceProxy || room.paused
+      ? []
+      : packed.actions.map((a) => ({ ...a.action, label: a.label }));
   return {
     type: "view" as const,
     mode: "online" as const,
-    room: room.snapshot(member.deviceId),
+    role: "player" as const,
+    room: room.snapshot(forDeviceId),
     seat,
     html: packed.html,
     text: packed.text,
@@ -80,26 +88,79 @@ function packView(room: Room, seat: number) {
     honorAnnounce: packed.honorAnnounce,
     finalRoundTip: packed.finalRoundTip,
     proxyNote: packed.proxyNote,
-    actions: packed.hold ? [] : packed.actions.map((a) => ({ ...a.action, label: a.label })),
+    actions,
     hold: packed.hold,
     acked: packed.acked,
     ackNeed: packed.ackNeed,
     ackGot: packed.ackGot,
     phase: packed.view.phase,
     over: table.matchOver,
-    turnDeadline: deadlines.get(room.code)?.at ?? null,
+    paused: room.paused,
+    turnDeadline: room.paused ? null : (deadlines.get(room.code)?.at ?? null),
   };
 }
 
+function packObserve(room: Room, deviceId: string) {
+  room.clearForceProxyIfTurnMoved();
+  const table = room.table!;
+  const packed = table.viewFor("spectator");
+  return {
+    type: "view" as const,
+    mode: "online" as const,
+    role: "observer" as const,
+    room: room.snapshot(deviceId),
+    seat: null,
+    html: packed.html,
+    text: packed.text,
+    view: packed.view,
+    board: packed.board,
+    harvest: packed.harvest,
+    lastPayouts: packed.lastPayouts,
+    scoreSheet: packed.scoreSheet,
+    matchWinnerSeats: packed.matchWinnerSeats,
+    crownSeats: packed.crownSeats,
+    honorSeats: packed.honorSeats,
+    honorKind: packed.honorKind,
+    seasonLog: packed.seasonLog,
+    crops: packed.crops,
+    trail: packed.trail,
+    cpuShow: packed.cpuShow,
+    seasonIntro: packed.seasonIntro,
+    honorAnnounce: packed.honorAnnounce,
+    finalRoundTip: packed.finalRoundTip,
+    proxyNote: null,
+    actions: [],
+    hold: packed.hold,
+    acked: false,
+    ackNeed: packed.ackNeed,
+    ackGot: packed.ackGot,
+    phase: packed.view.phase,
+    over: table.matchOver,
+    paused: room.paused,
+    turnDeadline: room.paused ? null : (deadlines.get(room.code)?.at ?? null),
+  };
+}
+
+function stopRoomTimers(code: string): void {
+  clearCpuTimer(code);
+  clearDeadline(code);
+}
+
 function broadcastRoom(room: Room): void {
+  room.clearForceProxyIfTurnMoved();
   for (const [ws, client] of clients) {
     if (client.roomCode !== room.code || !client.deviceId) continue;
+    if (client.role === "observer" || room.observers.has(client.deviceId)) {
+      if (room.phase === "playing" && room.table) send(ws, packObserve(room, client.deviceId));
+      else send(ws, { type: "lobby", room: room.snapshot(client.deviceId) });
+      continue;
+    }
     const member = room.findByDevice(client.deviceId);
     if (!member || room.phase !== "playing" || member.seat === null || !room.table) {
       send(ws, { type: "lobby", room: room.snapshot(client.deviceId) });
       continue;
     }
-    send(ws, packView(room, member.seat));
+    send(ws, packView(room, member.seat, client.deviceId));
   }
 }
 
@@ -115,7 +176,22 @@ function clearDeadline(code: string): void {
   deadlines.delete(code);
 }
 
+function gcHub(): void {
+  const removed = hub.gc();
+  for (const code of removed) {
+    stopRoomTimers(code);
+    for (const c of clients.values()) {
+      if (c.roomCode === code) {
+        c.roomCode = null;
+        c.role = null;
+        if (c.deviceId) send(c.ws, { type: "hello-ok", deviceId: c.deviceId, reason: "room-expired" });
+      }
+    }
+  }
+}
+
 function proxyHumanTurn(room: Room): void {
+  if (room.paused) return;
   const table = room.table;
   if (!table?.state || table.hold) return;
   if (table.state.phase !== "turn" || table.state.actingSeat === null) return;
@@ -134,13 +210,14 @@ function proxyHumanTurn(room: Room): void {
       /* ignore */
     }
   }
-  // Re-apply note: applyFromSeat clears it for the acting seat.
   table.markTurnProxy(seat);
+  room.clearForceProxyIfTurnMoved();
   broadcastRoom(room);
   kickCpu(room);
 }
 
 function proxyHold(room: Room): void {
+  if (room.paused) return;
   const table = room.table;
   if (!table?.hold) return;
   const pending: number[] = [];
@@ -156,7 +233,7 @@ function proxyHold(room: Room): void {
 
 function armDeadline(room: Room): void {
   clearDeadline(room.code);
-  if (!room.turnTimerApplies() || !room.table) return;
+  if (room.paused || !room.turnTimerApplies() || !room.table) return;
   const table = room.table;
   if (table.cpuShow) return;
   if (table.hold) {
@@ -172,23 +249,28 @@ function armDeadline(room: Room): void {
   if (table.state?.phase !== "turn" || table.state.actingSeat === null) return;
   const actor = table.state.players[table.state.actingSeat];
   if (!actor || actor.kind !== "human") return;
+  const seat = table.state.actingSeat;
+  // Away / quit-mid-turn seats: proxy on the same timer as everyone else.
   const at = Date.now() + room.settings.turnMs;
   const timer = setTimeout(() => {
     deadlines.delete(room.code);
     proxyHumanTurn(room);
   }, room.settings.turnMs);
   deadlines.set(room.code, { at, kind: "turn", timer });
+  if (room.shouldProxySeat(seat)) {
+    /* still show deadline so observers/remaining players see the countdown */
+  }
   broadcastRoom(room);
 }
 
 function scheduleCpu(room: Room): void {
-  if (!room.table?.config.paceCpu) return;
+  if (room.paused || !room.table?.config.paceCpu) return;
   clearCpuTimer(room.code);
   cpuTimers.set(
     room.code,
     setTimeout(() => {
       cpuTimers.delete(room.code);
-      if (!room.table) return;
+      if (!room.table || room.paused) return;
       const again = room.table.cpuTick();
       broadcastRoom(room);
       if (again) scheduleCpu(room);
@@ -198,6 +280,11 @@ function scheduleCpu(room: Room): void {
 }
 
 function kickCpu(room: Room): void {
+  if (room.paused) {
+    stopRoomTimers(room.code);
+    broadcastRoom(room);
+    return;
+  }
   if (!room.table?.config.paceCpu) {
     armDeadline(room);
     return;
@@ -260,10 +347,21 @@ function requireDevice(msg: InMsg): string {
   return id.slice(0, 64);
 }
 
+function enterPlayingAsPlayer(ws: WebSocket, client: Client, room: Room, deviceId: string): void {
+  const member = room.findByDevice(deviceId);
+  if (!member || member.seat === null || !room.table) throw new Error("no seat");
+  client.roomCode = room.code;
+  client.role = "player";
+  room.markConnected(deviceId);
+  send(ws, packView(room, member.seat, deviceId));
+  broadcastRoom(room);
+  kickCpu(room);
+}
+
 function handleMessage(ws: WebSocket, msg: InMsg): void {
   const client = clients.get(ws);
   if (!client) return;
-  hub.gc();
+  gcHub();
 
   if (msg.type === "hello") {
     const deviceId = requireDevice(msg);
@@ -275,13 +373,13 @@ function handleMessage(ws: WebSocket, msg: InMsg): void {
       if (room) {
         const member = room.findBySeatToken(seatToken);
         if (member && member.deviceId === deviceId) {
-          client.roomCode = room.code;
-          room.markConnected(deviceId);
           if (room.phase === "playing" && member.seat !== null && room.table) {
-            send(ws, packView(room, member.seat));
-            armDeadline(room);
+            enterPlayingAsPlayer(ws, client, room, deviceId);
             return;
           }
+          client.roomCode = room.code;
+          client.role = "player";
+          room.markConnected(deviceId);
           send(ws, { type: "lobby", room: room.snapshot(deviceId) });
           return;
         }
@@ -297,6 +395,7 @@ function handleMessage(ws: WebSocket, msg: InMsg): void {
     const room = hub.create(msg.settings);
     const member = room.join(deviceId, msg.displayName ?? "プレイヤー");
     client.roomCode = room.code;
+    client.role = "player";
     send(ws, { type: "created", seatToken: member.seatToken, room: room.snapshot(deviceId) });
     return;
   }
@@ -308,8 +407,26 @@ function handleMessage(ws: WebSocket, msg: InMsg): void {
     if (!code) throw new Error("code required");
     const room = hub.get(code);
     if (!room) throw new Error("room not found");
+
+    const existing = room.findByDevice(deviceId);
+    if (room.phase === "playing" && existing?.seat != null && room.table) {
+      enterPlayingAsPlayer(ws, client, room, deviceId);
+      send(ws, { type: "rejoined", seatToken: existing.seatToken, room: room.snapshot(deviceId) });
+      return;
+    }
+
+    if (room.phase === "playing") {
+      room.observe(deviceId);
+      client.roomCode = room.code;
+      client.role = "observer";
+      send(ws, { type: "observing", room: room.snapshot(deviceId) });
+      send(ws, packObserve(room, deviceId));
+      return;
+    }
+
     const member = room.join(deviceId, msg.displayName ?? "プレイヤー");
     client.roomCode = room.code;
+    client.role = "player";
     broadcastRoom(room);
     send(ws, { type: "joined", seatToken: member.seatToken, room: room.snapshot(deviceId) });
     return;
@@ -339,9 +456,13 @@ function handleMessage(ws: WebSocket, msg: InMsg): void {
     const code = room.code;
     room.cancel(deviceId);
     broadcastRoom(room);
+    stopRoomTimers(code);
     hub.delete(code);
     for (const c of clients.values()) {
-      if (c.roomCode === code) c.roomCode = null;
+      if (c.roomCode === code) {
+        c.roomCode = null;
+        c.role = null;
+      }
     }
     send(ws, { type: "hello-ok", deviceId });
     return;
@@ -352,17 +473,42 @@ function handleMessage(ws: WebSocket, msg: InMsg): void {
     room.leaveLobby(deviceId);
     broadcastRoom(room);
     client.roomCode = null;
+    client.role = null;
     send(ws, { type: "hello-ok", deviceId });
     return;
   }
 
+  if (msg.type === "quit") {
+    if (!room) {
+      send(ws, { type: "hello-ok", deviceId });
+      return;
+    }
+    const code = room.code;
+    room.quitMatch(deviceId);
+    client.roomCode = null;
+    client.role = null;
+    if (room.paused) stopRoomTimers(code);
+    broadcastRoom(room);
+    if (!room.paused) kickCpu(room);
+    send(ws, { type: "hello-ok", deviceId, reason: "quit" });
+    return;
+  }
+
   if (!room?.table) throw new Error("match not started");
+  if (client.role === "observer" || room.observers.has(deviceId)) {
+    throw new Error("observers cannot act");
+  }
+  if (room.paused) throw new Error("match paused (no humans connected)");
   const member = room.findByDevice(deviceId);
   if (!member || member.seat === null) throw new Error("no seat");
+  if (member.forceProxy && room.table.state?.actingSeat === member.seat) {
+    throw new Error("this turn is CPU-proxied; wait for your next turn");
+  }
 
   if (msg.type === "next") {
     clearDeadline(room.code);
     room.table.nextFromSeat(member.seat);
+    room.clearForceProxyIfTurnMoved();
     broadcastRoom(room);
     kickCpu(room);
     return;
@@ -370,6 +516,7 @@ function handleMessage(ws: WebSocket, msg: InMsg): void {
   if (msg.type === "action" && msg.action) {
     clearDeadline(room.code);
     room.table.applyFromSeat(member.seat, msg.action);
+    room.clearForceProxyIfTurnMoved();
     broadcastRoom(room);
     kickCpu(room);
     return;
@@ -378,7 +525,7 @@ function handleMessage(ws: WebSocket, msg: InMsg): void {
 
 const wss = new WebSocketServer({ server });
 wss.on("connection", (ws) => {
-  clients.set(ws, { ws, deviceId: null, roomCode: null });
+  clients.set(ws, { ws, deviceId: null, roomCode: null, role: null });
   send(ws, { type: "welcome", mode: "online" });
 
   ws.on("message", (raw) => {
@@ -407,8 +554,14 @@ wss.on("connection", (ws) => {
     if (!client?.deviceId || !client.roomCode) return;
     const room = hub.get(client.roomCode);
     if (!room) return;
+    if (client.role === "observer") {
+      room.removeObserver(client.deviceId);
+      return;
+    }
     room.markDisconnected(client.deviceId);
+    if (room.paused) stopRoomTimers(room.code);
     broadcastRoom(room);
+    if (!room.paused) kickCpu(room);
   });
 });
 
@@ -428,3 +581,5 @@ server.listen(port, () => {
   console.log(`LAN単卓（旧）  http://${ip}:${port}/lan`);
   console.log(`ngrok 例: ngrok http ${port}`);
 });
+
+setInterval(() => gcHub(), 60_000).unref();
