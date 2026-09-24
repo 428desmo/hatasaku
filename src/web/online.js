@@ -22,6 +22,8 @@
   let joinCodeInput = urlCode;
   let reconnectTimer = null;
   let joinTick = null;
+  /** Local draft so 1s countdown / lobby broadcasts do not wipe in-progress edits. */
+  let settingsDraft = null;
 
   function loadDeviceId() {
     let id = localStorage.getItem(DEVICE_KEY);
@@ -67,6 +69,18 @@
   }
 
   play.setSend((payload) => send(payload));
+  play.setQuitHandler?.(() => {
+    send({ type: "quit", deviceId });
+  });
+
+  function showHome() {
+    screen = "home";
+    room = null;
+    settingsDraft = null;
+    play.hide();
+    lobbyRoot.hidden = false;
+    renderLobby();
+  }
 
   function showLobby() {
     screen = room ? "lobby" : "home";
@@ -80,7 +94,11 @@
     lobbyRoot.hidden = true;
     play.show();
     const you = room?.members?.find((m) => m.isYou);
-    play.setYou(viewMsg.seat, you?.displayName || displayName || `席${viewMsg.seat}`);
+    const name =
+      viewMsg.role === "observer"
+        ? "観戦"
+        : you?.displayName || displayName || (viewMsg.seat != null ? `席${viewMsg.seat}` : "");
+    play.setYou(viewMsg.seat, name);
     play.applyView(viewMsg);
   }
 
@@ -97,11 +115,49 @@
     return u.toString();
   }
 
+  function readSettingsDraftFromDom() {
+    const mode = document.getElementById("ol-mode");
+    if (!mode) return null;
+    return {
+      mode: mode.value,
+      playerCount: document.getElementById("ol-players")?.value,
+      seasonCount: document.getElementById("ol-seasons")?.value,
+      turnSec: document.getElementById("ol-turn")?.value,
+    };
+  }
+
+  function settingsInputFocused() {
+    const id = document.activeElement?.id;
+    return id === "ol-mode" || id === "ol-players" || id === "ol-seasons" || id === "ol-turn";
+  }
+
+  function rememberSettingsDraft() {
+    const draft = readSettingsDraftFromDom();
+    if (draft) settingsDraft = draft;
+  }
+
   function clearJoinTick() {
     if (joinTick != null) {
       clearInterval(joinTick);
       joinTick = null;
     }
+  }
+
+  function updateJoinWindowLabel() {
+    const el = document.getElementById("ol-join-window");
+    const cpu = document.getElementById("ol-cpu-note");
+    if (!room || room.phase !== "lobby") return false;
+    const members = room.members || [];
+    const empty = Math.max(0, room.settings.playerCount - members.length);
+    if (el) {
+      el.textContent = room.joinOpen
+        ? `入場あと ${formatMs(room.joinRemainingMs)}で締切（その後は新規参加不可）`
+        : "入場窓終了（再接続のみ）";
+    }
+    if (cpu) {
+      cpu.textContent = `空き ${empty} → 開始時は CPU が入ります（人間 ${members.length} / ${room.settings.playerCount}）`;
+    }
+    return !!(el || cpu);
   }
 
   function armJoinTick() {
@@ -114,12 +170,28 @@
       }
       const rem = Math.max(0, (room.joinRemainingMs || 0) - 1000);
       room = { ...room, joinRemainingMs: rem, joinOpen: rem > 0 };
-      if (screen === "lobby") renderLobby();
+      if (screen !== "lobby") return;
+      if (settingsInputFocused()) rememberSettingsDraft();
+      if (!updateJoinWindowLabel()) renderLobby();
     }, 1000);
+  }
+
+  function settingsValues() {
+    const s = room?.settings;
+    const d = settingsDraft;
+    return {
+      mode: d?.mode ?? s?.mode ?? "basic",
+      playerCount: Number(d?.playerCount ?? s?.playerCount ?? 3),
+      seasonCount: Number(d?.seasonCount ?? s?.seasonCount ?? 3),
+      turnSec: Number(d?.turnSec ?? Math.round((s?.turnMs ?? 60000) / 1000)),
+    };
   }
 
   function renderLobby() {
     if (screen === "play") return;
+    const focusId = settingsInputFocused() ? document.activeElement.id : null;
+    if (settingsInputFocused()) rememberSettingsDraft();
+
     if (screen === "boot") {
       lobbyRoot.innerHTML = `<p class="boot">接続中…</p><div class="err">${esc(errText)}</div>`;
       return;
@@ -143,12 +215,14 @@
             </label>
             <button type="button" class="lobby-btn" data-ol="join">参加する</button>
           </div>
+          <p class="lobby-note">開始済みの卓コードでも入れます（元プレイヤーは復帰、それ以外は観戦）。</p>
           <p class="lobby-note">LAN単卓は <a href="/lan">/lan</a></p>
         </section>`;
       return;
     }
 
     const s = room.settings;
+    const sv = settingsValues();
     const members = room.members || [];
     const empty = Math.max(0, s.playerCount - members.length);
     const leaderOnly = room.youAreLeader
@@ -159,20 +233,20 @@
       <div class="lobby-settings">
         <label class="lobby-field">モード
           <select id="ol-mode">
-            <option value="basic" ${s.mode === "basic" ? "selected" : ""}>基本</option>
-            <option value="advanced" ${s.mode === "advanced" ? "selected" : ""}>上級</option>
+            <option value="basic" ${sv.mode === "basic" ? "selected" : ""}>基本</option>
+            <option value="advanced" ${sv.mode === "advanced" ? "selected" : ""}>上級</option>
           </select>
         </label>
         <label class="lobby-field">人数（人間＋CPU）
           <select id="ol-players">
-            ${[3, 4, 5].map((n) => `<option value="${n}" ${s.playerCount === n ? "selected" : ""}>${n}</option>`).join("")}
+            ${[3, 4, 5].map((n) => `<option value="${n}" ${sv.playerCount === n ? "selected" : ""}>${n}</option>`).join("")}
           </select>
         </label>
         <label class="lobby-field">シーズン数
-          <input id="ol-seasons" type="number" min="1" max="12" value="${s.seasonCount}" />
+          <input id="ol-seasons" type="number" min="1" max="12" value="${sv.seasonCount}" />
         </label>
         <label class="lobby-field">手番制限（秒）
-          <input id="ol-turn" type="number" min="10" max="600" step="5" value="${Math.round(s.turnMs / 1000)}" />
+          <input id="ol-turn" type="number" min="10" max="600" step="5" value="${sv.turnSec}" />
         </label>
         <button type="button" class="lobby-btn" data-ol="save-settings">設定を反映</button>
       </div>`
@@ -202,12 +276,12 @@
         <h1 class="lobby-title">ロビー</h1>
         <p class="lobby-code">コード <strong>${esc(room.code)}</strong></p>
         <p class="lobby-share"><input readonly value="${esc(shareUrl(room.code))}" id="ol-share" /><button type="button" data-ol="copy">コピー</button></p>
-        <p class="lobby-window">${
-      room.joinOpen
-        ? `入場あと ${esc(formatMs(room.joinRemainingMs))}で締切（その後は新規参加不可）`
-        : "入場窓終了（再接続のみ）"
-    }</p>
-    <p class="lobby-cpu-note">空き ${empty} → 開始時は CPU が入ります（人間 ${members.length} / ${s.playerCount}）</p>
+        <p class="lobby-window" id="ol-join-window">${
+          room.joinOpen
+            ? `入場あと ${esc(formatMs(room.joinRemainingMs))}で締切（その後は新規参加不可）`
+            : "入場窓終了（再接続のみ）"
+        }</p>
+        <p class="lobby-cpu-note" id="ol-cpu-note">空き ${empty} → 開始時は CPU が入ります（人間 ${members.length} / ${s.playerCount}）</p>
         <div class="err">${esc(errText)}</div>
         <h2 class="lobby-h2">参加者</h2>
         <ul class="lobby-members">${memberList || "<li>（なし）</li>"}</ul>
@@ -223,6 +297,18 @@
           }
         </div>
       </section>`;
+
+    if (focusId) {
+      const el = document.getElementById(focusId);
+      if (el && typeof el.focus === "function") {
+        el.focus();
+        if (el.tagName === "INPUT" && el.type === "number") {
+          const v = el.value;
+          el.value = "";
+          el.value = v;
+        }
+      }
+    }
   }
 
   function rememberNameFromInput() {
@@ -266,10 +352,12 @@
       return;
     }
     if (act === "save-settings") {
+      rememberSettingsDraft();
       const mode = document.getElementById("ol-mode")?.value;
       const playerCount = Number(document.getElementById("ol-players")?.value);
       const seasonCount = Number(document.getElementById("ol-seasons")?.value);
       const turnSec = Number(document.getElementById("ol-turn")?.value);
+      settingsDraft = null;
       send({
         type: "lobby-settings",
         deviceId,
@@ -283,22 +371,35 @@
       return;
     }
     if (act === "start") {
+      settingsDraft = null;
       send({ type: "start", deviceId });
       return;
     }
     if (act === "cancel") {
       clearSeatCreds();
+      settingsDraft = null;
       send({ type: "cancel", deviceId });
       return;
     }
     if (act === "leave") {
       clearSeatCreds();
+      settingsDraft = null;
       send({ type: "leave", deviceId });
       return;
     }
   }
 
   lobbyRoot.addEventListener("click", onLobbyClick);
+  lobbyRoot.addEventListener("input", (e) => {
+    if (e.target && ["ol-mode", "ol-players", "ol-seasons", "ol-turn"].includes(e.target.id)) {
+      rememberSettingsDraft();
+    }
+  });
+  lobbyRoot.addEventListener("change", (e) => {
+    if (e.target && ["ol-mode", "ol-players", "ol-seasons", "ol-turn"].includes(e.target.id)) {
+      rememberSettingsDraft();
+    }
+  });
 
   function applyRoom(next) {
     room = next;
@@ -318,26 +419,34 @@
       return;
     }
     if (data.type === "hello-ok") {
-      room = null;
       clearJoinTick();
-      if (urlCode) {
-        screen = "home";
+      settingsDraft = null;
+      if (data.reason === "room-expired") {
+        clearSeatCreds();
+        errText = "卓の有効期限（24時間）が切れました。";
+      }
+      if (data.reason === "quit") {
+        const creds = loadSeatCreds();
+        if (creds?.code) joinCodeInput = creds.code;
+        clearSeatCreds();
+      }
+      showHome();
+      if (urlCode && !loadSeatCreds() && data.reason !== "quit") {
         joinCodeInput = urlCode;
         renderLobby();
-        if (displayName) {
-          send({ type: "join", deviceId, displayName: displayName || "プレイヤー", code: urlCode });
-        } else {
-          showLobby();
-        }
-        return;
       }
+      return;
+    }
+    if (data.type === "created" || data.type === "joined" || data.type === "rejoined") {
+      if (data.seatToken && data.room?.code) saveSeatCreds(data.room.code, data.seatToken);
+      settingsDraft = null;
+      applyRoom(data.room);
+      if (data.type === "rejoined") return;
       showLobby();
       return;
     }
-    if (data.type === "created" || data.type === "joined") {
-      if (data.seatToken && data.room?.code) saveSeatCreds(data.room.code, data.seatToken);
+    if (data.type === "observing") {
       applyRoom(data.room);
-      showLobby();
       return;
     }
     if (data.type === "lobby") {
@@ -347,9 +456,12 @@
         clearSeatCreds();
         room = null;
         clearJoinTick();
-        showLobby();
+        settingsDraft = null;
+        showHome();
         return;
       }
+      if (settingsInputFocused()) rememberSettingsDraft();
+      else settingsDraft = null;
       showLobby();
       return;
     }

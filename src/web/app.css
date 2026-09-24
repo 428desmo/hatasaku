@@ -494,6 +494,25 @@ body {
   border-bottom: 1px solid #8aaa8a;
   color: #1e3d1e;
 }
+.tip-banner.pause {
+  background: #f3f3f3;
+  border-bottom: 1px solid #999;
+  color: #333;
+}
+.tip-banner.observe {
+  background: #eef2f7;
+  border-bottom: 1px solid #8aa0b8;
+  color: #1e2f45;
+}
+.quit-btn {
+  font: inherit;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid #b00020;
+  background: #fff;
+  color: #b00020;
+  cursor: pointer;
+}
 .intro-cards {
   display: grid;
   grid-template-columns: 1fr 1fr;

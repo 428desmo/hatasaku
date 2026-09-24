@@ -21,6 +21,7 @@
   let learn = localStorage.getItem(LEARN_KEY) === "1";
   let errText = "";
   let deadlineTimer = null;
+  let quitHandler = null;
 
   function esc(s) {
     return String(s ?? "")
@@ -246,6 +247,12 @@
       render();
       return;
     }
+    if (act === "quit") {
+      if (typeof quitHandler === "function" && confirm("この卓から離れますか？（コードで再参加できます）")) {
+        quitHandler();
+      }
+      return;
+    }
     if (act === "pass") onPass();
     if (act === "next") send({ type: "next" });
     if (act === "curse") {
@@ -288,6 +295,12 @@
 
   function tipBanners() {
     const bits = [];
+    if (msg.paused) {
+      bits.push(`<p class="tip-banner pause">人間が全員離席中のため、マッチを一時停止しています。</p>`);
+    }
+    if (msg.role === "observer") {
+      bits.push(`<p class="tip-banner observe">観戦中です（操作できません）。</p>`);
+    }
     if (msg.proxyNote) {
       bits.push(`<p class="tip-banner proxy">${esc(msg.proxyNote)}</p>`);
     }
@@ -302,13 +315,18 @@
     const title = board
       ? `S${view.season}/${view.seasonCount}  R${view.round}/${view.lastRound}`
       : "ロビー";
-    const sub = youName ? `${youName}（席${youSeat}）` : "";
+    const sub = youName ? `${youName}${youSeat != null ? `（席${youSeat}）` : ""}` : "";
+    const quitBtn =
+      msg.mode === "online"
+        ? `<button type="button" data-act="quit" class="quit-btn">やめる</button>`
+        : "";
     return `<header class="chrome">
       <div>
         <h1>${esc(title)}</h1>
         <div class="sub">${esc(sub)}${board ? "　" + esc(board.phaseLine) : ""}${esc(turnClock())}</div>
       </div>
       <div class="tools">
+        ${quitBtn}
         <button type="button" data-act="learn" ${learn ? 'aria-current="true"' : ""}>${learn ? "学習ON" : "学習OFF"}</button>
       </div>
       <nav class="tabs">
@@ -938,6 +956,9 @@
     },
     setSend(fn) {
       sendPayload = fn;
+    },
+    setQuitHandler(fn) {
+      quitHandler = fn;
     },
     setError(message) {
       errText = message;
