@@ -172,7 +172,12 @@ export class Room {
     if (!this.table?.state) return;
     const acting = this.table.state.actingSeat;
     for (const m of this.members) {
-      if (m.forceProxy && m.seat !== null && m.seat !== acting) m.forceProxy = false;
+      if (!m.forceProxy || m.seat === null || m.seat === acting) continue;
+      // Quitters who stay away keep forceProxy so later turns proxy immediately.
+      // Only rejoined players (watching a mid-turn proxy) clear when the turn moves.
+      if (!m.connected) continue;
+      m.forceProxy = false;
+      this.table.setHumanConnected(m.seat, true);
     }
   }
 
@@ -184,6 +189,10 @@ export class Room {
       existing.disconnectAt = null;
       if (displayName.trim()) existing.displayName = displayName.trim().slice(0, 16);
       if (this.table && existing.seat !== null) {
+        const midOwnTurn =
+          this.table.state?.phase === "turn" && this.table.state.actingSeat === existing.seat;
+        // Rejoining after quit: resume control unless this seat's turn is mid-proxy.
+        if (existing.forceProxy && !midOwnTurn) existing.forceProxy = false;
         this.table.setHumanConnected(existing.seat, !existing.forceProxy);
       }
       this.observers.delete(deviceId);
@@ -244,8 +253,8 @@ export class Room {
   }
 
   /**
-   * Explicit quit from a playing match: same as leave for others, pause if last human,
-   * and if it is currently this seat's turn, force CPU proxy for the rest of the turn.
+   * Explicit quit: keep the seat, mark for immediate CPU proxy (not turn-timer wait),
+   * and pause the match if this was the last connected human.
    */
   quitMatch(deviceId: string): void {
     if (this.phase !== "playing") {
@@ -257,10 +266,14 @@ export class Room {
       this.removeObserver(deviceId);
       return;
     }
-    if (this.table?.state?.actingSeat === m.seat && this.table.state.phase === "turn") {
-      m.forceProxy = true;
-    }
+    m.forceProxy = true;
     this.markDisconnected(deviceId);
+  }
+
+  /** True when this seat quit intentionally and should be CPU-proxied without waiting. */
+  wantsImmediateProxy(seat: number): boolean {
+    const m = this.members.find((x) => x.seat === seat);
+    return !!m?.forceProxy;
   }
 
   leaveLobby(deviceId: string): void {

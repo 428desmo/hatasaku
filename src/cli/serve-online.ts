@@ -96,8 +96,12 @@ function packView(room: Room, seat: number, forDeviceId: string) {
     phase: packed.view.phase,
     over: table.matchOver,
     paused: room.paused,
-    turnDeadline: room.paused ? null : (deadlines.get(room.code)?.at ?? null),
+    turnDeadline: recapHold(packed.hold) || room.paused ? null : (deadlines.get(room.code)?.at ?? null),
   };
+}
+
+function recapHold(hold: string | null | undefined): boolean {
+  return hold === "season" || hold === "mix" || hold === "trail" || hold === "honor";
 }
 
 function packObserve(room: Room, deviceId: string) {
@@ -137,7 +141,7 @@ function packObserve(room: Room, deviceId: string) {
     phase: packed.view.phase,
     over: table.matchOver,
     paused: room.paused,
-    turnDeadline: room.paused ? null : (deadlines.get(room.code)?.at ?? null),
+    turnDeadline: recapHold(packed.hold) || room.paused ? null : (deadlines.get(room.code)?.at ?? null),
   };
 }
 
@@ -236,6 +240,11 @@ function armDeadline(room: Room): void {
   if (room.paused || !room.turnTimerApplies() || !room.table) return;
   const table = room.table;
   if (table.cpuShow) return;
+  // Recap screens are manual［次へ］only — do not arm timers (avoids redraw + auto-advance).
+  if (recapHold(table.hold)) {
+    broadcastRoom(room); // push cleared turnDeadline to clients
+    return;
+  }
   if (table.hold) {
     const at = Date.now() + room.settings.turnMs;
     const timer = setTimeout(() => {
@@ -250,17 +259,39 @@ function armDeadline(room: Room): void {
   const actor = table.state.players[table.state.actingSeat];
   if (!actor || actor.kind !== "human") return;
   const seat = table.state.actingSeat;
-  // Away / quit-mid-turn seats: proxy on the same timer as everyone else.
+  if (room.wantsImmediateProxy(seat)) {
+    setTimeout(() => {
+      if (hub.get(room.code) !== room || room.paused) return;
+      proxyHumanTurn(room);
+    }, 0);
+    return;
+  }
   const at = Date.now() + room.settings.turnMs;
   const timer = setTimeout(() => {
     deadlines.delete(room.code);
     proxyHumanTurn(room);
   }, room.settings.turnMs);
   deadlines.set(room.code, { at, kind: "turn", timer });
-  if (room.shouldProxySeat(seat)) {
-    /* still show deadline so observers/remaining players see the countdown */
-  }
   broadcastRoom(room);
+}
+
+function flushQuitProxies(room: Room): boolean {
+  if (room.paused || !room.table) return false;
+  const table = room.table;
+  if (table.hold === "result" || table.hold === "intro") {
+    // Disconnected / quit seats are already excluded from ackNeed via setHumanConnected.
+    // Nothing to flush for hold beyond letting remaining humans ack.
+    return false;
+  }
+  if (table.hold) return false;
+  if (table.state?.phase !== "turn" || table.state.actingSeat === null) return false;
+  const seat = table.state.actingSeat;
+  const actor = table.state.players[seat];
+  if (!actor || actor.kind !== "human") return false;
+  if (!room.wantsImmediateProxy(seat)) return false;
+  clearDeadline(room.code);
+  proxyHumanTurn(room);
+  return true;
 }
 
 function scheduleCpu(room: Room): void {
@@ -274,7 +305,7 @@ function scheduleCpu(room: Room): void {
       const again = room.table.cpuTick();
       broadcastRoom(room);
       if (again) scheduleCpu(room);
-      else armDeadline(room);
+      else if (!flushQuitProxies(room)) armDeadline(room);
     }, CPU_STEP_MS),
   );
 }
@@ -286,13 +317,13 @@ function kickCpu(room: Room): void {
     return;
   }
   if (!room.table?.config.paceCpu) {
-    armDeadline(room);
+    if (!flushQuitProxies(room)) armDeadline(room);
     return;
   }
   const again = room.table.cpuTick();
   broadcastRoom(room);
   if (again) scheduleCpu(room);
-  else armDeadline(room);
+  else if (!flushQuitProxies(room)) armDeadline(room);
 }
 
 function sendFile(res: http.ServerResponse, filePath: string): void {
@@ -480,7 +511,7 @@ function handleMessage(ws: WebSocket, msg: InMsg): void {
 
   if (msg.type === "quit") {
     if (!room) {
-      send(ws, { type: "hello-ok", deviceId });
+      send(ws, { type: "hello-ok", deviceId, reason: "quit" });
       return;
     }
     const code = room.code;

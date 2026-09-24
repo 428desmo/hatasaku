@@ -83,19 +83,48 @@ describe("quit, pause, observe, expiry", () => {
     expect(room.connectedSeatedHumans()).toHaveLength(1);
   });
 
-  it("marks forceProxy when quitting on your own turn", () => {
+  it("marks forceProxy on any quit so CPU can proxy immediately", () => {
     const room = new Room("QUIT2", { playerCount: 3, seasonCount: 1 }, "q2");
     room.join("dev-a", "A");
+    room.join("dev-b", "B");
     room.start("dev-a");
     const human = room.members[0]!;
-    const seat = human.seat!;
-    room.table!.nextFromSeat(seat);
-    while (room.table!.hold) room.table!.nextFromSeat(seat);
-    room.table!.state!.phase = "turn";
-    room.table!.state!.actingSeat = seat;
     room.quitMatch("dev-a");
     expect(human.forceProxy).toBe(true);
-    expect(room.shouldProxySeat(seat)).toBe(true);
+    expect(room.wantsImmediateProxy(human.seat!)).toBe(true);
+    expect(room.shouldProxySeat(human.seat!)).toBe(true);
+  });
+
+  it("keeps forceProxy after quit even when it is not that seat's turn", () => {
+    const room = new Room("QUIT3", { playerCount: 3, seasonCount: 1 }, "q3");
+    room.join("dev-a", "A");
+    room.join("dev-b", "B");
+    room.start("dev-a");
+    const a = room.members[0]!;
+    const b = room.members[1]!;
+    room.table!.state!.phase = "turn";
+    room.table!.state!.actingSeat = b.seat!;
+    room.quitMatch("dev-a");
+    room.clearForceProxyIfTurnMoved();
+    expect(a.forceProxy).toBe(true);
+    expect(room.wantsImmediateProxy(a.seat!)).toBe(true);
+  });
+
+  it("clears forceProxy on rejoin unless mid own turn", () => {
+    const room = new Room("QUIT4", { playerCount: 3, seasonCount: 1 }, "q4");
+    room.join("dev-a", "A");
+    room.join("dev-b", "B");
+    room.start("dev-a");
+    const a = room.members[0]!;
+    room.table!.state!.phase = "turn";
+    room.table!.state!.actingSeat = a.seat!;
+    room.quitMatch("dev-a");
+    room.join("dev-a", "A");
+    expect(a.connected).toBe(true);
+    expect(a.forceProxy).toBe(true);
+    room.table!.state!.actingSeat = room.members[1]!.seat!;
+    room.clearForceProxyIfTurnMoved();
+    expect(a.forceProxy).toBe(false);
   });
 
   it("lets outsiders observe a started match", () => {
