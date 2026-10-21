@@ -91,7 +91,7 @@ function detail(id: string) {
 }
 function landing() {
   return `<main class="landing">${countryside()}
-    <section class="hero"><div class="eyebrow">A LITTLE FIELD. A GOOD HARVEST.</div><h1>はたさく<span>HATASAKU</span></h1><p class="hero-tag">一手、ひと畑。</p><p class="hero-copy">なにを植えるか。いつ実るか。<br>天候を読み、小さな畑で競い合うカードゲーム。</p><div class="hero-produce">${vegetable('radish')}${vegetable('corn')}${vegetable('sweetpotato')}</div><div class="hero-foot">1 PLAYER + CPU <span>スマホを横向きにして、畑へ。</span></div></section>
+    <section class="hero"><div class="eyebrow">A LITTLE FIELD. A GOOD HARVEST.</div><h1>はたさく<span>HATASAKU</span></h1><p class="hero-tag">一手、ひと畑。</p><p class="hero-copy">なにを植えるか。いつ実るか。<br>天候を読み、小さな畑で競い合うカードゲーム。</p><div class="hero-produce">${vegetable('radish')}${vegetable('corn')}${vegetable('sweetpotato')}</div><div class="hero-foot">1 PLAYER + CPU <span>縦でも横でも、あなたの畑へ。</span></div></section>
     <section class="setup-paper"><div class="paper-heading"><span class="eyebrow">LET'S GROW</span>${tool(prefs.music?'BGMをオフ':'BGMをオン','music',prefs.music?'sound':'mute',prefs.music)}</div><h2>${saved ? 'おかえりなさい。' : '今日の畑を、はじめよう。'}</h2>
     ${saved ? `<button class="resume" data-cmd="resume">${icon('play')}<span>つづきから<small>同じ端末に対局を保存しています</small></span>${icon('arrow')}</button>` : ''}
     <form id="settings"><label>遊び方<select name="mode"><option value="basic" ${settings.mode==='basic'?'selected':''}>基本 · 10ラウンド</option><option value="advanced" ${settings.mode==='advanced'?'selected':''}>上級 · 18ラウンド</option></select></label><label>プレイヤー<select name="players">${[3,4,5].map(n=>`<option value="${n}" ${settings.players===n?'selected':''}>あなた ＋ CPU ${n-1}人</option>`).join('')}</select></label><label>シーズン<select name="seasons"><option value="standard" ${settings.seasons!==1?'selected':''}>人数と同じ ${settings.players}シーズン</option><option value="1" ${settings.seasons===1?'selected':''}>1シーズンだけ</option></select></label><div class="setup-options"><label><input name="learning" type="checkbox" ${prefs.learning?'checked':''}>学習ヒント</label><label><input name="effects" type="checkbox" ${prefs.effects?'checked':''}>効果音</label></div><button class="primary start-game" type="submit">${saved ? '新しい畑をはじめる' : '畑をはじめる'} ${icon('arrow')}</button></form>
@@ -178,8 +178,8 @@ function recap() {
   return `<main class="recap"><div class="recap-header"><div><span class="eyebrow">SEASON ${s.season} COMPLETE</span><h1>おつかれさま、いい実り。</h1></div>${btn(`${m.screen==='actions'?'作戦を見比べる':'次へ'} ${icon('arrow')}`,'next','primary')}</div><div class="score-tickets">${seasonScores()}</div><div class="recap-content">${content}</div></main>`;
 }
 function trail() {
-  const m=match!;const chart=trailLayout(m.scores,760,230);
-  return `<main class="recap trail-page"><div class="recap-header"><div><span class="eyebrow">ALL SEASONS COMPLETE</span><h1>${m.scores.length}シーズン完了。ゲーム終了。</h1></div>${btn(`表彰式へ ${icon('arrow')}`,'next','primary')}</div><div class="trail-body"><div class="trail-legend">${m.seats.map((p,i)=>`<span style="--seat:${palette[i]}">${avatar(i)}<b>${esc(p.name)}</b><strong>${m.totals[i]}G</strong></span>`).join('')}<p>各時点での相対的な位置。<br>点の数字は実際の累計得点です。</p></div><svg class="trail-chart" viewBox="0 0 760 230" role="img" aria-label="シーズンごとの累積得点の偏差値による推移">${chart.series.map(series=>`<g stroke="${palette[series.seat]}" fill="${palette[series.seat]}"><polyline stroke-width="2.5" fill="none" points="${series.points.map(p=>`${p.x},${p.y}`).join(' ')}"/>${series.points.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4"/><text x="${p.x}" y="${p.y-10}" text-anchor="middle" font-size="11" stroke="none">${p.total}</text>`).join('')}</g>`).join('')}${chart.xLabels.map(l=>`<text x="${l.x}" y="${l.y}" font-size="11" fill="#7d8a73" text-anchor="middle">${l.label}</text>`).join('')}</svg></div></main>`;
+  const m=match!;const chartWidth=window.matchMedia('(max-width: 700px) and (orientation: portrait)').matches?340:760;const chart=trailLayout(m.scores,chartWidth,230);
+  return `<main class="recap trail-page"><div class="recap-header"><div><span class="eyebrow">ALL SEASONS COMPLETE</span><h1>${m.scores.length}シーズン完了。ゲーム終了。</h1></div>${btn(`表彰式へ ${icon('arrow')}`,'next','primary')}</div><div class="trail-body"><div class="trail-legend">${m.seats.map((p,i)=>`<span style="--seat:${palette[i]}">${avatar(i)}<b>${esc(p.name)}</b><strong>${m.totals[i]}G</strong></span>`).join('')}<p>各時点での相対的な位置。<br>点の数字は実際の累計得点です。</p></div><svg class="trail-chart" viewBox="0 0 ${chartWidth} 230" role="img" aria-label="シーズンごとの累積得点の偏差値による推移">${chart.series.map(series=>`<g stroke="${palette[series.seat]}" fill="${palette[series.seat]}"><polyline stroke-width="2.5" fill="none" points="${series.points.map(p=>`${p.x},${p.y}`).join(' ')}"/>${series.points.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4"/><text x="${p.x}" y="${p.y-10}" text-anchor="middle" font-size="11" stroke="none">${p.total}</text>`).join('')}</g>`).join('')}${chart.xLabels.map(l=>`<text x="${l.x}" y="${l.y}" font-size="11" fill="#7d8a73" text-anchor="middle">${l.label}</text>`).join('')}</svg></div></main>`;
 }
 function result() {
   const m=match!;const winners=topSeats(m.totals);
@@ -232,7 +232,7 @@ function settingsModal() {
   modal('settings',`<div class="modal-heading"><span class="eyebrow">MAKE YOURSELF AT HOME</span><h2>ひと休みと、設定。</h2></div><div class="preferences"><label>BGM<button class="switch ${prefs.music?'on':''}" data-cmd="music" aria-pressed="${prefs.music}">${prefs.music?'ON':'OFF'}</button></label><label>効果音<button class="switch ${prefs.effects?'on':''}" data-cmd="effects" aria-pressed="${prefs.effects}">${prefs.effects?'ON':'OFF'}</button></label><label>学習ヒント<button class="switch ${prefs.learning?'on':''}" data-cmd="learning" aria-pressed="${prefs.learning}">${prefs.learning?'ON':'OFF'}</button></label><label>収穫後に自動で進む<button class="switch ${prefs.auto?'on':''}" data-cmd="auto" aria-pressed="${prefs.auto}">${prefs.auto?'ON':'OFF'}</button></label><label>演出のテンポ<select id="pace"><option value="1.5" ${prefs.pace===1.5?'selected':''}>ゆったり</option><option value="1" ${prefs.pace===1?'selected':''}>ふつう</option><option value="0.55" ${prefs.pace===.55?'selected':''}>快速</option></select></label></div><div class="modal-actions">${btn('畑に戻る','close','primary')}${btn('対局を閉じてタイトルへ','title','subtle')}</div><p class="muted">対局はこの端末に自動保存されます。別の端末とは共有されません。</p>`);
 }
 function help() {
-  modal('help',`<div class="modal-heading"><span class="eyebrow">HOW TO GROW</span><h2>一手は、たった2タップ。</h2></div><div class="help-grid"><section><span>01</span><h3>種を選ぶ。</h3><p>右の場札をタップ。栽培費と、実るまでの時間を見比べよう。</p></section><section><span>02</span><h3>畑に植える。</h3><p>左の光る農地をタップして確定。新しい農地には取得費も必要。</p></section><section><span>03</span><h3>実りを待つ。</h3><p>○は待機、✦は収穫、▽は連作の休み。同じ作物の収穫が重なると、農地ごとの収入が下がる。</p></section></div><p>天候は2ラウンド先まで公開。同じシーズン中は手番順が変わりません。コインはシーズンごとにリセットし、シーズン終了時の所持コインの合計で勝負します。</p><p class="muted">収穫は自動集計。「結果を見る」で止めたり、コインのボタンから内訳を見返せます。</p>${btn('畑に戻る','close','primary')}`);
+  modal('help',`<div class="modal-heading"><span class="eyebrow">HOW TO GROW</span><h2>一手は、たった2タップ。</h2></div><div class="help-grid"><section><span>01</span><h3>種を選ぶ。</h3><p>場札をタップ。栽培費と、実るまでの時間を見比べよう。</p></section><section><span>02</span><h3>畑に植える。</h3><p>光る農地をタップして確定。新しい農地には取得費も必要。</p></section><section><span>03</span><h3>実りを待つ。</h3><p>○は待機、✦は収穫、▽は連作の休み。同じ作物の収穫が重なると、農地ごとの収入が下がる。</p></section></div><p>天候は2ラウンド先まで公開。同じシーズン中は手番順が変わりません。コインはシーズンごとにリセットし、シーズン終了時の所持コインの合計で勝負します。</p><p class="muted">収穫は自動集計。「結果を見る」で止めたり、コインのボタンから内訳を見返せます。</p>${btn('畑に戻る','close','primary')}`);
 }
 function curseModal() {
   const m=match!;
@@ -361,7 +361,9 @@ async function click(e:MouseEvent) {
   void sound.unlock();
   try {
     if (el.dataset.market!==undefined) {
-      selected=Number(el.dataset.market);sound.play('select');render();document.querySelector<HTMLButtonElement>('.plot.eligible')?.focus({preventScroll:true});return;
+      selected=Number(el.dataset.market);sound.play('select');render();const target=document.querySelector<HTMLButtonElement>('.plot.eligible');target?.focus({preventScroll:true});
+      if (window.matchMedia('(max-width: 700px) and (orientation: portrait)').matches) target?.closest('.farmer')?.scrollIntoView({block:'nearest',behavior:'instant'});
+      return;
     }
     if (el.dataset.plot) {
       const [seat,index]=el.dataset.plot.split(':').map(Number);const action=targetFor(seat!,index!);
@@ -392,3 +394,6 @@ document.addEventListener('keydown',e=>{
   if (e.key==='Escape'&&selected!==null&&!dialog.open) {selected=null;render();}
 });
 render();
+
+// Only the score chart needs new coordinates when the device turns.
+window.matchMedia('(max-width: 700px) and (orientation: portrait)').addEventListener('change',()=>{if(match?.screen==='trail') render();});
