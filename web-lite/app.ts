@@ -129,7 +129,7 @@ function farm(seat: number, order: number) {
     else if (!d) content='<span class="empty-soil">空き地</span>';
     else content=`<b class="plot-name">${esc(cropShortName(d.id))}</b>${vegetable(d.id,'mini-veg')}<span class="mini-income">${growing?`${d.baseIncome}<small>/${d.floor}</small>`:''}</span><span class="plot-phase ${plot.green?'ripe':''}">${plot.white?`待 ${'○'.repeat(plot.white)}`:plot.green?`収 ${'✦'.repeat(plot.green)}`:plot.red?`休 ${'▽'.repeat(plot.red)}`:'空き'}</span>`;
     const state = !growing?'resting':plot.green?'harvesting':'growing';
-    return `<button class="plot ${state} ${target?'eligible':''} ${selected!==null&&!target?'dim':''} ${active&&cpuPlot===plot.index?'cpu-focus':''} ${figure?'just-harvested':''}" data-plot="${seat}:${plot.index}" ${d?accent(d.id):''} aria-label="${esc(p.name)} 農地${plot.index+1}${d?' '+esc(d.name):''}${target?' に植える':''}">${content}${target?`<span class="plant-here">${icon('leaf')}${target.type==='replace'?'植え替え':'植える'}</span>`:''}${figure?`<span class="harvest-gain">+${figure.gain}</span>`:''}</button>`;
+    return `<button class="plot ${state} ${target?`eligible ${target.type==='replace'?'replacement-target':''}`:''} ${selected!==null&&!target?'dim':''} ${active&&cpuPlot===plot.index?'cpu-focus':''} ${figure?'just-harvested':''}" data-plot="${seat}:${plot.index}" ${d?accent(d.id):''} aria-label="${esc(p.name)} 農地${plot.index+1}${d?' '+esc(d.name):''}${target?target.type==='replace'?' に植え替える':' に植える':''}">${content}${target?`<span class="plant-here">${icon('leaf')}${target.type==='replace'?'植え替え':'植える'}</span>`:''}${figure?`<span class="harvest-gain">+${figure.gain}</span>`:''}</button>`;
   }).join('')}</div></div>`;
 }
 function sky() {

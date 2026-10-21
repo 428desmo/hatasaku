@@ -189,3 +189,10 @@ dialog{background:#faf5e4;border:1px solid #e0d8b9;border-radius:13px;color:var(
 @media(max-width:700px) and (orientation:portrait){
   @container (max-height:700px){.game-table{row-gap:4px;padding-block:5px}}
 }
+
+/* Amber distinguishes a destructive replacement from planting on available land. */
+.plot.eligible.replacement-target{border-color:#b57b3f;background:#f4e0ba;color:#805021;box-shadow:inset 0 0 0 1px #c38d52;animation-name:breathe-replacement}
+.plot.eligible.replacement-target .plant-here{color:#805021;background:#f4e0ba}
+@media(hover:hover){.plot.eligible.replacement-target:hover,.plot.eligible.replacement-target:hover .plant-here{background:#ecd09f}}
+
+@keyframes breathe-replacement{50%{box-shadow:inset 0 0 0 2px #d1a46c,0 0 0 1px #bd8c50;filter:brightness(1.03)}}
