@@ -149,3 +149,6 @@ dialog{background:#faf5e4;border:1px solid #e0d8b9;border-radius:13px;color:var(
     .market-cards{grid-auto-rows:101px}
   }
 }
+
+/* Fast-forward has a permanent home away from the pass target. */
+.skip-control:disabled{opacity:.25;cursor:default}

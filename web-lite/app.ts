@@ -100,7 +100,7 @@ function landing() {
 }
 function topbar() {
   const m = match!; const s = m.state;
-  return `<div class="wordmark">${icon('leaf')}<b>はたさく</b><span>HATASAKU</span></div><div class="season-clock"><span>SEASON <b>${s.season}</b><small> / ${s.seasonCount}</small></span><div class="round-track">${Array.from({length:s.lastRound},(_,r)=>`<i class="${r<s.round?'past':''} ${r===s.round-1?'current':''}"></i>`).join('')}</div><strong>R${s.round}<small> / ${s.lastRound}</small></strong></div><nav class="tools">${tool(prefs.music?'BGMをオフ':'BGMをオン','music',prefs.music?'sound':'mute',prefs.music)}${tool('遊び方','help','book')}${tool('設定・一時停止','settings','gear')}</nav>`;
+  return `<div class="wordmark">${icon('leaf')}<b>はたさく</b><span>HATASAKU</span></div><div class="season-clock"><span>SEASON <b>${s.season}</b><small> / ${s.seasonCount}</small></span><div class="round-track">${Array.from({length:s.lastRound},(_,r)=>`<i class="${r<s.round?'past':''} ${r===s.round-1?'current':''}"></i>`).join('')}</div><strong>R${s.round}<small> / ${s.lastRound}</small></strong></div><nav class="tools"><button class="tool skip-control" data-cmd="skip" aria-label="演出を省略" title="演出を省略" ${busy?'':'disabled'}>${icon('fast')}</button>${tool(prefs.music?'BGMをオフ':'BGMをオン','music',prefs.music?'sound':'mute',prefs.music)}${tool('遊び方','help','book')}${tool('設定・一時停止','settings','gear')}</nav>`;
 }
 function intro() {
   const m = match!; const v = m.view;
@@ -157,14 +157,14 @@ function status() {
   if (paused) return `<div class="status-message">${icon('pause')}<span><b>ひと休み中</b><small>畑はこのまま待っています</small></span></div>${btn(`再開 ${icon('play')}`,'pause','primary')}`;
   if (m.screen==='harvest') {
     const total = m.previewHarvest().reduce((n,d)=>n+d.gain,0);
-    return `<div class="status-message harvest-status">${icon('coin')}<span><b>${total?'実りの時間':'まだ、育ちざかり。'}</b><small>${total?`全員で +${total}G · ${m.harvested?'集計完了':'収穫中'}`:'このラウンドの収穫はありません'}</small></span></div><div class="harvest-totals">${m.view.players.map(p=>`<span style="--seat:${palette[p.seat]}">${esc(p.name)} <b>+${figures.filter(f=>f.seat===p.seat).reduce((n,f)=>n+f.gain,0)}</b></span>`).join('')}</div><div class="footer-actions">${busy?btn(holdHarvest?'ここで止まります':`${icon('pause')} 結果を見る`,'hold','subtle',holdHarvest):btn(`次のラウンドへ ${icon('arrow')}`,'next','primary')}${busy?btn(icon('fast'),'skip','tool'):btn('内訳','receipt','subtle')}</div>`;
+    return `<div class="status-message harvest-status">${icon('coin')}<span><b>${total?'実りの時間':'まだ、育ちざかり。'}</b><small>${total?`全員で +${total}G · ${m.harvested?'集計完了':'収穫中'}`:'このラウンドの収穫はありません'}</small></span></div><div class="harvest-totals">${m.view.players.map(p=>`<span style="--seat:${palette[p.seat]}">${esc(p.name)} <b>+${figures.filter(f=>f.seat===p.seat).reduce((n,f)=>n+f.gain,0)}</b></span>`).join('')}</div><div class="footer-actions">${busy?btn(holdHarvest?'ここで止まります':`${icon('pause')} 結果を見る`,'hold','subtle',holdHarvest):btn(`次のラウンドへ ${icon('arrow')}`,'next','primary')}${busy?'':btn('内訳','receipt','subtle')}</div>`;
   }
   const p = m.view.players[actor??m.view.actingSeat??0]!;
   const your = m.humanTurn&&!busy;
-  return `<div class="status-message">${avatar(p.seat)}<span><b>${your?selected===null?'あなたの一手です':'どの畑に植えますか？':`${esc(p.name)}の一手`}</b><small>${esc(cue||(your?'種を選ぶ → 光る農地をタップ':'畑の様子を見ています'))}</small></span></div>${selected!==null?learningHint():lastReceipt?`<button class="last-receipt" data-cmd="receipt">${icon('coin')} 前Rの収穫 <b>+${lastReceipt.totals[0]}G</b></button>`:'<span class="footer-motto">育てる楽しさ、先を読む面白さ。</span>'}<div class="footer-actions">${your?`${selected!==null?btn('やめる','cancel','subtle'):''}${m.view.legalActions?.some(a=>a.type==='curse')?btn('👿 呪い','curse','subtle'):''}${btn(`パス ${icon('arrow')}`,'pass','pass-button')}`:`${tool('一時停止','pause','pause')}${tool('演出を省略','skip','fast')}`}</div>`;
+  return `<div class="status-message">${avatar(p.seat)}<span><b>${your?selected===null?'あなたの一手です':'どの畑に植えますか？':`${esc(p.name)}の一手`}</b><small>${esc(cue||(your?'種を選ぶ → 光る農地をタップ':'畑の様子を見ています'))}</small></span></div>${selected!==null?learningHint():lastReceipt?`<button class="last-receipt" data-cmd="receipt">${icon('coin')} 前Rの収穫 <b>+${lastReceipt.totals[0]}G</b></button>`:'<span class="footer-motto">育てる楽しさ、先を読む面白さ。</span>'}<div class="footer-actions">${your?`${selected!==null?btn('やめる','cancel','subtle'):''}${m.view.legalActions?.some(a=>a.type==='curse')?btn('👿 呪い','curse','subtle'):''}${btn(`パス ${icon('arrow')}`,'pass','pass-button')}`:`${tool('一時停止','pause','pause')}`}</div>`;
 }
 function boardShell() {
-  return `<main class="game-table"><section class="farm-panel" aria-label="全プレイヤーの農場"><div class="section-title"><span>みんなの畑</span><span>順番はシーズン中固定</span></div><div id="farm-rows"></div></section><section class="right-panel"><section id="sky" class="sky" aria-label="天候イベント"></section><section id="market" class="market" aria-label="場札"></section></section></main><footer id="status" class="action-bar" aria-live="polite"></footer><div id="pause-veil"></div>`;
+  return `<main class="game-table"><section class="farm-panel" aria-label="全プレイヤーの農場"><div class="section-title"><span>みんなの畑</span><span>番号は手番順・自分は最下段</span></div><div id="farm-rows"></div></section><section class="right-panel"><section id="sky" class="sky" aria-label="天候イベント"></section><section id="market" class="market" aria-label="場札"></section></section></main><footer id="status" class="action-bar" aria-live="polite"></footer><div id="pause-veil"></div>`;
 }
 function seasonScores() {
   const m = match!; const row = m.scores.at(-1)!; const best = topSeats(row); const worst = bottomSeats(row);
@@ -198,10 +198,11 @@ function render() {
   put(byId('topbar'),topbar());
   if (board) {
     const rows=byId('farm-rows')!;
-    for (const [i,seat] of match.view.turnOrder.entries()) {
+    const displayOrder=[...match.view.turnOrder.filter(seat=>seat!==0),0];
+    for (const [i,seat] of displayOrder.entries()) {
       let node=rows.children[i] as HTMLElement|undefined;
       if (!node) {node=document.createElement('div');rows.append(node);}
-      put(node,farm(seat,i));
+      put(node,farm(seat,match.view.turnOrder.indexOf(seat)));
     }
     put(byId('sky'),sky()); put(byId('market'),market()); put(byId('status'),status());
     put(byId('pause-veil'),paused?`<div class="pause-curtain"><span>${icon('pause')}ひと休み中</span>${btn('畑に戻る','pause','primary')}</div>`:'');
