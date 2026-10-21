@@ -1,4 +1,10 @@
-# hatasaku
+# はたさく
+
+現行の公開アプリは `web-lite/`。ルールは [v0.18](hatasaku_rules_v0.18.md)、画面仕様は [Web Lite SPEC](web-lite/SPEC.md)。18ラウンド制のみです。作物レビューは [こちら](analysis/crop-review-v0.18.md)。
+
+`src/` と以下の旧アプリ起動手順は過去版の検証・再現用に温存しています。旧基本10Rモードは現行公開版の選択肢ではありません。
+
+## 旧版の資料
 
 畑作ボードゲームの模擬プレイ。ルールは `hatasaku_rules_v0.17.md`。ソフトウェア仕様は `hatasaku_software_spec_v0.17.md`。オンライン対戦は `hatasaku_online_play_spec_v0.5.md`。
 

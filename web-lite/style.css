@@ -177,3 +177,5 @@ dialog{background:#faf5e4;border:1px solid #e0d8b9;border-radius:13px;color:var(
   .intro-cards .crop-note{font-size:7px}.intro-cards .card-picture{max-height:45px}.intro-cards .card-head h3{font-size:11px}
   .seat-order>div{gap:3px}.seat-order .avatar{width:20px;height:20px}
 }
+
+.game-format{font-size:11px;color:#657454;padding:4px 0 8px;border-bottom:1px solid var(--line)}

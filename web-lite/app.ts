@@ -19,7 +19,7 @@ const motion = new Motion();
 const SAVE = 'hatasaku-garden-match-v1';
 const PREF = 'hatasaku-garden-prefs-v1';
 const palette = ['#426e5d', '#ba705a', '#7687a8', '#b08e4e', '#967691'];
-let settings: Settings = {mode:'basic', players:4, seasons:4, seed:''};
+let settings: Settings = {mode:'advanced', players:4, seasons:4, seed:''};
 let prefs: Preferences = {music:true, effects:true, learning:true, auto:true, pace:1};
 let saved: SavedMatch | null = null;
 let match: Match | null = null;
@@ -94,7 +94,7 @@ function landing() {
     <section class="hero"><div class="eyebrow">A LITTLE FIELD. A GOOD HARVEST.</div><h1>はたさく<span>HATASAKU</span></h1><p class="hero-tag">一手、ひと畑。</p><p class="hero-copy">なにを植えるか。いつ実るか。<br>天候を読み、小さな畑で競い合うカードゲーム。</p><div class="hero-produce">${vegetable('radish')}${vegetable('corn')}${vegetable('sweetpotato')}</div><div class="hero-foot">1 PLAYER + CPU <span>縦でも横でも、あなたの畑へ。</span></div></section>
     <section class="setup-paper"><div class="paper-heading"><span class="eyebrow">LET'S GROW</span>${tool(prefs.music?'BGMをオフ':'BGMをオン','music',prefs.music?'sound':'mute',prefs.music)}</div><h2>${saved ? 'おかえりなさい。' : '今日の畑を、はじめよう。'}</h2>
     ${saved ? `<button class="resume" data-cmd="resume">${icon('play')}<span>つづきから<small>同じ端末に対局を保存しています</small></span>${icon('arrow')}</button>` : ''}
-    <form id="settings"><label>遊び方<select name="mode"><option value="basic" ${settings.mode==='basic'?'selected':''}>基本 · 10ラウンド</option><option value="advanced" ${settings.mode==='advanced'?'selected':''}>上級 · 18ラウンド</option></select></label><label>プレイヤー<select name="players">${[3,4,5].map(n=>`<option value="${n}" ${settings.players===n?'selected':''}>あなた ＋ CPU ${n-1}人</option>`).join('')}</select></label><label>シーズン<select name="seasons"><option value="standard" ${settings.seasons!==1?'selected':''}>人数と同じ ${settings.players}シーズン</option><option value="1" ${settings.seasons===1?'selected':''}>1シーズンだけ</option></select></label><div class="setup-options"><label><input name="learning" type="checkbox" ${prefs.learning?'checked':''}>学習ヒント</label><label><input name="effects" type="checkbox" ${prefs.effects?'checked':''}>効果音</label></div><button class="primary start-game" type="submit">${saved ? '新しい畑をはじめる' : '畑をはじめる'} ${icon('arrow')}</button></form>
+    <form id="settings"><div class="game-format">18ラウンド · 農地は最大6枚</div><label>プレイヤー<select name="players">${[3,4,5].map(n=>`<option value="${n}" ${settings.players===n?'selected':''}>あなた ＋ CPU ${n-1}人</option>`).join('')}</select></label><label>シーズン<select name="seasons"><option value="standard" ${settings.seasons!==1?'selected':''}>人数と同じ ${settings.players}シーズン</option><option value="1" ${settings.seasons===1?'selected':''}>1シーズンだけ</option></select></label><div class="setup-options"><label><input name="learning" type="checkbox" ${prefs.learning?'checked':''}>学習ヒント</label><label><input name="effects" type="checkbox" ${prefs.effects?'checked':''}>効果音</label></div><button class="primary start-game" type="submit">${saved ? '新しい畑をはじめる' : '畑をはじめる'} ${icon('arrow')}</button></form>
     <p class="setup-fine">作物 → 農地の2タップで植え付け。<br>対局は自動保存。音はいつでも切り替えられます。</p></section>
   </main>`;
 }
@@ -318,7 +318,7 @@ async function next() {
 }
 function readForm(form:HTMLFormElement) {
   const data=new FormData(form);const players=Number(data.get('players'));
-  settings={mode:data.get('mode')==='advanced'?'advanced':'basic',players,seasons:data.get('seasons')==='1'?1:players,seed:''};
+  settings={mode:'advanced',players,seasons:data.get('seasons')==='1'?1:players,seed:''};
   prefs.learning=data.has('learning');prefs.effects=data.has('effects');
 }
 app.addEventListener('submit',e=>{

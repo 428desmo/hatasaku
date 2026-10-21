@@ -2,9 +2,9 @@ import { applyEventUpdate, applyHarvest, applyPlayerAction, concludeRound, creat
 import { actionsEqual } from '../src/engine/legal.js';
 import { chooseById } from '../src/cpu/index.js';
 import { previousSeasonTrailers } from '../src/view/standings.js';
-import type { Action, GameState, Mode, SeatConfig } from '../src/engine/types.js';
+import type { Action, GameState, SeatConfig } from '../src/engine/types.js';
 
-export type Settings = { mode: Mode; players: number; seasons: number; seed: string };
+export type Settings = { mode: 'advanced'; players: number; seasons: number; seed: string };
 export type MatchCommand = {kind:'start'|'harvest'|'next'} | {kind:'act'; action:Action};
 export type SavedMatch = {version:1; settings:Settings; commands:MatchCommand[]};
 export type Screen = 'intro' | 'play' | 'harvest' | 'actions' | 'mix' | 'trail' | 'result';
@@ -22,7 +22,8 @@ export class Match {
   harvested = false;
 
   constructor(readonly settings: Settings) {
-    if (!['basic', 'advanced'].includes(settings.mode) || typeof settings.seed !== 'string' || settings.seed.length > 100 || ![3, 4, 5].includes(settings.players) || !Number.isInteger(settings.seasons) || settings.seasons < 1 || settings.seasons > 10) throw new Error('人数・シーズン数が不正です');
+    if (settings.mode !== 'advanced') throw new Error('現行版は18ラウンド制のみです');
+    if (typeof settings.seed !== 'string' || settings.seed.length > 100 || ![3, 4, 5].includes(settings.players) || !Number.isInteger(settings.seasons) || settings.seasons < 1 || settings.seasons > 10) throw new Error('人数・シーズン数が不正です');
     this.rng = createRng(settings.seed);
     this.cpuRng = createRng(`${settings.seed}-cpu`);
     this.firstSeat = this.rng.nextInt(settings.players);

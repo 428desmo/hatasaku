@@ -29,7 +29,7 @@ function playSeason(m: Match) {
   }
 }
 describe('standalone single-player match', () => {
-  for (const mode of ['basic','advanced'] as const) for (const players of [3,4,5]) {
+  for (const mode of ['advanced'] as const) for (const players of [3,4,5]) {
     test(`${mode}, ${players} seats: entire multi-season match`, () => {
       const m = new Match({mode,players,seasons:players,seed:`${mode}-${players}`});
       const first = m.state.startSeat;
@@ -37,14 +37,14 @@ describe('standalone single-player match', () => {
         expect(m.screen).toBe('intro');
         expect(m.state.startSeat).toBe((first + season - 1) % players);
         expect(m.state.players.every(p => p.coins === 8)).toBe(true);
-        expect(m.state.players[0]!.plots).toHaveLength(mode === 'basic' ? 5 : 6);
+        expect(m.state.players[0]!.plots).toHaveLength(6);
         expect(m.state.crop.market).toHaveLength(players === 5 ? 4 : 3);
         expect(m.state.curseReadySeats).toEqual(previousSeasonTrailers(m.scores, season, players));
         const order = [...m.state.turnOrder];
         playSeason(m);
         expect(m.state.turnOrder).toEqual(order);
         expect(m.scores).toHaveLength(season);
-        expect(m.state.seasonActions).toHaveLength(players * (mode === 'basic' ? 10 : 18));
+        expect(m.state.seasonActions).toHaveLength(players * 18);
         expect(m.state.players.every(p => p.coins >= 0)).toBe(true);
         expect(m.screen).toBe('actions'); m.next(); expect(m.screen).toBe('mix'); m.next();
       }
@@ -53,7 +53,7 @@ describe('standalone single-player match', () => {
     });
   }
   test('hidden curse reveals once at harvest, without consuming the turn', () => {
-    const m = new Match({mode:'basic',players:3,seasons:3,seed:'curse'});
+    const m = new Match({mode:'advanced',players:3,seasons:3,seed:'curse'});
     m.start(); m.state.curseReadySeats = [m.state.actingSeat!];
     const seat = m.state.actingSeat!; const cropId = m.state.cropIdsInGame[0]!;
     m.act({type:'curse',cropId});
@@ -69,7 +69,7 @@ describe('standalone single-player match', () => {
     expect(m.state.curses[0]).toMatchObject({from:2,to:5});
   });
   test('cannot act during intro or harvest; illegal action does not change state', () => {
-    const m = new Match({mode:'basic',players:3,seasons:1,seed:'guard'});
+    const m = new Match({mode:'advanced',players:3,seasons:1,seed:'guard'});
     expect(() => m.act({type:'pass'})).toThrow(); m.start();
     const before = JSON.stringify(m.state);
     expect(() => m.act({type:'plant',marketIndex:99,target:'newLand'})).toThrow();
@@ -86,7 +86,7 @@ describe('standalone single-player match', () => {
 
 describe('local resume', () => {
   test('replays a mid-harvest save without double-paying', () => {
-    const m = new Match({mode:'basic',players:3,seasons:3,seed:'save'}); m.start();
+    const m = new Match({mode:'advanced',players:3,seasons:3,seed:'save'}); m.start();
     while (m.screen === 'play') m.act(chooseById('irr', getPublicView(m.state,m.state.actingSeat!),m.cpuRng));
     const before = Match.restore(JSON.parse(JSON.stringify(m.save())));
     expect(before.state).toEqual(m.state); expect(before.screen).toBe('harvest');
@@ -104,8 +104,13 @@ describe('local resume', () => {
     playSeason(m); playSeason(restored);
     expect(restored.state).toEqual(m.state); expect(restored.scores).toEqual(m.scores);
   });
+  test('does not start or resume the retired ten-round format', () => {
+    const old={mode:'basic',players:4,seasons:1,seed:'legacy'};
+    expect(() => new Match(old as never)).toThrow();
+    expect(() => Match.restore({version:1,settings:old,commands:[]})).toThrow();
+  });
   test('rejects incompatible and corrupted saves', () => {
     expect(() => Match.restore({version:9})).toThrow();
-    expect(() => Match.restore({version:1,settings:{mode:'basic',players:3,seasons:1,seed:'bad'},commands:[{kind:'next'}]})).toThrow();
+    expect(() => Match.restore({version:1,settings:{mode:'advanced',players:3,seasons:1,seed:'bad'},commands:[{kind:'next'}]})).toThrow();
   });
 });
