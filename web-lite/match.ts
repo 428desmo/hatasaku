@@ -5,6 +5,8 @@ import { previousSeasonTrailers } from '../src/view/standings.js';
 import type { Action, GameState, Mode, SeatConfig } from '../src/engine/types.js';
 
 export type Settings = { mode: Mode; players: number; seasons: number; seed: string };
+export type MatchCommand = {kind:'start'|'harvest'|'next'} | {kind:'act'; action:Action};
+export type SavedMatch = {version:1; settings:Settings; commands:MatchCommand[]};
 export type Screen = 'intro' | 'play' | 'harvest' | 'actions' | 'mix' | 'trail' | 'result';
 
 /** Rules advance only here. Animation never owns or changes game state. */
@@ -16,10 +18,11 @@ export class Match {
   state: GameState;
   screen: Screen = 'intro';
   scores: number[][] = [];
+  private commands: MatchCommand[] = [];
   harvested = false;
 
   constructor(readonly settings: Settings) {
-    if (![3, 4, 5].includes(settings.players) || !Number.isInteger(settings.seasons) || settings.seasons < 1 || settings.seasons > 10) throw new Error('人数・シーズン数が不正です');
+    if (!['basic', 'advanced'].includes(settings.mode) || typeof settings.seed !== 'string' || settings.seed.length > 100 || ![3, 4, 5].includes(settings.players) || !Number.isInteger(settings.seasons) || settings.seasons < 1 || settings.seasons > 10) throw new Error('人数・シーズン数が不正です');
     this.rng = createRng(settings.seed);
     this.cpuRng = createRng(`${settings.seed}-cpu`);
     this.firstSeat = this.rng.nextInt(settings.players);
@@ -37,6 +40,24 @@ export class Match {
       curseSeats: previousSeasonTrailers(this.scores, season, this.seats.length) }, this.rng);
   }
 
+  save(): SavedMatch { return {version:1, settings:{...this.settings}, commands:structuredClone(this.commands)}; }
+
+  static restore(value: unknown): Match {
+    const saved = value as SavedMatch;
+    if (!saved || saved.version !== 1 || !Array.isArray(saved.commands) || saved.commands.length > 5000) throw new Error('保存形式が不正です');
+    const match = new Match(saved.settings);
+    for (const command of saved.commands) {
+      if (command.kind === 'start') match.start();
+      else if (command.kind === 'act') {
+        if (match.state.actingSeat !== 0) match.cpuAction();
+        match.act(command.action);
+      } else if (command.kind === 'harvest') match.finishHarvest();
+      else if (command.kind === 'next') match.next();
+      else throw new Error('保存コマンドが不正です');
+    }
+    return match;
+  }
+
   get view() { return getPublicView(this.state, 0); }
   get totals() { return this.seats.map((_, seat) => this.scores.reduce((sum, row) => sum + row[seat]!, 0)); }
   get humanTurn() { return this.screen === 'play' && this.state.actingSeat === 0; }
@@ -44,12 +65,14 @@ export class Match {
   start() {
     if (this.screen !== 'intro') throw new Error('開始できません');
     this.screen = 'play';
+    this.commands.push({kind:'start'});
   }
 
   act(action: Action) {
     if (this.screen !== 'play' || !listLegalActions(this.state).some(a => actionsEqual(a, action))) throw new Error('今はその操作を行えません');
     this.state = applyPlayerAction(this.state, action, this.rng);
     if (this.state.phase === 'income') this.screen = 'harvest';
+    this.commands.push({kind:'act', action:structuredClone(action)});
   }
 
   cpuAction(): Action {
@@ -63,6 +86,7 @@ export class Match {
     if (this.screen !== 'harvest' || this.harvested) throw new Error('収穫は処理済みです');
     this.state = applyHarvest(this.state);
     this.harvested = true;
+    this.commands.push({kind:'harvest'});
   }
 
   next() {
@@ -83,5 +107,6 @@ export class Match {
       else { this.state = this.createSeason(); this.screen = 'intro'; }
     } else if (this.screen === 'trail') this.screen = 'result';
     else throw new Error('次へ進めません');
+    this.commands.push({kind:'next'});
   }
 }

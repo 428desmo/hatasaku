@@ -83,3 +83,29 @@ describe('standalone single-player match', () => {
     playSeason(a); playSeason(b); expect(a.state).toEqual(b.state);
   });
 });
+
+describe('local resume', () => {
+  test('replays a mid-harvest save without double-paying', () => {
+    const m = new Match({mode:'basic',players:3,seasons:3,seed:'save'}); m.start();
+    while (m.screen === 'play') m.act(chooseById('irr', getPublicView(m.state,m.state.actingSeat!),m.cpuRng));
+    const before = Match.restore(JSON.parse(JSON.stringify(m.save())));
+    expect(before.state).toEqual(m.state); expect(before.screen).toBe('harvest');
+    before.finishHarvest(); m.finishHarvest();
+    const after = Match.restore(before.save());
+    expect(after.state).toEqual(m.state); expect(after.harvested).toBe(true);
+    expect(() => after.finishHarvest()).toThrow();
+    after.next(); m.next(); expect(after.state).toEqual(m.state);
+  });
+  test('restores between seasons with the same future random stream', () => {
+    const m = new Match({mode:'advanced',players:3,seasons:3,seed:'save-seasons'});
+    playSeason(m); m.next(); m.next();
+    const restored = Match.restore(m.save());
+    expect(restored.state).toEqual(m.state);
+    playSeason(m); playSeason(restored);
+    expect(restored.state).toEqual(m.state); expect(restored.scores).toEqual(m.scores);
+  });
+  test('rejects incompatible and corrupted saves', () => {
+    expect(() => Match.restore({version:9})).toThrow();
+    expect(() => Match.restore({version:1,settings:{mode:'basic',players:3,seasons:1,seed:'bad'},commands:[{kind:'next'}]})).toThrow();
+  });
+});

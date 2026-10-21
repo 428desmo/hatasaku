@@ -121,8 +121,8 @@ def publish(root, release, portal, domain):
         for attempt in range(6):
             try:
                 check(f'https://{domain}/hatasaku/', 'はたさく · Web Lite', domain)
-                check(f'https://{domain}/hatasaku/app.js', 'VEGETABLE', domain)
-                check(f'https://{domain}/hatasaku/style.css', '.harvest-controls', domain)
+                check(f'https://{domain}/hatasaku/app.js', 'HATASAKU', domain)
+                check(f'https://{domain}/hatasaku/style.css', '.game-table', domain)
                 check(f'https://{domain}/', 'href="/hatasaku/"', domain)
                 for game, marker in [('quota2','Quota'), ('fragile','Fragile'), ('loop','Loop')]:
                     check(f'https://{domain}/{game}/', marker, domain)
