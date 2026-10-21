@@ -1,10 +1,14 @@
+import currentData from "../../data/crops-v0.19.json" with { type: "json" };
 import cropsData from "../../data/crops.json" with { type: "json" };
 import type { CropDef, CropId, CropType, Mode } from "./types.js";
 
 export const cropList: CropDef[] = cropsData.crops as CropDef[];
 export const EVENT_DELTAS_DATA: number[] = cropsData.eventDeltas;
 
-const byId = new Map(cropList.map((c) => [c.id, c]));
+// Versioned IDs keep historical games and their exact crop parameters intact.
+export const currentCropList = currentData.crops as (CropDef & {art:string;shortName:string;description:string;color:string})[];
+export const currentCropInfo = new Map(currentCropList.map(c=>[c.id,c]));
+const byId = new Map([...cropList,...currentCropList].map((c) => [c.id, c]));
 
 export function cropsForMode(mode: Mode): CropDef[] {
   return cropList.filter((c) => c.pool === "common" || c.pool === mode);
@@ -49,6 +53,8 @@ export function cropTypeLabel(id: CropId): string {
 }
 
 export function cropBlurb(id: CropId): string {
+  const current=currentCropInfo.get(id);
+  if(current) return current.description;
   const d = cropDef(id);
   const cool = d.cooldown === 0 ? "連作障害なし" : `休${d.cooldown}`;
   if (d.type === "immediate") {
@@ -64,7 +70,7 @@ export function cropBlurb(id: CropId): string {
 }
 
 export function cropShortName(id: CropId): string {
-  const s = CROP_SHORT[id] ?? cropName(id);
+  const s = currentCropInfo.get(id)?.shortName ?? CROP_SHORT[id] ?? cropName(id);
   return s.length > 3 ? s.slice(0, 3) : s;
 }
 

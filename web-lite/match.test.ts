@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { Match } from './match.js';
+import {currentCropList,cropDef,cropBlurb,cropShortName} from '../src/engine/catalog.js';
+import {vegetable} from './art.js';
 import { applyHarvest, getPublicView } from '../src/engine/index.js';
 import { chooseById } from '../src/cpu/index.js';
 import { previousSeasonTrailers } from '../src/view/standings.js';
@@ -112,5 +114,38 @@ describe('local resume', () => {
   test('rejects incompatible and corrupted saves', () => {
     expect(() => Match.restore({version:9})).toThrow();
     expect(() => Match.restore({version:1,settings:{mode:'advanced',players:3,seasons:1,seed:'bad'},commands:[{kind:'next'}]})).toThrow();
+  });
+});
+
+describe('v0.19 crop edition',()=>{
+  test('new seasons draw four distinct current crops and retain their parameter bundles',()=>{
+    const ids=new Set(currentCropList.map(c=>c.id));
+    expect(ids.size).toBe(12);
+    expect(new Set(currentCropList.map(c=>[c.cost,c.wait,c.harvest,c.baseIncome,c.floor,c.cooldown].join(':'))).size).toBe(12);
+    for(let seed=0;seed<30;seed++){
+      const m=new Match({mode:'advanced',players:5,seasons:1,seed:`new-pool-${seed}`});
+      expect(m.state.specVersion).toBe('0.19');
+      expect(new Set(m.state.cropIdsInGame).size).toBe(4);
+      expect(m.state.cropIdsInGame.every(id=>ids.has(id))).toBe(true);
+      expect(m.save().version).toBe(2);
+    }
+    for(const c of currentCropList){
+      expect(cropDef(c.id)).toEqual(c);
+      expect(cropShortName(c.id).length).toBeLessThanOrEqual(3);
+      expect(cropBlurb(c.id)).toBe(c.description);
+      expect(vegetable(c.id)).toContain('<path');
+      if(c.art!=='radish') expect(vegetable(c.id)).not.toBe(vegetable('unknown'));
+    }
+  });
+  test('legacy eighteen-round saves keep their original crops, scores and future draws',()=>{
+    const m=new Match({mode:'advanced',players:3,seasons:3,seed:'legacy-catalog'},'0.18');
+    expect(m.save().version).toBe(1);
+    playSeason(m);m.next();m.next();
+    const restored=Match.restore(m.save());
+    expect(restored.catalogVersion).toBe('0.18');
+    expect(restored.state).toEqual(m.state);
+    playSeason(m);playSeason(restored);
+    expect(restored.state).toEqual(m.state);
+    expect(restored.scores).toEqual(m.scores);
   });
 });

@@ -1,6 +1,6 @@
 # はたさく
 
-現行の公開アプリは `web-lite/`。ルールは [v0.18](hatasaku_rules_v0.18.md)、画面仕様は [Web Lite SPEC](web-lite/SPEC.md)。18ラウンド制のみです。作物レビューは [こちら](analysis/crop-review-v0.18.md)。
+現行の公開アプリは `web-lite/`。ルールは [v0.19](hatasaku_rules_v0.19.md)、画面仕様は [Web Lite SPEC](web-lite/SPEC.md)。18ラウンド制のみです。作物レビューは [こちら](analysis/crop-selection-v0.19.md)。
 
 `src/` と以下の旧アプリ起動手順は過去版の検証・再現用に温存しています。旧基本10Rモードは現行公開版の選択肢ではありません。
 

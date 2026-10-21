@@ -1,3 +1,4 @@
+import {currentCropList,currentCropInfo} from '../src/engine/catalog.js';
 /** Original vector artwork. No network assets, fonts or image downloads. */
 export const cropColors: Record<string, string> = {
   radish: '#c65e69', komatsuna: '#61995a', potato: '#bb955b', corn: '#d4aa45',
@@ -5,6 +6,7 @@ export const cropColors: Record<string, string> = {
   tomato: '#cf6753', watermelon: '#6c9b6b', asparagus: '#85a365', burdock: '#a28a60',
   pepper: '#5a916c', melon: '#a7b06a',
 };
+for(const c of currentCropList) cropColors[c.id]=c.color;
 const leaf = '<path d="M49 39C20 34 21 12 24 9c22 0 31 13 29 30" fill="#527b47"/><path d="M53 37C53 13 70 7 82 11c-1 17-10 26-29 29" fill="#789b51"/><path d="M52 38C36 24 45 8 51 3c13 11 16 23 1 35" fill="#97ac60"/>';
 const paths: Record<string, string> = {
   radish: `${leaf}<path d="M29 47c2-20 48-23 51 1 3 20-17 37-25 40l-2 10-4-11C39 81 25 66 29 47" fill="#f7ead4"/><path d="M29 47c3-20 47-23 51 1 1 9-3 17-8 23-12-4-24-1-35-3-6-9-9-14-8-21" fill="#cc626d"/><path d="M35 48c2-7 7-11 12-11" stroke="#edabb0" stroke-width="4" fill="none" stroke-linecap="round"/>`,
@@ -23,9 +25,14 @@ const paths: Record<string, string> = {
   melon: '<circle cx="52" cy="58" r="34" fill="#b1b56b"/><g stroke="#d9d6a1" stroke-width="1.8" fill="none"><path d="m24 40 48 43M19 55l32 34M38 28l45 40M25 77l49-42M20 64l41-38M41 90l44-41"/><ellipse cx="52" cy="58" rx="18" ry="34"/></g><path d="M51 25V12m-16-1 30 2" stroke="#688253" stroke-width="6" stroke-linecap="round"/>',
 };
 
+paths.lettuce='<path d="M25 81C5 63 12 45 24 45 8 23 31 13 41 27 43 4 67 8 67 26c20-17 37 4 23 20 18 16-4 47-27 45H39Z" fill="#92b275"/><path d="M38 85C16 63 30 48 43 54c-14-24 15-37 24-14 20-8 28 15 9 31l-17 20" fill="#6e9a62"/><path d="M52 91V45m0 32L34 61m18 20 20-22" stroke="#ced6a0" stroke-width="3" fill="none"/>';
+paths.carrot='<path d="M30 39c8-12 29-9 32 3L44 94c-2 5-7 4-8-1Z" fill="#d68b49"/><path d="m60 53 15-8c9 12 5 36-17 51-4 2-6 0-5-4Z" fill="#e1a05d"/><path d="m35 56 11 2m-8 12 6 1m18 2 8 3" stroke="#b7733c" stroke-width="2"/><path d="M44 36C18 25 26 7 35 13l11 16C39 5 58 1 58 12l-8 22c13-23 28-16 21-7L51 39" fill="#6d9656"/>';
+paths.okra='<path d="m25 88 9-59 14-10 9 17-24 56Z" fill="#7c9c51"/><path d="m48 91 13-50 14-12 7 16-26 50Z" fill="#a0b66a"/><path d="m30 87 13-54m11 57 16-45" stroke="#c7cf8c" stroke-width="2"/><path d="m32 32 3-13 11-4 7 10m8 19 2-12 11-8 8 10" fill="#527a48"/>';
+paths.eggplant='<path d="M44 31C18 31 11 54 20 73c10 24 41 23 53 2 8-17 0-37-16-41Z" fill="#847099"/><path d="M30 43c-10 10-9 21-3 30" fill="none" stroke="#b49ab7" stroke-width="5" stroke-linecap="round"/><path d="m44 39-13-8 13-8 8-14 7 15 14 7-14 10-7-8Z" fill="#608253"/><path d="M52 24q-3-15 9-18" fill="none" stroke="#608253" stroke-width="5"/>';
+
 export function vegetable(id: string, className = '', label = ''): string {
   const a11y = label ? `role="img" aria-label="${label}"` : 'aria-hidden="true"';
-  return `<svg class="veg ${className}" viewBox="0 0 104 104" ${a11y}><ellipse cx="52" cy="94" rx="29" ry="5" fill="#493d2510"/>${paths[id] ?? paths.radish}</svg>`;
+  return `<svg class="veg ${className}" viewBox="0 0 104 104" ${a11y}><ellipse cx="52" cy="94" rx="29" ry="5" fill="#493d2510"/>${paths[currentCropInfo.get(id)?.art??id] ?? paths.radish}</svg>`;
 }
 
 export function icon(kind: string): string {
