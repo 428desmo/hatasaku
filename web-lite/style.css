@@ -117,3 +117,35 @@ dialog{background:#faf5e4;border:1px solid #e0d8b9;border-radius:13px;color:var(
 @media(max-width:360px) and (orientation:portrait){
   .game-table{padding-inline:8px}.farmer{grid-template-columns:57px minmax(0,1fr);gap:3px}.plots{gap:2px}.plot-name{font-size:7px}.plot-phase,.resting .plot-phase{font-size:6px}.mini-income{font-size:8px}.mini-income small{font-size:5px}.market-choice .crop-card{grid-template-columns:32px minmax(0,1fr);column-gap:3px}.market-choice .card-head h3{font-size:11px}.market-choice .crop-spec dt{font-size:7px}.market-choice .crop-spec .income-spec dt{font-size:7px}.market-choice .crop-spec dt>small{font-size:5px}.wordmark>b{font-size:16px}.topbar{gap:5px;padding-inline:7px}.tools .tool{width:31px;min-width:31px}.action-bar{padding-inline:8px;gap:5px}.status-message .avatar{display:none}.footer-actions .subtle{padding-inline:6px}.footer-actions .primary{font-size:9px;padding-inline:7px}
 }
+
+/* Budget against the usable stage, after iPhone safe areas and browser chrome. */
+@media(max-width:700px) and (orientation:portrait){
+  .stage:has(.game-table){container-type:size}
+  .game-table{gap:8px;padding-block:7px}
+  #farm-rows{grid-auto-rows:clamp(40px,6dvh,51px)}
+  .right-panel{gap:7px}
+  .sky{height:76px}
+  .sky>.section-title{height:19px;min-height:19px;margin-bottom:3px}
+  .market-heading{height:26px;min-height:26px}
+  .market-cards{grid-auto-rows:104px;gap:6px}
+  .action-bar{min-height:70px;padding-block:7px}
+  @container (max-height:740px){
+    #farm-rows{grid-auto-rows:44px}
+    .game-table{gap:6px;padding-block:6px}
+    .farm-panel>.section-title{margin-bottom:3px}
+    .right-panel{gap:5px}
+    .sky{height:70px}
+    .weather-card strong{font-size:20px}
+    .market-heading{height:25px;min-height:25px}
+  }
+  @container (max-height:700px){
+    #farm-rows{grid-auto-rows:38px;gap:3px}
+    .farmer{padding-block:2px}
+    .mini-veg{width:22px;height:22px;top:8px}
+    .mini-income{top:16px}
+    .purse{font-size:17px}
+    .sky{height:65px}
+    .weather-crop .veg{height:18px}
+    .market-cards{grid-auto-rows:101px}
+  }
+}
