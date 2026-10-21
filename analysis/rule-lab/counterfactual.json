@@ -1,0 +1,2381 @@
+{
+  "method": "36 baseline fixtures; P0 at R5/R9/R13; public least-continuation-value target; forced one-turn withdrawal versus no forced action; same hidden future initial deck and seeded future RNG; retrospective diagnostic, not a clairvoyant policy",
+  "comparisons": [
+    {
+      "caseId": "0-3",
+      "round": 5,
+      "plot": 2,
+      "crop": "v19_carrot",
+      "white": 1,
+      "green": 0,
+      "control": [
+        178,
+        170,
+        151
+      ],
+      "result": [
+        137,
+        175,
+        158
+      ],
+      "selfDelta": -41,
+      "relativeDelta": -47
+    },
+    {
+      "caseId": "0-3",
+      "round": 9,
+      "plot": 0,
+      "crop": "v19_carrot",
+      "white": 0,
+      "green": 1,
+      "control": [
+        169,
+        158,
+        162
+      ],
+      "result": [
+        143,
+        176,
+        152
+      ],
+      "selfDelta": -26,
+      "relativeDelta": -30
+    },
+    {
+      "caseId": "0-3",
+      "round": 13,
+      "plot": 1,
+      "crop": "v19_carrot",
+      "white": 2,
+      "green": 0,
+      "control": [
+        184,
+        168,
+        152
+      ],
+      "result": [
+        154,
+        179,
+        153
+      ],
+      "selfDelta": -30,
+      "relativeDelta": -36
+    },
+    {
+      "caseId": "0-4",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_carrot",
+      "white": 0,
+      "green": 1,
+      "control": [
+        124,
+        148,
+        156,
+        128
+      ],
+      "result": [
+        123,
+        135,
+        156,
+        155
+      ],
+      "selfDelta": -1,
+      "relativeDelta": -5.666666666666667
+    },
+    {
+      "caseId": "0-4",
+      "round": 9,
+      "plot": 3,
+      "crop": "v19_carrot",
+      "white": 0,
+      "green": 1,
+      "control": [
+        124,
+        140,
+        156,
+        136
+      ],
+      "result": [
+        128,
+        136,
+        172,
+        141
+      ],
+      "selfDelta": 4,
+      "relativeDelta": -1.666666666666667
+    },
+    {
+      "caseId": "0-4",
+      "round": 13,
+      "plot": 1,
+      "crop": "v19_carrot",
+      "white": 0,
+      "green": 1,
+      "control": [
+        119,
+        137,
+        160,
+        148
+      ],
+      "result": [
+        124,
+        121,
+        157,
+        148
+      ],
+      "selfDelta": 5,
+      "relativeDelta": 11.333333333333332
+    },
+    {
+      "caseId": "0-5",
+      "round": 5,
+      "plot": 3,
+      "crop": "v19_carrot",
+      "white": 2,
+      "green": 0,
+      "control": [
+        149,
+        158,
+        155,
+        152,
+        139
+      ],
+      "result": [
+        173,
+        151,
+        174,
+        139,
+        128
+      ],
+      "selfDelta": 24,
+      "relativeDelta": 27
+    },
+    {
+      "caseId": "0-5",
+      "round": 9,
+      "plot": 4,
+      "crop": "v19_lettuce",
+      "white": 0,
+      "green": 2,
+      "control": [
+        149,
+        171,
+        151,
+        132,
+        158
+      ],
+      "result": [
+        131,
+        172,
+        169,
+        135,
+        152
+      ],
+      "selfDelta": -18,
+      "relativeDelta": -22
+    },
+    {
+      "caseId": "0-5",
+      "round": 13,
+      "plot": 2,
+      "crop": "v19_lettuce",
+      "white": 0,
+      "green": 1,
+      "control": [
+        150,
+        179,
+        158,
+        131,
+        161
+      ],
+      "result": [
+        147,
+        168,
+        155,
+        137,
+        158
+      ],
+      "selfDelta": -3,
+      "relativeDelta": -0.25
+    },
+    {
+      "caseId": "1-3",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_pumpkin",
+      "white": 0,
+      "green": 2,
+      "control": [
+        146,
+        138,
+        168
+      ],
+      "result": [
+        122,
+        139,
+        149
+      ],
+      "selfDelta": -24,
+      "relativeDelta": -15
+    },
+    {
+      "caseId": "1-3",
+      "round": 9,
+      "plot": 1,
+      "crop": "v19_corn",
+      "white": 2,
+      "green": 0,
+      "control": [
+        152,
+        145,
+        176
+      ],
+      "result": [
+        121,
+        153,
+        151
+      ],
+      "selfDelta": -31,
+      "relativeDelta": -22.5
+    },
+    {
+      "caseId": "1-3",
+      "round": 13,
+      "plot": 3,
+      "crop": "v19_edamame",
+      "white": 0,
+      "green": 1,
+      "control": [
+        146,
+        138,
+        166
+      ],
+      "result": [
+        136,
+        143,
+        152
+      ],
+      "selfDelta": -10,
+      "relativeDelta": -5.5
+    },
+    {
+      "caseId": "1-4",
+      "round": 5,
+      "plot": 1,
+      "crop": "v19_pumpkin",
+      "white": 1,
+      "green": 0,
+      "control": [
+        143,
+        179,
+        158,
+        160
+      ],
+      "result": [
+        137,
+        173,
+        159,
+        164
+      ],
+      "selfDelta": -6,
+      "relativeDelta": -5.666666666666667
+    },
+    {
+      "caseId": "1-4",
+      "round": 9,
+      "plot": 1,
+      "crop": "v19_corn",
+      "white": 2,
+      "green": 0,
+      "control": [
+        168,
+        173,
+        164,
+        174
+      ],
+      "result": [
+        133,
+        197,
+        167,
+        159
+      ],
+      "selfDelta": -35,
+      "relativeDelta": -39
+    },
+    {
+      "caseId": "1-4",
+      "round": 13,
+      "plot": 1,
+      "crop": "v19_radish",
+      "white": 0,
+      "green": 1,
+      "control": [
+        151,
+        162,
+        170,
+        132
+      ],
+      "result": [
+        125,
+        168,
+        172,
+        143
+      ],
+      "selfDelta": -26,
+      "relativeDelta": -32.333333333333336
+    },
+    {
+      "caseId": "1-5",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_pumpkin",
+      "white": 0,
+      "green": 2,
+      "control": [
+        169,
+        155,
+        140,
+        164,
+        146
+      ],
+      "result": [
+        98,
+        176,
+        160,
+        130,
+        139
+      ],
+      "selfDelta": -71,
+      "relativeDelta": -71
+    },
+    {
+      "caseId": "1-5",
+      "round": 9,
+      "plot": 0,
+      "crop": "v19_corn",
+      "white": 1,
+      "green": 0,
+      "control": [
+        155,
+        166,
+        151,
+        129,
+        133
+      ],
+      "result": [
+        124,
+        191,
+        162,
+        160,
+        135
+      ],
+      "selfDelta": -31,
+      "relativeDelta": -48.25
+    },
+    {
+      "caseId": "1-5",
+      "round": 13,
+      "plot": 2,
+      "crop": "v19_edamame",
+      "white": 1,
+      "green": 0,
+      "control": [
+        153,
+        163,
+        135,
+        145,
+        137
+      ],
+      "result": [
+        116,
+        172,
+        138,
+        131,
+        123
+      ],
+      "selfDelta": -37,
+      "relativeDelta": -33
+    },
+    {
+      "caseId": "2-3",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_pumpkin",
+      "white": 0,
+      "green": 2,
+      "control": [
+        180,
+        160,
+        177
+      ],
+      "result": [
+        157,
+        160,
+        178
+      ],
+      "selfDelta": -23,
+      "relativeDelta": -23.5
+    },
+    {
+      "caseId": "2-3",
+      "round": 9,
+      "plot": 2,
+      "crop": "v19_pumpkin",
+      "white": 1,
+      "green": 0,
+      "control": [
+        182,
+        167,
+        175
+      ],
+      "result": [
+        165,
+        175,
+        160
+      ],
+      "selfDelta": -17,
+      "relativeDelta": -13.5
+    },
+    {
+      "caseId": "2-3",
+      "round": 13,
+      "plot": 4,
+      "crop": "v19_carrot",
+      "white": 0,
+      "green": 2,
+      "control": [
+        200,
+        169,
+        179
+      ],
+      "result": [
+        169,
+        164,
+        172
+      ],
+      "selfDelta": -31,
+      "relativeDelta": -25
+    },
+    {
+      "caseId": "2-4",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_eggplant",
+      "white": 0,
+      "green": 3,
+      "control": [
+        145,
+        160,
+        180,
+        160
+      ],
+      "result": [
+        142,
+        163,
+        184,
+        145
+      ],
+      "selfDelta": -3,
+      "relativeDelta": -0.3333333333333335
+    },
+    {
+      "caseId": "2-4",
+      "round": 9,
+      "plot": 2,
+      "crop": "v19_eggplant",
+      "white": 0,
+      "green": 3,
+      "control": [
+        155,
+        166,
+        170,
+        154
+      ],
+      "result": [
+        151,
+        164,
+        164,
+        160
+      ],
+      "selfDelta": -4,
+      "relativeDelta": -3.3333333333333335
+    },
+    {
+      "caseId": "2-4",
+      "round": 13,
+      "plot": 4,
+      "crop": "v19_carrot",
+      "white": 0,
+      "green": 1,
+      "control": [
+        143,
+        163,
+        162,
+        155
+      ],
+      "result": [
+        130,
+        157,
+        163,
+        158
+      ],
+      "selfDelta": -13,
+      "relativeDelta": -12.333333333333334
+    },
+    {
+      "caseId": "2-5",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_pumpkin",
+      "white": 0,
+      "green": 2,
+      "control": [
+        141,
+        136,
+        146,
+        111,
+        140
+      ],
+      "result": [
+        125,
+        138,
+        147,
+        113,
+        141
+      ],
+      "selfDelta": -16,
+      "relativeDelta": -17.5
+    },
+    {
+      "caseId": "2-5",
+      "round": 9,
+      "plot": 0,
+      "crop": "v19_lettuce",
+      "white": 0,
+      "green": 2,
+      "control": [
+        171,
+        139,
+        144,
+        130,
+        139
+      ],
+      "result": [
+        137,
+        175,
+        140,
+        120,
+        160
+      ],
+      "selfDelta": -34,
+      "relativeDelta": -44.75
+    },
+    {
+      "caseId": "2-5",
+      "round": 13,
+      "plot": 1,
+      "crop": "v19_carrot",
+      "white": 0,
+      "green": 1,
+      "control": [
+        160,
+        139,
+        136,
+        132,
+        158
+      ],
+      "result": [
+        129,
+        154,
+        134,
+        142,
+        155
+      ],
+      "selfDelta": -31,
+      "relativeDelta": -36
+    },
+    {
+      "caseId": "3-3",
+      "round": 5,
+      "plot": 1,
+      "crop": "v19_leafnegi",
+      "white": 0,
+      "green": 2,
+      "control": [
+        156,
+        177,
+        155
+      ],
+      "result": [
+        166,
+        160,
+        147
+      ],
+      "selfDelta": 10,
+      "relativeDelta": 22.5
+    },
+    {
+      "caseId": "3-3",
+      "round": 9,
+      "plot": 2,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 1,
+      "control": [
+        154,
+        165,
+        148
+      ],
+      "result": [
+        163,
+        146,
+        154
+      ],
+      "selfDelta": 9,
+      "relativeDelta": 15.5
+    },
+    {
+      "caseId": "3-3",
+      "round": 13,
+      "plot": 0,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 2,
+      "control": [
+        157,
+        148,
+        143
+      ],
+      "result": [
+        130,
+        174,
+        135
+      ],
+      "selfDelta": -27,
+      "relativeDelta": -36
+    },
+    {
+      "caseId": "3-4",
+      "round": 5,
+      "plot": 2,
+      "crop": "v19_potato",
+      "white": 1,
+      "green": 0,
+      "control": [
+        162,
+        148,
+        135,
+        149
+      ],
+      "result": [
+        139,
+        157,
+        135,
+        147
+      ],
+      "selfDelta": -23,
+      "relativeDelta": -25.333333333333332
+    },
+    {
+      "caseId": "3-4",
+      "round": 9,
+      "plot": 0,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 3,
+      "control": [
+        163,
+        140,
+        140,
+        163
+      ],
+      "result": [
+        129,
+        167,
+        143,
+        155
+      ],
+      "selfDelta": -34,
+      "relativeDelta": -41.333333333333336
+    },
+    {
+      "caseId": "3-4",
+      "round": 13,
+      "plot": 2,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 1,
+      "control": [
+        166,
+        155,
+        142,
+        175
+      ],
+      "result": [
+        151,
+        150,
+        146,
+        164
+      ],
+      "selfDelta": -15,
+      "relativeDelta": -11
+    },
+    {
+      "caseId": "3-5",
+      "round": 5,
+      "plot": 2,
+      "crop": "v19_leafnegi",
+      "white": 1,
+      "green": 0,
+      "control": [
+        130,
+        169,
+        135,
+        152,
+        124
+      ],
+      "result": [
+        119,
+        136,
+        153,
+        123,
+        124
+      ],
+      "selfDelta": -11,
+      "relativeDelta": 0
+    },
+    {
+      "caseId": "3-5",
+      "round": 9,
+      "plot": 3,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 2,
+      "control": [
+        151,
+        151,
+        149,
+        145,
+        123
+      ],
+      "result": [
+        146,
+        142,
+        145,
+        139,
+        136
+      ],
+      "selfDelta": -5,
+      "relativeDelta": -3.5
+    },
+    {
+      "caseId": "3-5",
+      "round": 13,
+      "plot": 2,
+      "crop": "v19_leafnegi",
+      "white": 0,
+      "green": 1,
+      "control": [
+        157,
+        158,
+        165,
+        159,
+        142
+      ],
+      "result": [
+        146,
+        158,
+        166,
+        149,
+        145
+      ],
+      "selfDelta": -11,
+      "relativeDelta": -9.5
+    },
+    {
+      "caseId": "4-3",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 2,
+      "control": [
+        196,
+        176,
+        204
+      ],
+      "result": [
+        186,
+        179,
+        186
+      ],
+      "selfDelta": -10,
+      "relativeDelta": -2.5
+    },
+    {
+      "caseId": "4-3",
+      "round": 9,
+      "plot": 2,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 1,
+      "control": [
+        195,
+        166,
+        195
+      ],
+      "result": [
+        193,
+        168,
+        196
+      ],
+      "selfDelta": -2,
+      "relativeDelta": -3.5
+    },
+    {
+      "caseId": "4-3",
+      "round": 13,
+      "plot": 2,
+      "crop": "v19_leafnegi",
+      "white": 0,
+      "green": 2,
+      "control": [
+        200,
+        181,
+        210
+      ],
+      "result": [
+        163,
+        182,
+        209
+      ],
+      "selfDelta": -37,
+      "relativeDelta": -37
+    },
+    {
+      "caseId": "4-4",
+      "round": 5,
+      "plot": 1,
+      "crop": "v19_melon",
+      "white": 1,
+      "green": 0,
+      "control": [
+        138,
+        116,
+        161,
+        178
+      ],
+      "result": [
+        140,
+        162,
+        157,
+        147
+      ],
+      "selfDelta": 2,
+      "relativeDelta": -1.6666666666666665
+    },
+    {
+      "caseId": "4-4",
+      "round": 9,
+      "plot": 2,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 2,
+      "control": [
+        169,
+        119,
+        171,
+        181
+      ],
+      "result": [
+        163,
+        127,
+        169,
+        177
+      ],
+      "selfDelta": -6,
+      "relativeDelta": -6.666666666666667
+    },
+    {
+      "caseId": "4-4",
+      "round": 13,
+      "plot": 1,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 1,
+      "control": [
+        162,
+        120,
+        184,
+        187
+      ],
+      "result": [
+        141,
+        132,
+        172,
+        190
+      ],
+      "selfDelta": -21,
+      "relativeDelta": -22
+    },
+    {
+      "caseId": "4-5",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 2,
+      "control": [
+        175,
+        175,
+        166,
+        167,
+        172
+      ],
+      "result": [
+        165,
+        166,
+        170,
+        164,
+        165
+      ],
+      "selfDelta": -10,
+      "relativeDelta": -6.25
+    },
+    {
+      "caseId": "4-5",
+      "round": 9,
+      "plot": 3,
+      "crop": "v19_leafnegi",
+      "white": 0,
+      "green": 1,
+      "control": [
+        169,
+        151,
+        162,
+        146,
+        161
+      ],
+      "result": [
+        159,
+        143,
+        141,
+        146,
+        161
+      ],
+      "selfDelta": -10,
+      "relativeDelta": -2.75
+    },
+    {
+      "caseId": "4-5",
+      "round": 13,
+      "plot": 2,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 2,
+      "control": [
+        182,
+        142,
+        164,
+        144,
+        162
+      ],
+      "result": [
+        174,
+        139,
+        156,
+        145,
+        175
+      ],
+      "selfDelta": -8,
+      "relativeDelta": -8.75
+    },
+    {
+      "caseId": "5-3",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_melon",
+      "white": 0,
+      "green": 1,
+      "control": [
+        149,
+        174,
+        182
+      ],
+      "result": [
+        131,
+        188,
+        167
+      ],
+      "selfDelta": -18,
+      "relativeDelta": -17.5
+    },
+    {
+      "caseId": "5-3",
+      "round": 9,
+      "plot": 0,
+      "crop": "v19_potato",
+      "white": 0,
+      "green": 1,
+      "control": [
+        145,
+        176,
+        170
+      ],
+      "result": [
+        173,
+        163,
+        188
+      ],
+      "selfDelta": 28,
+      "relativeDelta": 25.5
+    },
+    {
+      "caseId": "5-3",
+      "round": 13,
+      "plot": 0,
+      "crop": "v19_radish",
+      "white": 0,
+      "green": 1,
+      "control": [
+        154,
+        195,
+        178
+      ],
+      "result": [
+        136,
+        179,
+        167
+      ],
+      "selfDelta": -18,
+      "relativeDelta": -4.5
+    },
+    {
+      "caseId": "5-4",
+      "round": 5,
+      "plot": 2,
+      "crop": "v19_melon",
+      "white": 3,
+      "green": 0,
+      "control": [
+        225,
+        173,
+        162,
+        153
+      ],
+      "result": [
+        146,
+        174,
+        148,
+        173
+      ],
+      "selfDelta": -79,
+      "relativeDelta": -81.33333333333333
+    },
+    {
+      "caseId": "5-4",
+      "round": 9,
+      "plot": 0,
+      "crop": "v19_potato",
+      "white": 0,
+      "green": 1,
+      "control": [
+        207,
+        172,
+        147,
+        167
+      ],
+      "result": [
+        171,
+        193,
+        156,
+        186
+      ],
+      "selfDelta": -36,
+      "relativeDelta": -52.33333333333333
+    },
+    {
+      "caseId": "5-4",
+      "round": 13,
+      "plot": 2,
+      "crop": "v19_potato",
+      "white": 1,
+      "green": 0,
+      "control": [
+        207,
+        202,
+        164,
+        163
+      ],
+      "result": [
+        183,
+        192,
+        176,
+        150
+      ],
+      "selfDelta": -24,
+      "relativeDelta": -20.333333333333332
+    },
+    {
+      "caseId": "5-5",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_sweetpotato",
+      "white": 0,
+      "green": 1,
+      "control": [
+        188,
+        169,
+        148,
+        177,
+        187
+      ],
+      "result": [
+        127,
+        196,
+        164,
+        133,
+        198
+      ],
+      "selfDelta": -61,
+      "relativeDelta": -63.5
+    },
+    {
+      "caseId": "5-5",
+      "round": 9,
+      "plot": 0,
+      "crop": "v19_potato",
+      "white": 0,
+      "green": 1,
+      "control": [
+        198,
+        174,
+        169,
+        163,
+        185
+      ],
+      "result": [
+        171,
+        209,
+        136,
+        171,
+        198
+      ],
+      "selfDelta": -27,
+      "relativeDelta": -32.75
+    },
+    {
+      "caseId": "5-5",
+      "round": 13,
+      "plot": 2,
+      "crop": "v19_potato",
+      "white": 0,
+      "green": 1,
+      "control": [
+        175,
+        184,
+        171,
+        196,
+        200
+      ],
+      "result": [
+        164,
+        175,
+        157,
+        174,
+        194
+      ],
+      "selfDelta": -11,
+      "relativeDelta": 1.75
+    },
+    {
+      "caseId": "6-3",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_eggplant",
+      "white": 0,
+      "green": 3,
+      "control": [
+        200,
+        163,
+        148
+      ],
+      "result": [
+        137,
+        198,
+        165
+      ],
+      "selfDelta": -63,
+      "relativeDelta": -89
+    },
+    {
+      "caseId": "6-3",
+      "round": 9,
+      "plot": 0,
+      "crop": "v19_potato",
+      "white": 1,
+      "green": 0,
+      "control": [
+        186,
+        169,
+        159
+      ],
+      "result": [
+        155,
+        152,
+        172
+      ],
+      "selfDelta": -31,
+      "relativeDelta": -29
+    },
+    {
+      "caseId": "6-3",
+      "round": 13,
+      "plot": 0,
+      "crop": "v19_lettuce",
+      "white": 0,
+      "green": 1,
+      "control": [
+        179,
+        169,
+        138
+      ],
+      "result": [
+        174,
+        159,
+        153
+      ],
+      "selfDelta": -5,
+      "relativeDelta": -7.5
+    },
+    {
+      "caseId": "6-4",
+      "round": 5,
+      "plot": 3,
+      "crop": "v19_eggplant",
+      "white": 2,
+      "green": 0,
+      "control": [
+        205,
+        174,
+        151,
+        143
+      ],
+      "result": [
+        157,
+        178,
+        163,
+        155
+      ],
+      "selfDelta": -48,
+      "relativeDelta": -57.333333333333336
+    },
+    {
+      "caseId": "6-4",
+      "round": 9,
+      "plot": 1,
+      "crop": "v19_lettuce",
+      "white": 0,
+      "green": 2,
+      "control": [
+        186,
+        183,
+        154,
+        145
+      ],
+      "result": [
+        184,
+        177,
+        133,
+        151
+      ],
+      "selfDelta": -2,
+      "relativeDelta": 5
+    },
+    {
+      "caseId": "6-4",
+      "round": 13,
+      "plot": 3,
+      "crop": "v19_lettuce",
+      "white": 0,
+      "green": 2,
+      "control": [
+        176,
+        181,
+        155,
+        165
+      ],
+      "result": [
+        176,
+        175,
+        147,
+        171
+      ],
+      "selfDelta": 0,
+      "relativeDelta": 2.6666666666666665
+    },
+    {
+      "caseId": "6-5",
+      "round": 5,
+      "plot": 3,
+      "crop": "v19_eggplant",
+      "white": 2,
+      "green": 0,
+      "control": [
+        155,
+        142,
+        143,
+        121,
+        162
+      ],
+      "result": [
+        104,
+        146,
+        145,
+        137,
+        161
+      ],
+      "selfDelta": -51,
+      "relativeDelta": -56.25
+    },
+    {
+      "caseId": "6-5",
+      "round": 9,
+      "plot": 2,
+      "crop": "v19_eggplant",
+      "white": 0,
+      "green": 1,
+      "control": [
+        143,
+        150,
+        173,
+        138,
+        151
+      ],
+      "result": [
+        150,
+        148,
+        167,
+        137,
+        152
+      ],
+      "selfDelta": 7,
+      "relativeDelta": 9
+    },
+    {
+      "caseId": "6-5",
+      "round": 13,
+      "plot": 3,
+      "crop": "v19_lettuce",
+      "white": 0,
+      "green": 1,
+      "control": [
+        143,
+        157,
+        173,
+        132,
+        136
+      ],
+      "result": [
+        127,
+        158,
+        175,
+        142,
+        167
+      ],
+      "selfDelta": -16,
+      "relativeDelta": -27
+    },
+    {
+      "caseId": "7-3",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_pumpkin",
+      "white": 0,
+      "green": 2,
+      "control": [
+        161,
+        186,
+        161
+      ],
+      "result": [
+        139,
+        197,
+        195
+      ],
+      "selfDelta": -22,
+      "relativeDelta": -44.5
+    },
+    {
+      "caseId": "7-3",
+      "round": 9,
+      "plot": 4,
+      "crop": "v19_potato",
+      "white": 1,
+      "green": 0,
+      "control": [
+        175,
+        198,
+        179
+      ],
+      "result": [
+        160,
+        168,
+        180
+      ],
+      "selfDelta": -15,
+      "relativeDelta": -0.5
+    },
+    {
+      "caseId": "7-3",
+      "round": 13,
+      "plot": 3,
+      "crop": "v19_edamame",
+      "white": 1,
+      "green": 0,
+      "control": [
+        172,
+        185,
+        163
+      ],
+      "result": [
+        146,
+        181,
+        145
+      ],
+      "selfDelta": -26,
+      "relativeDelta": -15
+    },
+    {
+      "caseId": "7-4",
+      "round": 5,
+      "plot": 1,
+      "crop": "v19_pumpkin",
+      "white": 1,
+      "green": 0,
+      "control": [
+        178,
+        140,
+        180,
+        177
+      ],
+      "result": [
+        157,
+        141,
+        180,
+        177
+      ],
+      "selfDelta": -21,
+      "relativeDelta": -21.333333333333332
+    },
+    {
+      "caseId": "7-4",
+      "round": 9,
+      "plot": 0,
+      "crop": "v19_carrot",
+      "white": 2,
+      "green": 0,
+      "control": [
+        191,
+        144,
+        177,
+        164
+      ],
+      "result": [
+        133,
+        168,
+        188,
+        186
+      ],
+      "selfDelta": -58,
+      "relativeDelta": -77
+    },
+    {
+      "caseId": "7-4",
+      "round": 13,
+      "plot": 1,
+      "crop": "v19_carrot",
+      "white": 0,
+      "green": 1,
+      "control": [
+        171,
+        131,
+        165,
+        159
+      ],
+      "result": [
+        147,
+        144,
+        166,
+        167
+      ],
+      "selfDelta": -24,
+      "relativeDelta": -31.333333333333332
+    },
+    {
+      "caseId": "7-5",
+      "round": 5,
+      "plot": 1,
+      "crop": "v19_pumpkin",
+      "white": 1,
+      "green": 0,
+      "control": [
+        170,
+        170,
+        134,
+        155,
+        154
+      ],
+      "result": [
+        156,
+        171,
+        137,
+        155,
+        156
+      ],
+      "selfDelta": -14,
+      "relativeDelta": -15.5
+    },
+    {
+      "caseId": "7-5",
+      "round": 9,
+      "plot": 3,
+      "crop": "v19_carrot",
+      "white": 1,
+      "green": 0,
+      "control": [
+        140,
+        164,
+        161,
+        179,
+        170
+      ],
+      "result": [
+        125,
+        152,
+        161,
+        166,
+        141
+      ],
+      "selfDelta": -15,
+      "relativeDelta": -1.5
+    },
+    {
+      "caseId": "7-5",
+      "round": 13,
+      "plot": 0,
+      "crop": "v19_pumpkin",
+      "white": 0,
+      "green": 1,
+      "control": [
+        143,
+        157,
+        138,
+        166,
+        165
+      ],
+      "result": [
+        123,
+        174,
+        142,
+        162,
+        165
+      ],
+      "selfDelta": -20,
+      "relativeDelta": -24.25
+    },
+    {
+      "caseId": "8-3",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_eggplant",
+      "white": 0,
+      "green": 3,
+      "control": [
+        176,
+        178,
+        189
+      ],
+      "result": [
+        149,
+        176,
+        170
+      ],
+      "selfDelta": -27,
+      "relativeDelta": -16.5
+    },
+    {
+      "caseId": "8-3",
+      "round": 9,
+      "plot": 1,
+      "crop": "v19_carrot",
+      "white": 1,
+      "green": 0,
+      "control": [
+        181,
+        184,
+        172
+      ],
+      "result": [
+        156,
+        193,
+        174
+      ],
+      "selfDelta": -25,
+      "relativeDelta": -30.5
+    },
+    {
+      "caseId": "8-3",
+      "round": 13,
+      "plot": 1,
+      "crop": "v19_okra",
+      "white": 1,
+      "green": 0,
+      "control": [
+        180,
+        184,
+        173
+      ],
+      "result": [
+        151,
+        180,
+        171
+      ],
+      "selfDelta": -29,
+      "relativeDelta": -26
+    },
+    {
+      "caseId": "8-4",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_eggplant",
+      "white": 0,
+      "green": 3,
+      "control": [
+        158,
+        166,
+        172,
+        150
+      ],
+      "result": [
+        147,
+        165,
+        189,
+        147
+      ],
+      "selfDelta": -11,
+      "relativeDelta": -15.333333333333332
+    },
+    {
+      "caseId": "8-4",
+      "round": 9,
+      "plot": 2,
+      "crop": "v19_eggplant",
+      "white": 0,
+      "green": 3,
+      "control": [
+        158,
+        167,
+        179,
+        156
+      ],
+      "result": [
+        123,
+        174,
+        171,
+        157
+      ],
+      "selfDelta": -35,
+      "relativeDelta": -35
+    },
+    {
+      "caseId": "8-4",
+      "round": 13,
+      "plot": 0,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 1,
+      "control": [
+        158,
+        178,
+        192,
+        145
+      ],
+      "result": [
+        160,
+        167,
+        171,
+        153
+      ],
+      "selfDelta": 2,
+      "relativeDelta": 10
+    },
+    {
+      "caseId": "8-5",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_carrot",
+      "white": 0,
+      "green": 1,
+      "control": [
+        160,
+        167,
+        142,
+        157,
+        85
+      ],
+      "result": [
+        108,
+        162,
+        139,
+        142,
+        134
+      ],
+      "selfDelta": -52,
+      "relativeDelta": -58.5
+    },
+    {
+      "caseId": "8-5",
+      "round": 9,
+      "plot": 1,
+      "crop": "v19_carrot",
+      "white": 2,
+      "green": 0,
+      "control": [
+        153,
+        149,
+        143,
+        156,
+        105
+      ],
+      "result": [
+        137,
+        152,
+        153,
+        169,
+        122
+      ],
+      "selfDelta": -16,
+      "relativeDelta": -26.75
+    },
+    {
+      "caseId": "8-5",
+      "round": 13,
+      "plot": 0,
+      "crop": "v19_eggplant",
+      "white": 0,
+      "green": 1,
+      "control": [
+        171,
+        164,
+        129,
+        142,
+        104
+      ],
+      "result": [
+        138,
+        176,
+        138,
+        149,
+        103
+      ],
+      "selfDelta": -33,
+      "relativeDelta": -39.75
+    },
+    {
+      "caseId": "9-3",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_eggplant",
+      "white": 0,
+      "green": 3,
+      "control": [
+        142,
+        179,
+        140
+      ],
+      "result": [
+        118,
+        174,
+        151
+      ],
+      "selfDelta": -24,
+      "relativeDelta": -27
+    },
+    {
+      "caseId": "9-3",
+      "round": 9,
+      "plot": 2,
+      "crop": "v19_eggplant",
+      "white": 2,
+      "green": 0,
+      "control": [
+        141,
+        184,
+        139
+      ],
+      "result": [
+        116,
+        186,
+        148
+      ],
+      "selfDelta": -25,
+      "relativeDelta": -30.5
+    },
+    {
+      "caseId": "9-3",
+      "round": 13,
+      "plot": 1,
+      "crop": "v19_edamame",
+      "white": 1,
+      "green": 0,
+      "control": [
+        152,
+        185,
+        153
+      ],
+      "result": [
+        131,
+        183,
+        149
+      ],
+      "selfDelta": -21,
+      "relativeDelta": -18
+    },
+    {
+      "caseId": "9-4",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_eggplant",
+      "white": 0,
+      "green": 3,
+      "control": [
+        128,
+        136,
+        143,
+        130
+      ],
+      "result": [
+        101,
+        134,
+        151,
+        136
+      ],
+      "selfDelta": -27,
+      "relativeDelta": -31
+    },
+    {
+      "caseId": "9-4",
+      "round": 9,
+      "plot": 4,
+      "crop": "v19_lettuce",
+      "white": 0,
+      "green": 1,
+      "control": [
+        136,
+        148,
+        146,
+        136
+      ],
+      "result": [
+        135,
+        135,
+        163,
+        137
+      ],
+      "selfDelta": -1,
+      "relativeDelta": -2.666666666666667
+    },
+    {
+      "caseId": "9-4",
+      "round": 13,
+      "plot": 2,
+      "crop": "v19_edamame",
+      "white": 1,
+      "green": 0,
+      "control": [
+        139,
+        135,
+        145,
+        127
+      ],
+      "result": [
+        111,
+        142,
+        154,
+        131
+      ],
+      "selfDelta": -28,
+      "relativeDelta": -34.666666666666664
+    },
+    {
+      "caseId": "9-5",
+      "round": 5,
+      "plot": 2,
+      "crop": "v19_lettuce",
+      "white": 0,
+      "green": 1,
+      "control": [
+        137,
+        112,
+        100,
+        122,
+        111
+      ],
+      "result": [
+        94,
+        131,
+        94,
+        142,
+        139
+      ],
+      "selfDelta": -43,
+      "relativeDelta": -58.25
+    },
+    {
+      "caseId": "9-5",
+      "round": 9,
+      "plot": 1,
+      "crop": "v19_eggplant",
+      "white": 0,
+      "green": 4,
+      "control": [
+        108,
+        120,
+        133,
+        106,
+        126
+      ],
+      "result": [
+        100,
+        112,
+        119,
+        127,
+        150
+      ],
+      "selfDelta": -8,
+      "relativeDelta": -13.75
+    },
+    {
+      "caseId": "9-5",
+      "round": 13,
+      "plot": 2,
+      "crop": "v19_radish",
+      "white": 0,
+      "green": 1,
+      "control": [
+        111,
+        124,
+        117,
+        116,
+        139
+      ],
+      "result": [
+        91,
+        130,
+        101,
+        133,
+        137
+      ],
+      "selfDelta": -20,
+      "relativeDelta": -21.25
+    },
+    {
+      "caseId": "10-3",
+      "round": 5,
+      "plot": 1,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 3,
+      "control": [
+        161,
+        149,
+        163
+      ],
+      "result": [
+        139,
+        168,
+        148
+      ],
+      "selfDelta": -22,
+      "relativeDelta": -24
+    },
+    {
+      "caseId": "10-3",
+      "round": 9,
+      "plot": 1,
+      "crop": "v19_radish",
+      "white": 0,
+      "green": 1,
+      "control": [
+        156,
+        140,
+        157
+      ],
+      "result": [
+        138,
+        146,
+        160
+      ],
+      "selfDelta": -18,
+      "relativeDelta": -22.5
+    },
+    {
+      "caseId": "10-3",
+      "round": 13,
+      "plot": 3,
+      "crop": "v19_okra",
+      "white": 1,
+      "green": 0,
+      "control": [
+        153,
+        138,
+        163
+      ],
+      "result": [
+        146,
+        149,
+        159
+      ],
+      "selfDelta": -7,
+      "relativeDelta": -10.5
+    },
+    {
+      "caseId": "10-4",
+      "round": 5,
+      "plot": 3,
+      "crop": "v19_edamame",
+      "white": 1,
+      "green": 0,
+      "control": [
+        131,
+        137,
+        123,
+        158
+      ],
+      "result": [
+        135,
+        141,
+        135,
+        108
+      ],
+      "selfDelta": 4,
+      "relativeDelta": 15.333333333333334
+    },
+    {
+      "caseId": "10-4",
+      "round": 9,
+      "plot": 1,
+      "crop": "v19_pumpkin",
+      "white": 3,
+      "green": 0,
+      "control": [
+        140,
+        127,
+        117,
+        154
+      ],
+      "result": [
+        105,
+        150,
+        116,
+        149
+      ],
+      "selfDelta": -35,
+      "relativeDelta": -40.666666666666664
+    },
+    {
+      "caseId": "10-4",
+      "round": 13,
+      "plot": 2,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 3,
+      "control": [
+        124,
+        130,
+        125,
+        153
+      ],
+      "result": [
+        119,
+        130,
+        129,
+        153
+      ],
+      "selfDelta": -5,
+      "relativeDelta": -6.333333333333333
+    },
+    {
+      "caseId": "10-5",
+      "round": 5,
+      "plot": 3,
+      "crop": "v19_okra",
+      "white": 1,
+      "green": 0,
+      "control": [
+        169,
+        127,
+        148,
+        129,
+        126
+      ],
+      "result": [
+        142,
+        139,
+        140,
+        141,
+        130
+      ],
+      "selfDelta": -27,
+      "relativeDelta": -32
+    },
+    {
+      "caseId": "10-5",
+      "round": 9,
+      "plot": 3,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 1,
+      "control": [
+        173,
+        117,
+        158,
+        148,
+        106
+      ],
+      "result": [
+        140,
+        140,
+        163,
+        147,
+        103
+      ],
+      "selfDelta": -33,
+      "relativeDelta": -39
+    },
+    {
+      "caseId": "10-5",
+      "round": 13,
+      "plot": 0,
+      "crop": "v19_okra",
+      "white": 0,
+      "green": 1,
+      "control": [
+        175,
+        150,
+        128,
+        149,
+        128
+      ],
+      "result": [
+        155,
+        178,
+        136,
+        147,
+        123
+      ],
+      "selfDelta": -20,
+      "relativeDelta": -27.25
+    },
+    {
+      "caseId": "11-3",
+      "round": 5,
+      "plot": 2,
+      "crop": "v19_sweetpotato",
+      "white": 3,
+      "green": 0,
+      "control": [
+        188,
+        152,
+        179
+      ],
+      "result": [
+        146,
+        157,
+        182
+      ],
+      "selfDelta": -42,
+      "relativeDelta": -46
+    },
+    {
+      "caseId": "11-3",
+      "round": 9,
+      "plot": 4,
+      "crop": "v19_lettuce",
+      "white": 0,
+      "green": 2,
+      "control": [
+        183,
+        157,
+        183
+      ],
+      "result": [
+        161,
+        148,
+        187
+      ],
+      "selfDelta": -22,
+      "relativeDelta": -19.5
+    },
+    {
+      "caseId": "11-3",
+      "round": 13,
+      "plot": 3,
+      "crop": "v19_edamame",
+      "white": 0,
+      "green": 1,
+      "control": [
+        188,
+        156,
+        177
+      ],
+      "result": [
+        160,
+        157,
+        179
+      ],
+      "selfDelta": -28,
+      "relativeDelta": -29.5
+    },
+    {
+      "caseId": "11-4",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_sweetpotato",
+      "white": 0,
+      "green": 1,
+      "control": [
+        170,
+        190,
+        153,
+        149
+      ],
+      "result": [
+        115,
+        166,
+        160,
+        151
+      ],
+      "selfDelta": -55,
+      "relativeDelta": -50
+    },
+    {
+      "caseId": "11-4",
+      "round": 9,
+      "plot": 3,
+      "crop": "v19_edamame",
+      "white": 0,
+      "green": 1,
+      "control": [
+        172,
+        191,
+        178,
+        142
+      ],
+      "result": [
+        124,
+        169,
+        147,
+        163
+      ],
+      "selfDelta": -48,
+      "relativeDelta": -37.333333333333336
+    },
+    {
+      "caseId": "11-4",
+      "round": 13,
+      "plot": 0,
+      "crop": "v19_pumpkin",
+      "white": 0,
+      "green": 1,
+      "control": [
+        169,
+        184,
+        173,
+        120
+      ],
+      "result": [
+        143,
+        176,
+        168,
+        143
+      ],
+      "selfDelta": -26,
+      "relativeDelta": -29.333333333333332
+    },
+    {
+      "caseId": "11-5",
+      "round": 5,
+      "plot": 0,
+      "crop": "v19_pumpkin",
+      "white": 0,
+      "green": 2,
+      "control": [
+        155,
+        148,
+        154,
+        133,
+        133
+      ],
+      "result": [
+        114,
+        142,
+        144,
+        121,
+        150
+      ],
+      "selfDelta": -41,
+      "relativeDelta": -38.25
+    },
+    {
+      "caseId": "11-5",
+      "round": 9,
+      "plot": 1,
+      "crop": "v19_lettuce",
+      "white": 0,
+      "green": 2,
+      "control": [
+        157,
+        155,
+        113,
+        145,
+        139
+      ],
+      "result": [
+        116,
+        152,
+        134,
+        115,
+        150
+      ],
+      "selfDelta": -41,
+      "relativeDelta": -40.75
+    },
+    {
+      "caseId": "11-5",
+      "round": 13,
+      "plot": 2,
+      "crop": "v19_lettuce",
+      "white": 0,
+      "green": 1,
+      "control": [
+        156,
+        143,
+        140,
+        132,
+        144
+      ],
+      "result": [
+        138,
+        145,
+        137,
+        146,
+        134
+      ],
+      "selfDelta": -18,
+      "relativeDelta": -18.75
+    }
+  ]
+}
