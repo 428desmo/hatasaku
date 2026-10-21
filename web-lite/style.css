@@ -152,3 +152,28 @@ dialog{background:#faf5e4;border:1px solid #e0d8b9;border-radius:13px;color:var(
 
 /* Fast-forward has a permanent home away from the pass target. */
 .skip-control:disabled{opacity:.25;cursor:default}
+
+/* Opening screens use the available height rather than a long document. */
+@media(max-width:700px) and (orientation:portrait){
+  .landing{height:100%;display:grid;grid-template-columns:1fr;grid-template-rows:minmax(100px,1fr) auto;gap:12px;padding:14px 20px;overflow:auto}
+  .hero{min-height:0;justify-content:center}.hero>.eyebrow{font-size:7px}.hero h1{font-size:44px;margin:7px 0 3px}.hero h1>span{font-size:8px;margin-top:3px}.hero-tag{font-size:19px;margin-top:5px}.hero-copy{font-size:10px;margin-top:6px}.hero-produce{right:0;bottom:3px;width:105px}.hero-produce .veg{width:53px;height:60px;margin-right:-24px}
+  .setup-paper{padding:13px 16px;overflow:visible}.setup-paper h2{font-size:18px;margin-bottom:10px}.setup-paper form{gap:8px}.setup-paper form>label{font-size:11px}.setup-paper select{min-height:36px;font-size:11px}.setup-options{font-size:11px;margin:2px 0}.start-game{min-height:44px}.setup-fine{margin-top:7px;font-size:8px}.resume{margin-bottom:8px;min-height:44px;padding-block:5px}
+  .season-intro{gap:8px;padding:10px 12px;overflow:auto;container-type:size}
+  .intro-heading h1{font-size:23px}.intro-heading .eyebrow{font-size:8px}.intro-heading p{font-size:9px;line-height:1.5;margin-top:4px}.intro-heading p br{display:none}
+  .intro-cards{flex:1;min-height:0;grid-template-rows:repeat(2,minmax(0,1fr));gap:7px}
+  .intro-cards .crop-card{height:auto;min-height:0;padding:6px 8px;transform:none}
+  .intro-cards .card-head{min-height:20px}.intro-cards .card-head h3{font-size:12px}.intro-cards .price{font-size:14px}
+  .intro-cards .card-picture{flex:1;min-height:12px;max-height:70px;margin:0 0 3px}
+  .intro-cards .card-picture>.veg{max-height:70px}.intro-cards .picture-halo{width:35px;height:35px}.intro-cards .card-serial,.intro-cards .pips{display:none}
+  .intro-cards .crop-spec{margin:0;flex-shrink:0}.intro-cards .crop-spec>div{min-height:16px}.intro-cards .crop-spec dt{font-size:8px}.intro-cards .crop-spec dd{font-size:11px}.intro-cards .crop-spec .income-spec dd{font-size:13px}
+  .intro-cards .crop-note{font-size:8px;min-height:0;line-height:1.4;margin-top:4px;flex-shrink:0}
+  .intro-footer{gap:8px}.seat-order{gap:5px 10px}.seat-order .avatar{width:23px;height:23px}.seat-order small{font-size:7px}.seat-order b{font-size:9px}.seat-order strong{font-size:15px}.intro-footer>.primary{min-height:44px;font-size:12px}
+  .curse-announcement{font-size:9px;padding:4px 7px}
+}
+@media(max-width:700px) and (orientation:portrait) and (max-height:740px){
+  .hero h1{font-size:37px}.hero-tag{font-size:17px}.hero-copy{font-size:9px}.hero-produce{display:none}
+  .landing{gap:8px;padding-block:10px}.hero h1>span{display:none}
+  .intro-heading h1{font-size:20px}.intro-heading p{font-size:8px}.season-intro{gap:6px;padding-block:8px}
+  .intro-cards .crop-note{font-size:7px}.intro-cards .card-picture{max-height:45px}.intro-cards .card-head h3{font-size:11px}
+  .seat-order>div{gap:3px}.seat-order .avatar{width:20px;height:20px}
+}

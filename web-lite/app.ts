@@ -198,7 +198,9 @@ function render() {
   put(byId('topbar'),topbar());
   if (board) {
     const rows=byId('farm-rows')!;
-    const displayOrder=[...match.view.turnOrder.filter(seat=>seat!==0),0];
+    const order=match.view.turnOrder;
+    const self=order.indexOf(0);
+    const displayOrder=[...order.slice(self+1),...order.slice(0,self+1)];
     for (const [i,seat] of displayOrder.entries()) {
       let node=rows.children[i] as HTMLElement|undefined;
       if (!node) {node=document.createElement('div');rows.append(node);}
