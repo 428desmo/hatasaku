@@ -3,3 +3,9 @@ dist/
 logs/
 .DS_Store
 *.log
+
+# Local deployment settings and Python caches
+conoha/config.sh
+conoha/config.esh
+__pycache__/
+*.pyc

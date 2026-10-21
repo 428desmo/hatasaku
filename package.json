@@ -8,7 +8,11 @@
     "print-board": "tsx src/cli/print-fixture.ts",
     "eval": "tsx src/cli/eval.ts",
     "serve": "tsx src/cli/serve.ts",
-    "serve:online": "tsx src/cli/serve-online.ts"
+    "serve:online": "tsx src/cli/serve-online.ts",
+    "build:lite": "node web-lite/build.mjs",
+    "serve:lite": "node web-lite/build.mjs --serve",
+    "check:lite": "tsc -p web-lite/tsconfig.json",
+    "test:lite": "vitest run --config web-lite/vitest.config.ts"
   },
   "dependencies": {
     "ws": "^8.18.0"
@@ -16,6 +20,7 @@
   "devDependencies": {
     "@types/node": "^22.10.1",
     "@types/ws": "^8.5.13",
+    "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
     "vitest": "^2.1.9"

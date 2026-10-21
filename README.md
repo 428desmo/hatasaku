@@ -36,3 +36,9 @@ ngrok http 8080
 
 共有する URL は ngrok が出す `https://…`（パス不要。参加コードは画面または `?code=`）。  
 プロセス再起動で進行中の卓は消える（メモリ上）。静的ホスト単体や ConoHa Wing の PHP 共用だけでは WebSocket ゲームホストには向かない。
+## 新しい軽量Web版（1人＋CPU）
+
+既存版を残し、`web-lite/` に独立した画面と進行を実装しています。
+`npm run serve:lite` で起動、`npm run build:lite` で静的配信用ファイルを生成します。
+仕様と詳しい手順は [web-lite/README.md](web-lite/README.md)、
+VPS公開手順は [conoha/README.md](conoha/README.md) を参照してください。
