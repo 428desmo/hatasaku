@@ -35,7 +35,7 @@ const soilKey=(seat:number,plot:number,crop:string)=>`${seat}:${plot}:${crop}`;
 export function soilBlocked(memory:Memory,seat:number,plot:number,crop:string,round:number){return (memory.get(soilKey(seat,plot,crop))??0)>round;}
 function noteSoil(s:GameState,memory:Memory,seat:number,plot:number){const id=s.players[seat]!.plots[plot]!.cropCard?.cropId;if(id)memory.set(soilKey(seat,plot,id),s.round+1+cropDef(id).cooldown);}
 
-/** Research-only extensions. Production actions and the published rulebook stay unchanged. */
+/** Research adapters compare alternatives independently of production edition gating. */
 export function execute(s:GameState,a:LabAction,cfg:Rules,rng:Rng,memory:Memory):GameState{
  const seat=s.actingSeat!;
  if(a.type==='pass'||a.type==='plant'||a.type==='curse')return applyPlayerAction(s,a,rng);
@@ -61,7 +61,7 @@ export function execute(s:GameState,a:LabAction,cfg:Rules,rng:Rng,memory:Memory)
   if(a.type==='replace')return applyPlayerAction(next,{type:'plant',marketIndex:a.marketIndex,target:{plotIndex:a.plotIndex}},rng);
  }
  // Keep the real research action kind, so clearing/exchange is not counted as passing.
- // The production type has no such action. Production round-log counters are not used in this lab.
+ // These research log kinds are outside the normal plant/pass summaries; round-log counters are not used in this lab.
  const log={seat,kind:a.type,cost:a.type==='refresh'?cfg.refreshFee??0:cfg.clearFee??0};
  next.roundActions.push(log as never);next.seasonActions.push(log as never);
  next=advanceTurnPointer(next);if(next.phase==='income')next=sweepMarketIfAllPassed(next,rng);

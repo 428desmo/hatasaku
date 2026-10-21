@@ -25,6 +25,7 @@ export function listLegalActions(state: GameState): Action[] {
   if (!player) return [];
 
   const actions: Action[] = [{ type: "pass" }, ...curseActions(state)];
+  if (state.specVersion === "0.20" && !state.refreshedThisTurn && player.coins >= 2) actions.push({type:"refresh"});
   for (let marketIndex = 0; marketIndex < state.crop.market.length; marketIndex++) {
     const card = state.crop.market[marketIndex];
     if (!card) continue;
@@ -39,6 +40,7 @@ export function listLegalActions(state: GameState): Action[] {
     }
 
     for (const plot of player.plots) {
+      if (state.specVersion === "0.20" && plot.owned && (plot.white > 0 || plot.green > 0) && plot.cropCard?.cropId !== card.cropId && player.coins >= grow) actions.push({type:"replace", marketIndex, plotIndex:plot.index});
       if (!isEmpty(plot)) continue;
       if (sameCropBlocked(plot, card.cropId)) continue;
       if (player.coins >= grow) {
@@ -52,6 +54,8 @@ export function listLegalActions(state: GameState): Action[] {
 export function actionsEqual(a: Action, b: Action): boolean {
   if (a.type !== b.type) return false;
   if (a.type === "pass" || b.type === "pass") return true;
+  if (a.type === "refresh" && b.type === "refresh") return true;
+  if (a.type === "replace" && b.type === "replace") return a.marketIndex === b.marketIndex && a.plotIndex === b.plotIndex;
   if (a.type === "curse" && b.type === "curse") return a.cropId === b.cropId;
   if (a.type !== "plant" || b.type !== "plant") return false;
   if (a.marketIndex !== b.marketIndex) return false;

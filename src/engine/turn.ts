@@ -26,14 +26,27 @@ export function applyTurn(state: GameState, action: Action, rng: Rng): GameState
 
   if (action.type === "curse") return applyCurse(state, action);
 
-  if (action.type === "plant") {
+  if (action.type === "refresh") {
+    player.coins -= 2;
+    const removed = s.crop.market;
+    s.crop.market = [];
+    refillMarket(s, rng);
+    s.crop.discard.push(...removed);
+    s.refreshedThisTurn = true;
+    return s;
+  }
+
+  if (action.type === "plant" || action.type === "replace") {
     const card = s.crop.market[action.marketIndex];
     if (!card) throw new IllegalActionError("no such market card");
     const def = cropDef(card.cropId);
 
     let plotIndex: number;
     let cost: number;
-    if (action.target === "newLand") {
+    if (action.type === "replace") {
+      plotIndex = action.plotIndex;
+      cost = def.cost;
+    } else if (action.target === "newLand") {
       const idx = nextUnownedIndex(player);
       if (idx === null) throw new IllegalActionError("no unowned plot");
       plotIndex = idx;
@@ -60,6 +73,7 @@ export function applyTurn(state: GameState, action: Action, rng: Rng): GameState
 
 export function advanceTurnPointer(state: GameState): GameState {
   const s = cloneState(state);
+  if (s.specVersion === "0.20") s.refreshedThisTurn = false;
   if (s.turnIndex < s.turnOrder.length - 1) {
     s.turnIndex += 1;
     s.actingSeat = s.turnOrder[s.turnIndex]!;

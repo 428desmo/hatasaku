@@ -1,3 +1,4 @@
+import {harvestWarning} from './experience.js';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { harvestBudget, harvestWaves, Interrupted, Motion } from './experience.js';
 import type { HarvestDetail } from '../src/engine/types.js';
@@ -34,4 +35,15 @@ describe('bounded, interruptible presentation', () => {
     const future = motion.wait(20,next); await vi.advanceTimersByTimeAsync(20); await future;
     expect(vi.getTimerCount()).toBe(0);
   });
+});
+
+describe('market harvest warning',()=>{
+ test('counts harvests including the last round and omits a full-harvest warning',()=>{
+  expect(harvestWarning(15,18,1,3)).toBeNull();
+  expect(harvestWarning(16,18,1,3)).toMatchObject({available:2,lost:1,mark:'🔺−1'});
+  expect(harvestWarning(17,18,1,3)).toMatchObject({available:1,lost:2,mark:'🔺−2'});
+  expect(harvestWarning(18,18,1,3)).toMatchObject({available:0,lost:3,mark:'❌'});
+  expect(harvestWarning(14,18,4,1)).toBeNull();
+  expect(harvestWarning(15,18,4,1)).toMatchObject({available:0});
+ });
 });

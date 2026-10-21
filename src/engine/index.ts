@@ -2,7 +2,7 @@ import { cropDef } from "./catalog.js";
 import { hiddenCurseCount, hiddenCurses, visibleCurses } from "./curse.js";
 import { applyEventUpdate, effectiveEvents, eventSumFor } from "./events.js";
 import { applyHarvest, applyIncome, concludeRound, harvestIncome } from "./income.js";
-import { listLegalActions, nextUnownedIndex, ownedCount } from "./legal.js";
+import { isLegal, listLegalActions, nextUnownedIndex, ownedCount } from "./legal.js";
 import { createRng, type Rng } from "./rng.js";
 import { createGame, sweepMarketIfAllPassed } from "./setup.js";
 import { advanceTurnPointer, applyTurn } from "./turn.js";
@@ -47,7 +47,8 @@ function publicEvent(e: EventCard, activatedRound: number | undefined): PublicEv
 function describeAction(state: GameState, action: Action): ActionLog {
   const seat = state.actingSeat!;
   if (action.type === "pass") return { seat, kind: "pass" };
-  if (action.type === "curse") return { seat, kind: "pass" };
+  if (action.type === "curse" || action.type === "refresh") return { seat, kind: "pass" };
+  if (action.type === "replace") return {seat,kind:"plant",cropId:state.crop.market[action.marketIndex]!.cropId,plotIndex:action.plotIndex,newLand:false,cost:cropDef(state.crop.market[action.marketIndex]!.cropId).cost};
   const card = state.crop.market[action.marketIndex];
   const cropId = card?.cropId;
   if (action.target === "newLand") {
@@ -74,7 +75,8 @@ function describeAction(state: GameState, action: Action): ActionLog {
 
 export function applyPlayerAction(state: GameState, action: Action, rng: Rng): GameState {
   if (state.phase === "gameOver") throw new IllegalActionError("game is over");
-  if (action.type === "curse") return applyTurn(state, action, rng);
+  if (action.type === "curse" || action.type === "refresh") return applyTurn(state, action, rng);
+  if (!isLegal(state, action)) throw new IllegalActionError("illegal action");
   const log = describeAction(state, action);
   let s = applyTurn(state, action, rng);
   s.roundActions = [...s.roundActions, log];
@@ -140,6 +142,7 @@ export function getPublicView(
     hiddenCurses: hiddenCurses(state, viewerSeat).map((c) => ({ bySeat: c.bySeat })),
     hiddenCurseCount: hiddenCurseCount(state, viewerSeat),
   };
+  if (state.specVersion === "0.20") view.refreshedThisTurn = state.refreshedThisTurn ?? false;
   if (viewerSeat !== "spectator" && viewerSeat === state.actingSeat) {
     view.legalActions = listLegalActions(state);
   }

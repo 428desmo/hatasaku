@@ -117,17 +117,17 @@ describe('local resume', () => {
   });
 });
 
-describe('v0.19 crop edition',()=>{
+describe('current crop edition',()=>{
   test('new seasons draw four distinct current crops and retain their parameter bundles',()=>{
     const ids=new Set(currentCropList.map(c=>c.id));
     expect(ids.size).toBe(12);
     expect(new Set(currentCropList.map(c=>[c.cost,c.wait,c.harvest,c.baseIncome,c.floor,c.cooldown].join(':'))).size).toBe(12);
     for(let seed=0;seed<30;seed++){
       const m=new Match({mode:'advanced',players:5,seasons:1,seed:`new-pool-${seed}`});
-      expect(m.state.specVersion).toBe('0.19');
+      expect(m.state.specVersion).toBe('0.20');
       expect(new Set(m.state.cropIdsInGame).size).toBe(4);
       expect(m.state.cropIdsInGame.every(id=>ids.has(id))).toBe(true);
-      expect(m.save().version).toBe(2);
+      expect(m.save().version).toBe(3);
     }
     for(const c of currentCropList){
       expect(cropDef(c.id)).toEqual(c);

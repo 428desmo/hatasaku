@@ -99,6 +99,8 @@ function orderedPlayers(view: PublicView): PublicView["players"] {
 function actionLabel(view: PublicView, action: Action, youSeat: number | null): string {
   if (action.type === "pass") return "パス";
   if (action.type === "curse") return `呪い（${cropName(action.cropId)}）`;
+  if (action.type === "refresh") return "場札を交換（2G）";
+  if (action.type === "replace") return `${cropName(view.market[action.marketIndex]!.cropId)}へ植え替え`;
   const card = view.market[action.marketIndex];
   const name = card ? cropName(card.cropId) : "?";
   const grow = card ? cropDef(card.cropId).cost : 0;
@@ -112,6 +114,7 @@ function actionLabel(view: PublicView, action: Action, youSeat: number | null): 
 function actionKey(action: Action, index: number): string {
   if (action.type === "pass") return "P";
   if (action.type === "curse") return `C${action.cropId}`;
+  if (action.type === "refresh" || action.type === "replace") return String(index);
   if (action.target === "newLand") return `N${action.marketIndex + 1}`;
   return String(index);
 }

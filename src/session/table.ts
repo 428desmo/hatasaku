@@ -321,7 +321,7 @@ export class Table {
         return buildHonorAnnounce({
           kind: "season",
           winnerNames: winners.map((s) => this.state!.players[s]?.name ?? `席${s}`),
-          winnerScore: score,
+          winnerScore: score ?? null,
         });
       }
       if (this.hold === "trail") {
@@ -340,7 +340,7 @@ export class Table {
         return buildHonorAnnounce({
           kind: "match",
           winnerNames: winners.map((s) => this.state!.players[s]?.name ?? `席${s}`),
-          winnerScore: score,
+          winnerScore: score ?? null,
         });
       }
       return null;

@@ -33,3 +33,11 @@ export class Motion {
   }
 }
 export class Interrupted extends Error {}
+
+/** Lost harvest count is a time warning, independent of affordability or learning mode. */
+export function harvestWarning(round:number,lastRound:number,wait:number,harvest:number) {
+  const available=Math.max(0,Math.min(harvest,lastRound-(round+wait)+1));
+  const lost=harvest-available;
+  if(!lost)return null;
+  return {available,lost,mark:available===0?'❌':`🔺−${lost}`,label:available===0?'今から植えてもシーズン内に収穫できません':`今から植えると${harvest}回のうち${available}回だけ収穫できます（${lost}回分は間に合いません）`};
+}

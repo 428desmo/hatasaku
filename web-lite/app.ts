@@ -1,3 +1,4 @@
+import {personalityForSeat} from './strategy.js';
 import { Match, type Settings, type SavedMatch } from './match.js';
 import { cropDef, cropName, cropShortName, cropBlurb } from '../src/engine/catalog.js';
 import { acquireCost, type Action, type HarvestDetail } from '../src/engine/types.js';
@@ -6,7 +7,7 @@ import { harvestRoundsIfPlanted, visibleEventWindows } from '../src/view/outlook
 import { trailLayout } from '../src/view/trailChart.js';
 import { vegetable, countryside, avatar, icon, cropColors } from './art.js';
 import { FarmAudio } from './audio.js';
-import { harvestTiming, harvestWaves, Interrupted, Motion } from './experience.js';
+import { harvestWarning, harvestTiming, harvestWaves, Interrupted, Motion } from './experience.js';
 
 type Preferences = {music:boolean; effects:boolean; learning:boolean; auto:boolean; pace:number};
 type Receipt = {season:number; round:number; details:HarvestDetail[]; totals:number[]};
@@ -24,6 +25,7 @@ let prefs: Preferences = {music:true, effects:true, learning:true, auto:true, pa
 let saved: SavedMatch | null = null;
 let match: Match | null = null;
 let selected: number | null = null;
+let pendingReplacement: Extract<Action,{type:'replace'}> | null = null;
 let busy = false;
 let paused = false;
 let holdHarvest = false;
@@ -75,13 +77,14 @@ function modal(kind: string, html: string) {
   dialogKind = kind; put(modalBody,html);
   if (!dialog.open) dialog.showModal();
 }
-function closeModal() { dialog.close(); dialogKind = ''; }
+function closeModal() { dialog.close(); dialogKind = ''; pendingReplacement=null; }
 
 function cropCard(id: string, context: 'market'|'intro'|'detail' = 'market') {
   const d = cropDef(id);
+  const warning=context==='market'&&match?harvestWarning(match.state.round,match.state.lastRound,d.wait,d.harvest):null;
   return `<article class="crop-card ${context}" ${accent(id)}>
     <div class="card-head"><h3>${esc(d.name)}</h3><span class="price" title="栽培コスト">${d.cost}<small>G</small></span></div>
-    <div class="card-picture"><span class="picture-halo"></span>${vegetable(id)}<span class="card-serial">HATASAKU / ${d.cost.toString().padStart(2,'0')}</span></div>
+    <div class="card-picture">${warning?`<span class="harvest-warning ${warning.available?'partial':'missed'}" title="${esc(warning.label)}" aria-label="${esc(warning.label)}">${warning.mark}</span>`:''}<span class="picture-halo"></span>${vegetable(id)}<span class="card-serial">HATASAKU / ${d.cost.toString().padStart(2,'0')}</span></div>
     <dl class="crop-spec"><div><dt>待機</dt><dd>${d.wait}<small>R</small><span class="pips">${'○'.repeat(d.wait)}</span></dd></div><div><dt>収穫</dt><dd>${d.harvest}<small>R</small><span class="pips stars">${'✦'.repeat(d.harvest)}</span></dd></div><div class="income-spec"><dt>収入 <small>基本 / 最低</small></dt><dd>${d.baseIncome}<small> / ${d.floor}G</small></dd></div><div><dt>連作の休み</dt><dd>${d.cooldown}<small>R</small></dd></div></dl>
     ${context === 'intro' ? `<p class="crop-note">${esc(cropBlurb(id))}</p>` : ''}
   </article>`;
@@ -106,10 +109,10 @@ function intro() {
   const m = match!; const v = m.view;
   return `<main class="season-intro"><div class="intro-heading"><div><span class="eyebrow">A NEW SEASON · ${v.season.toString().padStart(2,'0')}</span><h1>今季の、四つの実り。</h1></div><p>この4種類の作物が登場します。<br>待ち時間と収入を見比べて、作戦を。</p></div><div class="intro-cards">${v.cropIdsInGame.map(id=>cropCard(id,'intro')).join('')}</div><footer class="intro-footer"><div class="seat-order">${v.turnOrder.map((seat,i)=>`<div style="--seat:${palette[seat]}">${avatar(seat)}<span><small>${i+1}番手</small><b>${esc(v.players[seat]!.name)} ${v.curseReadySeats.includes(seat)?'👿':''}</b></span><strong>${v.players[seat]!.coins}<small>G</small></strong></div>`).join('')}</div>${btn(`シーズンをはじめる ${icon('arrow')}`,'start','primary')}</footer>${v.curseReadySeats.length ? `<div class="curse-announcement">👿 ${v.curseReadySeats.map(s=>esc(v.players[s]!.name)).join('・')} に呪いの権利。手番の行動前に1回、次Rから最大4Rの収入を−6Gにできます。</div>` : ''}</main>`;
 }
-function targetFor(seat:number,index:number): Extract<Action,{type:'plant'}> | undefined {
+function targetFor(seat:number,index:number): Extract<Action,{type:'plant'|'replace'}> | undefined {
   if (selected===null || seat!==0 || !match!.humanTurn || busy) return;
   const next = match!.view.players[0]!.plots.find(p=>!p.owned)?.index;
-  return match!.view.legalActions?.find((a): a is Extract<Action,{type:'plant'}> => a.type==='plant' && a.marketIndex===selected && (a.target==='newLand'?next===index:a.target.plotIndex===index));
+  return match!.view.legalActions?.find((a): a is Extract<Action,{type:'plant'|'replace'}> => (a.type==='plant'||a.type==='replace') && a.marketIndex===selected && (a.type==='replace'?a.plotIndex===index:a.target==='newLand'?next===index:a.target.plotIndex===index));
 }
 function farm(seat: number, order: number) {
   const m = match!; const v = m.view; const p = v.players[seat]!;
@@ -117,7 +120,7 @@ function farm(seat: number, order: number) {
   const crowns = previousSeasonLeaders(m.scores,v.season,v.players.length);
   const gain = figures.filter(f=>f.seat===seat).reduce((n,f)=>n+f.gain,0);
   const purse = p.coins+(m.screen==='harvest'&&!m.harvested?gain:0);
-  return `<div class="farmer ${active?'active':''} ${seat===0?'you':''} ${gain?'paid':''}" style="--seat:${palette[seat]}"><div class="farmer-profile">${avatar(seat)}<div><h2><small>${order+1}</small>${esc(p.name)}</h2><div class="purse" data-purse="${seat}">${coins(purse)}</div></div><span class="honors">${crowns.includes(seat)?'👑':''}${v.curseReadySeats.includes(seat)?'👿':''}</span></div><div class="plots" style="--plots:${p.plots.length}">${p.plots.map(plot=>{
+  return `<div class="farmer ${active?'active':''} ${seat===0?'you':''} ${gain?'paid':''}" style="--seat:${palette[seat]}"><div class="farmer-profile">${avatar(seat)}<div><h2>${seat&&m.catalogVersion==='0.20'?`<button class="cpu-profile" data-profile="${seat}" aria-label="${esc(p.name)}の考え方">${order+1} ${esc(p.name)}</button>`:`<small>${order+1}</small>${esc(p.name)}`}</h2><div class="purse" data-purse="${seat}">${coins(purse)}</div></div><span class="honors">${crowns.includes(seat)?'👑':''}${v.curseReadySeats.includes(seat)?'👿':''}</span></div><div class="plots" style="--plots:${p.plots.length}">${p.plots.map(plot=>{
     const target = targetFor(seat,plot.index); const d = plot.cropId?cropDef(plot.cropId):null;
     const growing = plot.white>0||plot.green>0;
     const figure = figures.find(f=>f.seat===seat&&f.plotIndex===plot.index);
@@ -126,7 +129,7 @@ function farm(seat: number, order: number) {
     else if (!d) content='<span class="empty-soil">空き地</span>';
     else content=`<b class="plot-name">${esc(cropShortName(d.id))}</b>${vegetable(d.id,'mini-veg')}<span class="mini-income">${growing?`${d.baseIncome}<small>/${d.floor}</small>`:''}</span><span class="plot-phase ${plot.green?'ripe':''}">${plot.white?`待 ${'○'.repeat(plot.white)}`:plot.green?`収 ${'✦'.repeat(plot.green)}`:plot.red?`休 ${'▽'.repeat(plot.red)}`:'空き'}</span>`;
     const state = !growing?'resting':plot.green?'harvesting':'growing';
-    return `<button class="plot ${state} ${target?'eligible':''} ${selected!==null&&!target?'dim':''} ${active&&cpuPlot===plot.index?'cpu-focus':''} ${figure?'just-harvested':''}" data-plot="${seat}:${plot.index}" ${d?accent(d.id):''} aria-label="${esc(p.name)} 農地${plot.index+1}${d?' '+esc(d.name):''}${target?' に植える':''}">${content}${target?`<span class="plant-here">${icon('leaf')}植える</span>`:''}${figure?`<span class="harvest-gain">+${figure.gain}</span>`:''}</button>`;
+    return `<button class="plot ${state} ${target?'eligible':''} ${selected!==null&&!target?'dim':''} ${active&&cpuPlot===plot.index?'cpu-focus':''} ${figure?'just-harvested':''}" data-plot="${seat}:${plot.index}" ${d?accent(d.id):''} aria-label="${esc(p.name)} 農地${plot.index+1}${d?' '+esc(d.name):''}${target?' に植える':''}">${content}${target?`<span class="plant-here">${icon('leaf')}${target.type==='replace'?'植え替え':'植える'}</span>`:''}${figure?`<span class="harvest-gain">+${figure.gain}</span>`:''}</button>`;
   }).join('')}</div></div>`;
 }
 function sky() {
@@ -140,9 +143,9 @@ function sky() {
 }
 function market() {
   const m = match!; const v = m.view;
-  return `<div class="market-heading"><span class="section-title">${icon('leaf')} 種を選ぶ</span><button class="season-reference" data-cmd="crops" aria-label="今シーズンの4作物">${v.cropIdsInGame.map(id=>vegetable(id)).join('')}<span>今季の作物</span></button></div><div class="market-cards" style="--cards:${v.market.length}">${v.market.map((c,i)=>{
-    const legal = v.legalActions?.some(a=>a.type==='plant'&&a.marketIndex===i);
-    return `<button class="market-choice ${selected===i?'selected':''} ${cpuMarket===i?'cpu-focus':''} ${m.humanTurn&&!legal?'unaffordable':''}" data-market="${i}" ${!m.humanTurn||busy||!legal?'disabled':''} aria-label="${esc(cropName(c.cropId))}を選ぶ" aria-pressed="${selected===i}">${cropCard(c.cropId)}<span class="choose-label">${selected===i?'農地を選んでください':m.humanTurn&&!legal?'植え付け不可':`${icon('leaf')} この種を植える`}</span></button>`;
+  return `<div class="market-heading"><span class="section-title">${icon('leaf')} 種を選ぶ</span>${m.catalogVersion==='0.20'?`<button class="refresh-market" data-cmd="refresh" title="自分の手番に1回、2Gで全場札を交換。交換後も植え付け・パスできます" ${!m.humanTurn||busy||!v.legalActions?.some(a=>a.type==='refresh')?'disabled':''}>${v.refreshedThisTurn?'交換済み':'交換 2G'}</button>`:''}<button class="season-reference" data-cmd="crops" aria-label="今シーズンの4作物">${v.cropIdsInGame.map(id=>vegetable(id)).join('')}<span>今季の作物</span></button></div><div class="market-cards" style="--cards:${v.market.length}">${v.market.map((c,i)=>{
+    const legal = v.legalActions?.some(a=>(a.type==='plant'||a.type==='replace')&&a.marketIndex===i);
+    return `<button class="market-choice ${selected===i?'selected':''} ${cpuMarket===i?'cpu-focus':''} ${m.humanTurn&&!legal?'unaffordable':''}" data-market="${i}" ${!m.humanTurn||busy||!legal?'disabled':''} aria-label="${esc(cropName(c.cropId))}を選ぶ${(()=>{const d=cropDef(c.cropId),w=harvestWarning(v.round,v.lastRound,d.wait,d.harvest);return w?`：${esc(w.label)}`:'';})()}" aria-pressed="${selected===i}">${cropCard(c.cropId)}<span class="choose-label">${selected===i?'農地を選んでください':m.humanTurn&&!legal?'植え付け不可':`${icon('leaf')} この種を植える`}</span></button>`;
   }).join('')}</div>`;
 }
 function learningHint() {
@@ -235,7 +238,7 @@ function settingsModal() {
   modal('settings',`<div class="modal-heading"><span class="eyebrow">MAKE YOURSELF AT HOME</span><h2>ひと休みと、設定。</h2></div><div class="preferences"><label>BGM<button class="switch ${prefs.music?'on':''}" data-cmd="music" aria-pressed="${prefs.music}">${prefs.music?'ON':'OFF'}</button></label><label>効果音<button class="switch ${prefs.effects?'on':''}" data-cmd="effects" aria-pressed="${prefs.effects}">${prefs.effects?'ON':'OFF'}</button></label><label>学習ヒント<button class="switch ${prefs.learning?'on':''}" data-cmd="learning" aria-pressed="${prefs.learning}">${prefs.learning?'ON':'OFF'}</button></label><label>収穫後に自動で進む<button class="switch ${prefs.auto?'on':''}" data-cmd="auto" aria-pressed="${prefs.auto}">${prefs.auto?'ON':'OFF'}</button></label><label>演出のテンポ<select id="pace"><option value="1.5" ${prefs.pace===1.5?'selected':''}>ゆったり</option><option value="1" ${prefs.pace===1?'selected':''}>ふつう</option><option value="0.55" ${prefs.pace===.55?'selected':''}>快速</option></select></label></div><div class="modal-actions">${btn('畑に戻る','close','primary')}${btn('対局を閉じてタイトルへ','title','subtle')}</div><p class="muted">対局はこの端末に自動保存されます。別の端末とは共有されません。</p>`);
 }
 function help() {
-  modal('help',`<div class="modal-heading"><span class="eyebrow">HOW TO GROW</span><h2>一手は、たった2タップ。</h2></div><div class="help-grid"><section><span>01</span><h3>種を選ぶ。</h3><p>場札をタップ。栽培費と、実るまでの時間を見比べよう。</p></section><section><span>02</span><h3>畑に植える。</h3><p>光る農地をタップして確定。新しい農地には取得費も必要。</p></section><section><span>03</span><h3>実りを待つ。</h3><p>○は待機、✦は収穫、▽は連作の休み。同じ作物の収穫が重なると、農地ごとの収入が下がる。</p></section></div><p>天候は2ラウンド先まで公開。同じシーズン中は手番順が変わりません。コインはシーズンごとにリセットし、シーズン終了時の所持コインの合計で勝負します。</p><p class="muted">収穫は自動集計。「結果を見る」で止めたり、コインのボタンから内訳を見返せます。</p>${btn('畑に戻る','close','primary')}`);
+  modal('help',`<div class="modal-heading"><span class="eyebrow">HOW TO GROW</span><h2>一手は、たった2タップ。</h2></div><div class="help-grid"><section><span>01</span><h3>種を選ぶ。</h3><p>場札をタップ。栽培費と、実るまでの時間を見比べよう。</p></section><section><span>02</span><h3>畑に植える。</h3><p>光る農地をタップして確定。新しい農地には取得費も必要。</p></section><section><span>03</span><h3>実りを待つ。</h3><p>○は待機、✦は収穫、▽は連作の休み。同じ作物の収穫が重なると、農地ごとの収入が下がる。</p></section></div>${match?.catalogVersion==='0.20'?'<p><b>途中で植え替え</b>：別の作物を選んで栽培中の畑をタップ。撤収は無料、新しい栽培費だけを払います。古い作物の残り収穫は失います。<br><b>場札交換</b>：自分の手番に1回、2Gで全交換。その後も通常の一手を行えます。同じ種類が出ることもあります。CPU名をタップすると考え方を確認できます。</p>':''}<p>天候は2ラウンド先まで公開。同じシーズン中は手番順が変わりません。コインはシーズンごとにリセットし、シーズン終了時の所持コインの合計で勝負します。</p><p class="muted">収穫は自動集計。「結果を見る」で止めたり、コインのボタンから内訳を見返せます。</p>${btn('畑に戻る','close','primary')}`);
 }
 function curseModal() {
   const m=match!;
@@ -252,17 +255,17 @@ async function drive() {
       if (m.screen==='play'&&!m.humanTurn) {
         actor=m.state.actingSeat;cue='次の一手を選んでいます';render();await wait(95);
         const action=m.cpuAction();const seat=actor!;
-        if (action.type==='plant') {
+        if (action.type==='plant'||action.type==='replace') {
           cpuMarket=action.marketIndex;cue=`${cropName(m.view.market[action.marketIndex]!.cropId)}を選びました`;sound.play('select');render();await wait(100);
-          cpuPlot=action.target==='newLand'?m.view.players[seat]!.plots.find(p=>!p.owned)!.index:action.target.plotIndex;
+          cpuPlot=action.type==='replace'?action.plotIndex:action.target==='newLand'?m.view.players[seat]!.plots.find(p=>!p.owned)!.index:action.target.plotIndex;
           cue='この畑に植えます';render();await wait(105);
           const source=document.querySelector(`[data-market="${action.marketIndex}"]`);const target=document.querySelector(`[data-plot="${seat}:${cpuPlot}"]`);
           fly(source,target,'plant');
         }
-        const planting=action.type==='plant';
+        const planting=action.type==='plant'||action.type==='replace';
         m.act(action);checkpoint();cpuMarket=null;
         sound.play(planting?'plant':action.type==='curse'?'curse':'pass');
-        cue=planting?'種を植え、コインを支払いました':action.type==='curse'?'呪いを伏せました。続けて通常の一手':'今回はパス';
+        cue=planting?'種を植え、コインを支払いました':action.type==='curse'?'呪いを伏せました。続けて通常の一手':action.type==='refresh'?'2Gで場札を交換。続けて種を選びます':'今回はパス';
         render();await wait(planting?100:85);actor=cpuPlot=null;
         continue;
       }
@@ -359,6 +362,7 @@ async function click(e:MouseEvent) {
     try {const value=JSON.parse(localStorage.getItem(SAVE)||'null');saved=value&&Match.restore(value).screen!=='result'?value:null;} catch {saved=null;}
     render();return;
   }
+  if (match&&el.dataset.profile) {const p=personalityForSeat(Number(el.dataset.profile));modal('cpu',`<div class="modal-heading"><h2>CPU ${el.dataset.profile} · ${esc(p.label)}</h2></div><p>${esc(p.description)}</p><p class="muted">未公開の天候や山札の順番、相手が伏せた呪いの対象は知りません。${p.curse==='predict'?'呪いの予測は外れることもあります。':''}</p>${btn('畑に戻る','close','primary')}`);return;}
   if (match&&busy&&el.dataset.plot) {const [seat,index]=el.dataset.plot.split(':').map(Number); const id=match.view.players[seat!]!.plots[index!]!.cropId; if (id) detail(id); return;}
   if (!match||busy||paused) return;
   void sound.unlock();
@@ -368,9 +372,11 @@ async function click(e:MouseEvent) {
       if (window.matchMedia('(max-width: 700px) and (orientation: portrait)').matches) target?.closest('.farmer')?.scrollIntoView({block:'nearest',behavior:'instant'});
       return;
     }
+
     if (el.dataset.plot) {
       const [seat,index]=el.dataset.plot.split(':').map(Number);const action=targetFor(seat!,index!);
       if (action) {
+        if(action.type==='replace'){pendingReplacement=action;const old=match.view.players[0]!.plots[action.plotIndex]!;const id=match.view.market[action.marketIndex]!.cropId;modal('replacement',`<div class="modal-heading"><h2>この畑を植え替える？</h2></div><p><b>${esc(cropName(old.cropId!))}</b> → <b>${esc(cropName(id))}</b></p><p>${old.white?`待機中（あと${old.white}R）`:`収穫期（残り${old.green}回）`}の作物を撤収します。残りの収穫と支払った栽培費は戻りません。</p><p>撤収費は無料。新しい栽培費 <b>${cropDef(id).cost}G</b>を払い、この手番の一手として植えます。</p><div class="modal-actions">${btn('植え替える','replace-confirm','primary')}${btn('やめる','close','subtle')}</div>`);return;}
         const source=document.querySelector(`[data-market="${selected}"]`);fly(source,el,'plant');
         match.act(action);checkpoint();selected=null;sound.play('plant');await drive();
       } else if (selected===null) {const id=match.view.players[seat!]!.plots[index!]!.cropId;if (id) detail(id);}
@@ -378,6 +384,8 @@ async function click(e:MouseEvent) {
     }
     if (el.dataset.curse&&match.humanTurn) {match.act({type:'curse',cropId:el.dataset.curse});checkpoint();selected=null;sound.play('curse');closeModal();render();return;}
     switch (cmd) {
+      case 'replace-confirm':if(match.humanTurn&&pendingReplacement&&dialogKind==='replacement'){const action=pendingReplacement;pendingReplacement=null;closeModal();match.act(action);checkpoint();selected=null;sound.play('plant');await drive();}break;
+      case 'refresh':if(match.humanTurn){match.act({type:'refresh'});checkpoint();selected=null;sound.play('select');render();}break;
       case 'start':match.start();checkpoint();sound.play('start');await drive();break;
       case 'pass':if (match.humanTurn) {match.act({type:'pass'});checkpoint();selected=null;sound.play('pass');await drive();}break;
       case 'cancel':selected=null;render();break;

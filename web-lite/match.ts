@@ -2,13 +2,14 @@ import {currentCropList} from '../src/engine/catalog.js';
 import {shuffle} from '../src/engine/rng.js';
 import { applyEventUpdate, applyHarvest, applyPlayerAction, concludeRound, createGame, createRng, getPublicView, listLegalActions } from '../src/engine/index.js';
 import { actionsEqual } from '../src/engine/legal.js';
+import {choosePersonality,personalityForSeat} from './strategy.js';
 import { chooseById } from '../src/cpu/index.js';
 import { previousSeasonTrailers } from '../src/view/standings.js';
 import type { Action, GameState, SeatConfig } from '../src/engine/types.js';
 
 export type Settings = { mode: 'advanced'; players: number; seasons: number; seed: string };
 export type MatchCommand = {kind:'start'|'harvest'|'next'} | {kind:'act'; action:Action};
-export type SavedMatch = {version:1|2; settings:Settings; commands:MatchCommand[]};
+export type SavedMatch = {version:1|2|3; settings:Settings; commands:MatchCommand[]};
 export type Screen = 'intro' | 'play' | 'harvest' | 'actions' | 'mix' | 'trail' | 'result';
 
 /** Rules advance only here. Animation never owns or changes game state. */
@@ -23,7 +24,7 @@ export class Match {
   private commands: MatchCommand[] = [];
   harvested = false;
 
-  constructor(readonly settings: Settings, readonly catalogVersion:'0.18'|'0.19'='0.19') {
+  constructor(readonly settings: Settings, readonly catalogVersion:'0.18'|'0.19'|'0.20'='0.20') {
     if (settings.mode !== 'advanced') throw new Error('現行版は18ラウンド制のみです');
     if (typeof settings.seed !== 'string' || settings.seed.length > 100 || ![3, 4, 5].includes(settings.players) || !Number.isInteger(settings.seasons) || settings.seasons < 1 || settings.seasons > 10) throw new Error('人数・シーズン数が不正です');
     this.rng = createRng(settings.seed);
@@ -31,27 +32,27 @@ export class Match {
     this.firstSeat = this.rng.nextInt(settings.players);
     this.seats = Array.from({ length: settings.players }, (_, i) => i === 0
       ? { kind: 'human', name: 'あなた' }
-      : { kind: 'cpu', name: `CPU ${i}`, cpuStrategyId: 'irr' });
+      : { kind: 'cpu', name: `CPU ${i}`, cpuStrategyId: catalogVersion==='0.20'?personalityForSeat(i).id:'irr' });
     this.state = this.createSeason();
   }
 
   private createSeason(): GameState {
     const season = this.scores.length + 1;
     const state=createGame({ ...this.settings, seats: this.seats, season, seasonCount: this.settings.seasons,
-      ...(this.catalogVersion==='0.19'?{forcedCrops:shuffle(currentCropList.map(c=>c.id),this.rng).slice(0,4)}:{}),
+      ...(this.catalogVersion!=='0.18'?{forcedCrops:shuffle(currentCropList.map(c=>c.id),this.rng).slice(0,4)}:{}),
       startSeat: (this.firstSeat + season - 1) % this.seats.length,
       evenStartCoins: this.settings.seasons % this.seats.length === 0,
       curseSeats: previousSeasonTrailers(this.scores, season, this.seats.length) }, this.rng);
-    if(this.catalogVersion==='0.19') state.specVersion='0.19';
+    if(this.catalogVersion!=='0.18') state.specVersion=this.catalogVersion;
     return state;
   }
 
-  save(): SavedMatch { return {version:this.catalogVersion==='0.19'?2:1, settings:{...this.settings}, commands:structuredClone(this.commands)}; }
+  save(): SavedMatch { return {version:this.catalogVersion==='0.20'?3:this.catalogVersion==='0.19'?2:1, settings:{...this.settings}, commands:structuredClone(this.commands)}; }
 
   static restore(value: unknown): Match {
     const saved = value as SavedMatch;
-    if (!saved || ![1,2].includes(saved.version) || !Array.isArray(saved.commands) || saved.commands.length > 5000) throw new Error('保存形式が不正です');
-    const match = new Match(saved.settings,saved.version===1?'0.18':'0.19');
+    if (!saved || ![1,2,3].includes(saved.version) || !Array.isArray(saved.commands) || saved.commands.length > 5000) throw new Error('保存形式が不正です');
+    const match = new Match(saved.settings,saved.version===1?'0.18':saved.version===2?'0.19':'0.20');
     for (const command of saved.commands) {
       if (command.kind === 'start') match.start();
       else if (command.kind === 'act') {
@@ -83,6 +84,7 @@ export class Match {
 
   cpuAction(): Action {
     if (this.screen !== 'play' || this.state.actingSeat === null || this.state.actingSeat === 0) throw new Error('CPUの手番ではありません');
+    if(this.catalogVersion==='0.20') return choosePersonality(getPublicView(this.state,this.state.actingSeat),personalityForSeat(this.state.actingSeat));
     return chooseById('irr', getPublicView(this.state, this.state.actingSeat), this.cpuRng);
   }
 

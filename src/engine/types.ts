@@ -43,6 +43,8 @@ export type PlotView = {
 
 export type Action =
   | { type: "pass" }
+  | { type: "refresh" }
+  | { type: "replace"; marketIndex: number; plotIndex: number }
   | { type: "plant"; marketIndex: number; target: "newLand" | { plotIndex: number } }
   | { type: "curse"; cropId: CropId };
 
@@ -105,7 +107,8 @@ export type HarvestDetail = {
 };
 
 export type GameState = {
-  specVersion: "0.16" | "0.19";
+  specVersion: "0.16" | "0.19" | "0.20";
+  refreshedThisTurn?: boolean;
   mode: Mode;
   seed: string;
   season: number;
@@ -197,6 +200,7 @@ export type PublicView = {
   hiddenCurses: { bySeat: number }[];
   hiddenCurseCount: number;
   legalActions?: Action[];
+  refreshedThisTurn?: boolean;
   message?: string | null;
 };
 
