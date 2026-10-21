@@ -29,3 +29,17 @@ dialog{background:#faf5e4;border:1px solid #e0d8b9;border-radius:13px;color:var(
 /* Let the artwork absorb free space; keep the specification anchored to the card foot. */
 .market-choice .card-picture{max-height:none}.market-choice .card-picture>.veg{max-width:110px;max-height:110px}
 @media(min-height:401px) and (max-height:450px){.market .card-head{min-height:22px}.market .card-head h3{font-size:13px}.market .price{font-size:16px}.market .crop-spec>div{min-height:19px}.market .crop-spec dt{font-size:9px}.market .crop-spec dd{font-size:12px}.market .crop-spec dd>small{font-size:8px}.market .crop-spec .income-spec dt{font-size:8px}.market .crop-spec .income-spec dd{font-size:15px}.choose-label{height:21px;font-size:8px}.land-cost{font-size:8px}}
+/* Keep every vegetable inside its illustration area, clear of the printed stats. */
+.market-choice .card-picture{
+  flex:1 1 0;
+  min-height:0;
+  overflow:hidden;
+  margin:2px 0 6px;
+}
+.market-choice .card-picture>.veg{
+  position:absolute;
+  top:0;
+  left:50%;
+  transform:translateX(-50%);
+  height:calc(100% - 8px);
+}
