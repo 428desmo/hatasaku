@@ -55,8 +55,22 @@ export function icon(kind: string): string {
   return `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${content[kind] ?? content.leaf}</svg>`;
 }
 
-export function avatar(seat: number): string {
+export function avatar(seat: number, character?: string): string {
   const shirts = ['#527b69', '#bd765c', '#7a89a8', '#b29056', '#997c9c'];
+  if(character && ['grower','weather','planner','steady'].includes(character)){
+    const hair=character==='grower'?'#c59c53':'#514737';
+    const head=character==='weather'
+      ? '<circle cx="35" cy="21" r="7" fill="#514737"/><path d="M12 19Q10 2 25 4Q40 4 38 20L28 12Z" fill="#b96658"/><path d="m33 15 10 5-8 4" fill="#b96658"/><path d="M15 10q9-6 18 2" fill="none" stroke="#e4b29a" stroke-width="2"/>'
+      : character==='steady'
+      ? '<path d="M12 23Q9 5 24 5Q40 5 37 28l-7-14-14 7Z" fill="#514737"/><ellipse cx="24" cy="13" rx="17" ry="4" fill="#e8d3a3"/><path d="M14 12Q14-1 32 6l3 6" fill="#f0e2bb"/><path d="M15 10h19v3H15" fill="#73917b"/>'
+      : `<ellipse cx="24" cy="14" rx="20" ry="4" fill="#d9b873"/><path d="M12 13Q13-1 28 2q9 2 8 11" fill="#ead49c"/><path d="M13 10h22v4H13" fill="${character==='planner'?'#657f57':'#8394a7'}"/>`;
+    const detail=character==='planner'
+      ? '<g fill="none" stroke="#665a43" stroke-width="1.3"><circle cx="19" cy="24" r="4"/><circle cx="29" cy="24" r="4"/><path d="M23 24h2m-10-1-3-1m21 1 3-1"/></g>'
+      : character==='grower'?'<path d="M18 29q3-4 6-1 3-3 6 1l-6 2Z" fill="#b78b44"/>'
+      : character==='weather'?'<circle cx="16" cy="28" r="2" fill="#d99579" opacity=".5"/><circle cx="32" cy="28" r="2" fill="#d99579" opacity=".5"/>'
+      : '<path d="M18 38h13l4 10H13Z" fill="#dce1bf"/><path d="m25 42 4-4q3 4-4 6m0-2-3-3q-3 3 3 5" fill="#6e8d59"/>';
+    return `<svg viewBox="0 0 48 48" class="avatar" aria-hidden="true"><circle cx="24" cy="24" r="23" fill="${shirts[seat]}22"/><path d="M8 48c1-19 31-19 32 0" fill="${shirts[seat]}"/><path d="M19 30v8q5 5 10-1v-7" fill="#d6a77d"/><ellipse cx="24" cy="23" rx="11" ry="13" fill="#edc69b"/><path d="M13 22Q9 5 25 8q14-1 12 17L29 14l-8 4-8 7" fill="${hair}"/>${head}<circle cx="19" cy="24" r="1" fill="#584b37"/><circle cx="29" cy="24" r="1" fill="#584b37"/><path d="M21 31q3 2 6-1" fill="none" stroke="#a66d51" stroke-linecap="round"/>${detail}</svg>`;
+  }
   return `<svg viewBox="0 0 48 48" class="avatar" aria-hidden="true"><circle cx="24" cy="24" r="23" fill="${shirts[seat]}22"/><path d="M9 47c1-18 29-18 30 0" fill="${shirts[seat]}"/><path d="M18 32v6c4 4 9 3 12-1v-7" fill="#d6a77d"/><ellipse cx="24" cy="23" rx="11" ry="13" fill="#edc69b"/><path d="M13 22c-4-15 22-19 24-3l-8-5-16 9" fill="#5c5140"/><ellipse cx="24" cy="16" rx="20" ry="4" fill="#dfbf77"/><path d="M12 15c1-16 23-16 24 0" fill="#e9d29a"/><path d="M12 12h24v4H12" fill="${shirts[seat]}"/><circle cx="20" cy="24" r="1" fill="#584b37"/><circle cx="29" cy="24" r="1" fill="#584b37"/><path d="M21 30q3 2 6-1" fill="none" stroke="#a66d51" stroke-linecap="round"/></svg>`;
 }
 

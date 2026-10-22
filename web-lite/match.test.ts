@@ -127,7 +127,7 @@ describe('current crop edition',()=>{
       expect(m.state.specVersion).toBe('0.20');
       expect(new Set(m.state.cropIdsInGame).size).toBe(4);
       expect(m.state.cropIdsInGame.every(id=>ids.has(id))).toBe(true);
-      expect(m.save().version).toBe(3);
+      expect(m.save().version).toBe(4);
     }
     for(const c of currentCropList){
       expect(cropDef(c.id)).toEqual(c);

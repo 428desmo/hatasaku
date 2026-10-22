@@ -1,11 +1,11 @@
-import {personalityForSeat} from './strategy.js';
+import {seasonOptions} from './characters.js';
 import { Match, type Settings, type SavedMatch } from './match.js';
 import { cropDef, cropName, cropShortName, cropBlurb } from '../src/engine/catalog.js';
 import { acquireCost, type Action, type HarvestDetail } from '../src/engine/types.js';
 import { previousSeasonLeaders, topSeats, bottomSeats } from '../src/view/standings.js';
 import { harvestRoundsIfPlanted, visibleEventWindows } from '../src/view/outlook.js';
 import { trailLayout } from '../src/view/trailChart.js';
-import { vegetable, countryside, avatar, icon, cropColors } from './art.js';
+import { vegetable, countryside, avatar as drawAvatar, icon, cropColors } from './art.js';
 import { FarmAudio } from './audio.js';
 import { harvestWarning, harvestTiming, harvestWaves, Interrupted, Motion } from './experience.js';
 
@@ -49,6 +49,7 @@ const btn = (label: string, cmd: string, cls = '', disabled = false) => `<button
 const tool = (label: string, cmd: string, glyph: string, pressed?: boolean) => `<button class="tool" data-cmd="${cmd}" aria-label="${label}" title="${label}" ${pressed === undefined ? '' : `aria-pressed="${pressed}"`}>${icon(glyph)}</button>`;
 const name = (id: string) => `<span class="full-name">${esc(cropName(id))}</span><span class="short-name">${esc(cropShortName(id))}</span>`;
 const roundSpan = (from: number, to: number) => `R${from}${Math.min(to,match!.state.lastRound)>from ? `–${Math.min(to,match!.state.lastRound)}` : ''}`;
+function avatar(seat:number){return drawAvatar(seat,match?.namedCharacters?match.seats[seat]?.cpuStrategyId:undefined);}
 const coins = (amount: number) => `<span class="coin-symbol">G</span><b>${amount}</b>`;
 
 try {
@@ -97,7 +98,7 @@ function landing() {
     <section class="hero"><div class="eyebrow">A LITTLE FIELD. A GOOD HARVEST.</div><h1>はたさく<span>HATASAKU</span></h1><p class="hero-tag">一手、ひと畑。</p><p class="hero-copy">なにを植えるか。いつ実るか。<br>天候を読み、小さな畑で競い合うカードゲーム。</p><div class="hero-produce">${vegetable('radish')}${vegetable('corn')}${vegetable('sweetpotato')}</div><div class="hero-foot">1 PLAYER + CPU <span>縦でも横でも、あなたの畑へ。</span></div></section>
     <section class="setup-paper"><div class="paper-heading"><span class="eyebrow">LET'S GROW</span>${tool(prefs.music?'BGMをオフ':'BGMをオン','music',prefs.music?'sound':'mute',prefs.music)}</div><h2>${saved ? 'おかえりなさい。' : '今日の畑を、はじめよう。'}</h2>
     ${saved ? `<button class="resume" data-cmd="resume">${icon('play')}<span>つづきから<small>同じ端末に対局を保存しています</small></span>${icon('arrow')}</button>` : ''}
-    <form id="settings"><div class="game-format">18ラウンド · 農地は最大6枚</div><label>プレイヤー<select name="players">${[3,4,5].map(n=>`<option value="${n}" ${settings.players===n?'selected':''}>あなた ＋ CPU ${n-1}人</option>`).join('')}</select></label><label>シーズン<select name="seasons"><option value="standard" ${settings.seasons!==1?'selected':''}>人数と同じ ${settings.players}シーズン</option><option value="1" ${settings.seasons===1?'selected':''}>1シーズンだけ</option></select></label><div class="setup-options"><label><input name="learning" type="checkbox" ${prefs.learning?'checked':''}>学習ヒント</label><label><input name="effects" type="checkbox" ${prefs.effects?'checked':''}>効果音</label></div><button class="primary start-game" type="submit">${saved ? '新しい畑をはじめる' : '畑をはじめる'} ${icon('arrow')}</button></form>
+    <form id="settings"><div class="game-format">18ラウンド · 農地は最大6枚</div><label>プレイヤー<select name="players">${[3,4,5].map(n=>`<option value="${n}" ${settings.players===n?'selected':''}>あなた ＋ CPU ${n-1}人</option>`).join('')}</select></label><label>シーズン<select name="seasons">${seasonOptions(settings.players).map(o=>`<option value="${o.value}" ${settings.seasons===o.seasons?'selected':''}>${o.label}</option>`).join('')}</select></label><div class="setup-options"><label><input name="learning" type="checkbox" ${prefs.learning?'checked':''}>学習ヒント</label><label><input name="effects" type="checkbox" ${prefs.effects?'checked':''}>効果音</label></div><button class="primary start-game" type="submit">${saved ? '新しい畑をはじめる' : '畑をはじめる'} ${icon('arrow')}</button></form>
     <p class="setup-fine">作物 → 農地の2タップで植え付け。<br>対局は自動保存。音はいつでも切り替えられます。</p></section>
   </main>`;
 }
@@ -181,8 +182,8 @@ function recap() {
   return `<main class="recap"><div class="recap-header"><div><span class="eyebrow">SEASON ${s.season} COMPLETE</span><h1>おつかれさま、いい実り。</h1></div>${btn(`${m.screen==='actions'?'作戦を見比べる':'次へ'} ${icon('arrow')}`,'next','primary')}</div><div class="score-tickets">${seasonScores()}</div><div class="recap-content">${content}</div></main>`;
 }
 function trail() {
-  const m=match!;const chartWidth=window.matchMedia('(max-width: 700px) and (orientation: portrait)').matches?340:760;const chart=trailLayout(m.scores,chartWidth,230);
-  return `<main class="recap trail-page"><div class="recap-header"><div><span class="eyebrow">ALL SEASONS COMPLETE</span><h1>${m.scores.length}シーズン完了。ゲーム終了。</h1></div>${btn(`表彰式へ ${icon('arrow')}`,'next','primary')}</div><div class="trail-body"><div class="trail-legend">${m.seats.map((p,i)=>`<span style="--seat:${palette[i]}">${avatar(i)}<b>${esc(p.name)}</b><strong>${m.totals[i]}G</strong></span>`).join('')}<p>各時点での相対的な位置。<br>点の数字は実際の累計得点です。</p></div><svg class="trail-chart" viewBox="0 0 ${chartWidth} 230" role="img" aria-label="シーズンごとの累積得点の偏差値による推移">${chart.series.map(series=>`<g stroke="${palette[series.seat]}" fill="${palette[series.seat]}"><polyline stroke-width="2.5" fill="none" points="${series.points.map(p=>`${p.x},${p.y}`).join(' ')}"/>${series.points.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4"/><text x="${p.x}" y="${p.y-10}" text-anchor="middle" font-size="11" stroke="none">${p.total}</text>`).join('')}</g>`).join('')}${chart.xLabels.map(l=>`<text x="${l.x}" y="${l.y}" font-size="11" fill="#7d8a73" text-anchor="middle">${l.label}</text>`).join('')}</svg></div></main>`;
+  const m=match!;const compact=window.matchMedia('(max-width: 700px) and (orientation: portrait)').matches;const chartWidth=m.scores.length>10?m.scores.length*48+46:compact?340:760;const chart=trailLayout(m.scores,chartWidth,230);
+  return `<main class="recap trail-page"><div class="recap-header"><div><span class="eyebrow">ALL SEASONS COMPLETE</span><h1>${m.scores.length}シーズン完了。ゲーム終了。</h1></div>${btn(`表彰式へ ${icon('arrow')}`,'next','primary')}</div><div class="trail-body"><div class="trail-legend">${m.seats.map((p,i)=>`<span style="--seat:${palette[i]}">${avatar(i)}<b>${esc(p.name)}</b><strong>${m.totals[i]}G</strong></span>`).join('')}<p>各時点での相対的な位置。<br>点の数字は実際の累計得点です。</p></div><div class="trail-scroll"><svg class="trail-chart" style="${m.scores.length>10?`min-width:${chartWidth}px`:''}" viewBox="0 0 ${chartWidth} 230" role="img" aria-label="シーズンごとの累積得点の偏差値による推移">${chart.series.map(series=>`<g stroke="${palette[series.seat]}" fill="${palette[series.seat]}"><polyline stroke-width="2.5" fill="none" points="${series.points.map(p=>`${p.x},${p.y}`).join(' ')}"/>${series.points.map(p=>`<circle cx="${p.x}" cy="${p.y}" r="4"/><text x="${p.x}" y="${p.y-10}" text-anchor="middle" font-size="11" stroke="none">${p.total}</text>`).join('')}</g>`).join('')}${chart.xLabels.map(l=>`<text x="${l.x}" y="${l.y}" font-size="11" fill="#7d8a73" text-anchor="middle">${l.label}</text>`).join('')}</svg></div></div></main>`;
 }
 function result() {
   const m=match!;const winners=topSeats(m.totals);
@@ -321,7 +322,7 @@ async function next() {
 }
 function readForm(form:HTMLFormElement) {
   const data=new FormData(form);const players=Number(data.get('players'));
-  settings={mode:'advanced',players,seasons:data.get('seasons')==='1'?1:players,seed:''};
+  settings={mode:'advanced',players,seasons:seasonOptions(players).find(o=>o.value===data.get('seasons'))?.seasons??players,seed:''};
   prefs.learning=data.has('learning');prefs.effects=data.has('effects');
 }
 app.addEventListener('submit',e=>{
@@ -332,7 +333,7 @@ app.addEventListener('submit',e=>{
 });
 app.addEventListener('change',e=>{
   const form=(e.target as HTMLElement).closest<HTMLFormElement>('#settings');
-  if (form) {readForm(form);savePreferences(); const option=form.querySelector('option[value="standard"]'); if(option) option.textContent=`人数と同じ ${settings.players}シーズン`;}
+  if (form) {readForm(form);savePreferences(); for(const option of seasonOptions(settings.players)){const el=form.querySelector(`option[value="${option.value}"]`);if(el)el.textContent=option.label;}}
 });
 dialog.addEventListener('change',e=>{
   if (e.target instanceof HTMLSelectElement&&e.target.id==='pace') {prefs.pace=Number(e.target.value);savePreferences();}
@@ -362,7 +363,7 @@ async function click(e:MouseEvent) {
     try {const value=JSON.parse(localStorage.getItem(SAVE)||'null');saved=value&&Match.restore(value).screen!=='result'?value:null;} catch {saved=null;}
     render();return;
   }
-  if (match&&el.dataset.profile) {const p=personalityForSeat(Number(el.dataset.profile));modal('cpu',`<div class="modal-heading"><h2>CPU ${el.dataset.profile} · ${esc(p.label)}</h2></div><p>${esc(p.description)}</p><p class="muted">未公開の天候や山札の順番、相手が伏せた呪いの対象は知りません。${p.curse==='predict'?'呪いの予測は外れることもあります。':''}</p>${btn('畑に戻る','close','primary')}`);return;}
+  if (match&&el.dataset.profile) {const seat=Number(el.dataset.profile),p=match.cpuPersonality(seat);modal('cpu',`<div class="modal-heading"><h2>${esc(match.seats[seat]!.name)} · ${esc(p.label)}</h2></div><p>${esc(p.description)}</p><p class="muted">未公開の天候や山札の順番、相手が伏せた呪いの対象は知りません。${p.curse==='predict'?'呪いの予測は外れることもあります。':''}</p>${btn('畑に戻る','close','primary')}`);return;}
   if (match&&busy&&el.dataset.plot) {const [seat,index]=el.dataset.plot.split(':').map(Number); const id=match.view.players[seat!]!.plots[index!]!.cropId; if (id) detail(id); return;}
   if (!match||busy||paused) return;
   void sound.unlock();

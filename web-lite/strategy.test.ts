@@ -42,8 +42,8 @@ describe('v0.20 rule actions',()=>{
   const m=new Match(settings,'0.19');m.start();while(m.state.round<3){if(m.screen==='play')m.act(m.state.actingSeat===0?{type:'pass'}:m.cpuAction());else{m.finishHarvest();m.next();}}
   const restored=Match.restore(m.save());expect(restored.save().version).toBe(2);expect(restored.state).toEqual(m.state);expect(restored.cpuAction()).toEqual(m.cpuAction());expect(listLegalActions(restored.state).some(a=>a.type==='refresh'||a.type==='replace')).toBe(false);
  });
- test('v3 saves restore exactly after refresh and continue through seasons',()=>{
-  const m=fixture();m.act({type:'refresh'});const restored=Match.restore(m.save());expect(restored.state).toEqual(m.state);expect(restored.save().version).toBe(3);
+ test('v4 saves restore exactly after refresh and continue through seasons',()=>{
+  const m=fixture();m.act({type:'refresh'});const restored=Match.restore(m.save());expect(restored.state).toEqual(m.state);expect(restored.save().version).toBe(4);
   let steps=0;while(m.screen==='play'||m.screen==='harvest'){
    expect(++steps).toBeLessThan(400);if(m.screen==='play'){const a=m.state.actingSeat===0?{type:'pass' as const}:m.cpuAction();expect(a).toEqual(restored.state.actingSeat===0?{type:'pass'}:restored.cpuAction());m.act(a);restored.act(a);}else{m.finishHarvest();restored.finishHarvest();m.next();restored.next();}expect(restored.state).toEqual(m.state);
   }
