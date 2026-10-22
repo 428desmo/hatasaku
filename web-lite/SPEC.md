@@ -214,4 +214,4 @@ CPUの説明ダイアログでは、名前・個性の見出し横にその席�
 
 ## 公開インデックスの紹介画像
 
-VPSの主ホストは `lab.tokyo-desmo.com`。インデックスのHatasakuパネルには、スマホ版プレイ画面の上半分・作物カード4枚・既存の葉アイコン付き和英ロゴを重ねた画像を表示。深緑を背景に、クリーム色のカードとロゴを前面へ置く。ゲーム本体のレイアウト・BGM・SEには影響しない。画像は `conoha/assets/hatasaku-cover.svg`、配信先は `/hatasaku/hatasaku-cover.svg`。
+VPSの主ホストは `lab.tokyo-desmo.com`。インデックスのHatasakuパネルには、スマホ版プレイ画面を、その上半分が画像領域を覆うくらいに拡大して背景全面に置き、作物カード4枚・既存の葉アイコン付き和英ロゴを重ねた画像を表示。画面を小さなスマホ枠として配置する構図にはしない。深緑を背景に、クリーム色のカードとロゴを前面へ置く。ゲーム本体のレイアウト・BGM・SEには影響しない。画像は `conoha/assets/hatasaku-cover.svg`、配信先は `/hatasaku/hatasaku-cover.svg`。
