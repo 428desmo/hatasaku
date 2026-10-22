@@ -388,7 +388,11 @@ async function click(e:MouseEvent) {
       case 'replace-confirm':if(match.humanTurn&&pendingReplacement&&dialogKind==='replacement'){const action=pendingReplacement;pendingReplacement=null;closeModal();match.act(action);checkpoint();selected=null;sound.play('plant');await drive();}break;
       case 'refresh':if(match.humanTurn){match.act({type:'refresh'});checkpoint();selected=null;sound.play('select');render();}break;
       case 'start':match.start();checkpoint();sound.play('start');await drive();break;
-      case 'pass':if (match.humanTurn) {match.act({type:'pass'});checkpoint();selected=null;sound.play('pass');await drive();}break;
+      case 'pass':if (match.humanTurn) {
+        if(selected!==null){const id=match.view.market[selected]!.cropId;modal('pass-confirm',`<div class="modal-heading"><h2>植えずにパスしますか？</h2></div><p><b>${esc(cropName(id))}</b>を選択中です。まだ農地には植えていません。</p><p>パスすると、この手番は植え付けずに終了します。</p><div class="modal-actions">${btn('農地選びに戻る','close','subtle')}${btn('パスする','pass-confirm','primary')}</div>`);break;}
+        match.act({type:'pass'});checkpoint();selected=null;sound.play('pass');await drive();
+      }break;
+      case 'pass-confirm':if(match.humanTurn&&selected!==null&&dialogKind==='pass-confirm'){closeModal();match.act({type:'pass'});checkpoint();selected=null;sound.play('pass');await drive();}break;
       case 'cancel':selected=null;render();break;
       case 'curse':if (match.humanTurn) curseModal();break;
       case 'next':await next();break;
