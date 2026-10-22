@@ -36,7 +36,7 @@ class PublishPatchTest(unittest.TestCase):
             self.assertIn(f'href="{link}"', result)
         self.assertEqual(result.count('id="hatasaku"'), 1)
         self.assertIn('FOUR GAMES', result)
-        self.assertIn('src="/hatasaku/hatasaku-cover.svg"', result)
+        self.assertIn('src="/hatasaku/hatasaku-cover.svg?v=vector-1"', result)
         self.assertIn('object-fit: cover', result)
         self.assertEqual(portal_patch(result), result)
 

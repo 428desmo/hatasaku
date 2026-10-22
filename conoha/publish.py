@@ -24,7 +24,7 @@ CARD = '''          <!-- BEGIN HATASAKU -->
               <p class="quota-detail">小さな畑で、先を読む。<br>作物と天候を見極める、1人＋CPUのカードゲーム。</p>
               <a class="play-link" href="/hatasaku/">はたさくをプレイ <span aria-hidden="true">↗</span></a>
             </div>
-            <div class="quota-art hatasaku-art"><img src="/hatasaku/hatasaku-cover.svg" alt="スマホの農場画面に4枚の作物カードと、葉のアイコン付きはたさく HATASAKUロゴを重ねたビジュアル" width="1600" height="800" loading="lazy" decoding="async"></div>
+            <div class="quota-art hatasaku-art"><img src="/hatasaku/hatasaku-cover.svg?v=vector-1" alt="スマホの農場画面に4枚の作物カードと、葉のアイコン付きはたさく HATASAKUロゴを重ねたビジュアル" width="1600" height="800" loading="lazy" decoding="async"></div>
           </article>
           <!-- END HATASAKU -->'''
 STYLE = '''
