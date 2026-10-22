@@ -363,7 +363,7 @@ async function click(e:MouseEvent) {
     try {const value=JSON.parse(localStorage.getItem(SAVE)||'null');saved=value&&Match.restore(value).screen!=='result'?value:null;} catch {saved=null;}
     render();return;
   }
-  if (match&&el.dataset.profile) {const seat=Number(el.dataset.profile),p=match.cpuPersonality(seat);modal('cpu',`<div class="modal-heading"><h2>${esc(match.seats[seat]!.name)} · ${esc(p.label)}</h2></div><p>${esc(p.description)}</p><p class="muted">未公開の天候や山札の順番、相手が伏せた呪いの対象は知りません。${p.curse==='predict'?'呪いの予測は外れることもあります。':''}</p>${btn('畑に戻る','close','primary')}`);return;}
+  if (match&&el.dataset.profile) {const seat=Number(el.dataset.profile),p=match.cpuPersonality(seat);modal('cpu',`<div class="modal-heading cpu-modal-heading">${avatar(seat)}<h2>${esc(match.seats[seat]!.name)} · ${esc(p.label)}</h2></div><p>${esc(p.description)}</p><p class="muted">未公開の天候や山札の順番、相手が伏せた呪いの対象は知りません。${p.curse==='predict'?'呪いの予測は外れることもあります。':''}</p>${btn('畑に戻る','close','primary')}`);return;}
   if (match&&busy&&el.dataset.plot) {const [seat,index]=el.dataset.plot.split(':').map(Number); const id=match.view.players[seat!]!.plots[index!]!.cropId; if (id) detail(id); return;}
   if (!match||busy||paused) return;
   void sound.unlock();
