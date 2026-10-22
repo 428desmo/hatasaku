@@ -24,13 +24,13 @@ CARD = '''          <!-- BEGIN HATASAKU -->
               <p class="quota-detail">小さな畑で、先を読む。<br>作物と天候を見極める、1人＋CPUのカードゲーム。</p>
               <a class="play-link" href="/hatasaku/">はたさくをプレイ <span aria-hidden="true">↗</span></a>
             </div>
-            <div class="quota-art hatasaku-art" aria-hidden="true"><span>はたさく ✳</span></div>
+            <div class="quota-art hatasaku-art"><img src="/hatasaku/hatasaku-cover.svg" alt="スマホの農場画面に4枚の作物カードと、葉のアイコン付きはたさく HATASAKUロゴを重ねたビジュアル" width="1600" height="800" loading="lazy" decoding="async"></div>
           </article>
           <!-- END HATASAKU -->'''
 STYLE = '''
     /* BEGIN HATASAKU */
-    .hatasaku-art { display: grid; place-items: center; background: repeating-linear-gradient(110deg, #dce4cb 0 26px, #cedabb 26px 30px); }
-    .hatasaku-art span { color: #345c3c; font-size: 34px; font-weight: 800; letter-spacing: .06em; }
+    .hatasaku-art { position: relative; background: #294a3b; overflow: hidden; }
+    .hatasaku-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
     @media (min-width: 1001px) { .apps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     /* END HATASAKU */
 '''
@@ -123,6 +123,7 @@ def publish(root, release, portal, domain):
                 check(f'https://{domain}/hatasaku/', 'はたさく · Web Lite', domain)
                 check(f'https://{domain}/hatasaku/app.js', 'HATASAKU', domain)
                 check(f'https://{domain}/hatasaku/style.css', '.game-table', domain)
+                check(f'https://{domain}/hatasaku/hatasaku-cover.svg', 'HATASAKU', domain)
                 check(f'https://{domain}/', 'href="/hatasaku/"', domain)
                 for game, marker in [('quota2','Quota'), ('fragile','Fragile'), ('loop','Loop')]:
                     check(f'https://{domain}/{game}/', marker, domain)

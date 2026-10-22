@@ -8,7 +8,7 @@ source "$CONFIG"
 : "${VPS_HOST:?Set VPS_HOST}"
 SSH_USER=${SSH_USER:-root}; SSH_PORT=${SSH_PORT:-22}; SSH_KEY=${SSH_KEY:-}
 REMOTE_ROOT=${REMOTE_ROOT:-/srv/hatasaku}
-PUBLIC_DOMAIN=${PUBLIC_DOMAIN:-app1.gunsnstoneroses.com}
+PUBLIC_DOMAIN=${PUBLIC_DOMAIN:-lab.tokyo-desmo.com}
 PORTAL_FILE=${PORTAL_FILE:-/srv/quota/web/current/portal/index.html}
 [[ "$VPS_HOST" =~ ^[A-Za-z0-9._-]+$ ]] && [[ "$SSH_USER" =~ ^[A-Za-z0-9_-]+$ ]] || exit 1
 [[ "$SSH_PORT" =~ ^[1-9][0-9]*$ ]] && [ "$SSH_PORT" -le 65535 ] || exit 1
